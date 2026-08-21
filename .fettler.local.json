@@ -1,0 +1,18 @@
+{
+  "trees": {
+    "scratch": {
+      "path": "C:/Users/foster/AppData/Local/Temp/claude/c--github-shoddy-fettler",
+      "can": ["list", "read", "create", "update", "rename", "delete"]
+    },
+    "shoddy": {
+      "path": "../shoddy",
+      "can": ["list", "read"]
+      }
+  },
+  "replacements": {
+    "feature-branch":  "reinard",
+    "bug-branch":      "reinard01", 
+    "release-version": "1.0.0",
+    "commit-note":     "Moving to it's own repo!"
+  }
+}
