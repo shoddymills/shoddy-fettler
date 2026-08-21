@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Who made Fettler, how it was made, and with what tools &mdash; including the disclosed use of an AI system as a drafting instrument.">
+<title>Authorship | Fettler</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+</head>
+<body>
+<div class="topbar"><div class="inner">
+  <div class="row">
+    <a class="phase" href="index.html"><img class="mark" src="media/brand/shoddy-icon.svg" alt="" width="23" height="23">Shoddy &middot; Fettler</a>
+    <span class="spacer"></span>
+    <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><span class="here">Authorship</span></nav>
+  </div>
+  <nav class="docnav main" aria-label="Documentation"><a href="index.html">Overview</a><a href="diagram.html">The workstation</a><a href="quickstart.html">Quick start</a><a href="install.html">Install</a><a href="setup.html">In a project</a><a href="screening.html">Screening</a></nav>
+</div></div>
+<div class="wrap">
+<header class="mast">
+<p class="eyebrow">Fettler</p>
+<h1 id="authorship">Authorship</h1>
+<p class="kicker">Who made this, how it was made, and with what tools</p>
+</header>
+
+<h2 id="the-claim">The claim</h2>
+<p>Fettler &mdash; its design, its boundary rules, its documentation, its
+source, its test suite, this website, and its name &mdash; was conceived,
+designed, directed, curated, and is owned by
+<strong>Stephen Vincent Foster</strong>. Every design decision in the tool
+was a human decision: what Fettler would do, what it would refuse to do,
+what entered it, and what was kept out of it. Copyright in the works of
+this project is claimed by their author. It is licensed to the public
+under the
+<a href="https://github.com/shoddymills/shoddy-fettler/blob/main/LICENSE">MIT License</a>
+&mdash; a permissive open-source license, under which anyone may use, copy,
+and change the work.</p>
+<p>This page exists for two reasons. First, to state that claim plainly and
+put the evidence for it on the record. Second, to disclose honestly how
+the work was made &mdash; including the use of an AI system as a development
+tool. Honest disclosure is both the emerging norm and, as it happens, the
+position the law rewards.</p>
+
+<h2 id="the-tools">The tools, disclosed</h2>
+<p>Fettler was developed with <strong>Claude (Anthropic)</strong>, an AI coding
+tool. It was used throughout as a drafting instrument: it produced code and
+prose drafts in response to the author's directions, within constraints the
+author set, subject to the author's acceptance, rejection, and revision.
+Development also used the .NET SDK and Roslyn &mdash; programs that translate
+source code into runnable form &mdash; editors (VS Code), and continuous
+integration (GitHub Actions, a service that builds and tests the code
+automatically after every change). This page refers to the AI system only as
+a tool, because that is what it was in this project's process. It was an
+instrument operated by a person, in the same category as the compiler and
+the typesetter &mdash; faster than both, and no more the author than
+either.</p>
+<p>There is a particular symmetry worth stating, because it is the whole
+point of the tool. <b>Fettler is a bounded instrument for AI assistants, and
+it was built by directing one.</b> The boundary it enforces &mdash; declared
+trees, no working directory, no shell, a configuration the tool may not
+write &mdash; is the author's answer to what that experience showed was
+needed. A tool that decided its own limits would be no answer at all,
+which is why <a href="index.html#rules">the rule that makes every other rule
+hold</a> is that Fettler cannot grant itself anything.</p>
+<p>The division of labor was consistent throughout. The tool drafted. The
+author decided. Nothing entered the tool without being commissioned, and
+nothing stayed in it without being accepted. The author:</p>
+<ul>
+<li>set the problem;</li>
+<li>chose among alternatives the tool laid out;</li>
+<li>refused features on the merits;</li>
+<li>ordered work gated, and design described before it was built;</li>
+<li>structured the repository by hand;</li>
+<li>and set the acceptance criteria against which every change was
+judged.</li>
+</ul>
+<div class="note"><span class="lab">Note</span>This disclosure follows the
+form emerging across the industry. The
+<a href="https://openinfra.org/legal/ai-policy/">OpenInfra Foundation's AI policy</a>,
+for example, asks contributors to label machine-drafted work and to keep a
+human in the loop who fully understands it. The U.S. Copyright Office's
+registration guidance (37&nbsp;C.F.R. &sect;&nbsp;202, 88&nbsp;Fed.&nbsp;Reg.
+16,190, Mar.&nbsp;2023) requires applicants to disclose AI-generated
+content in works submitted for registration &mdash; the formal recording of a
+copyright claim. This page is that disclosure, made voluntarily and in
+advance.</div>
+
+<h2 id="the-record">The record</h2>
+<p><b>Fettler's design record is in Fettler's own source, and it is unusually
+complete.</b> This is not an accident of style. Every load-bearing decision in
+the tool is written down beside the code that implements it, with the reason
+that produced it and, where one exists, the requirement clause it answers to.
+A reader can check the claim rather than take it.</p>
+<table class="prose">
+<thead><tr><th>Where</th><th>What it records</th></tr></thead>
+<tbody>
+<tr><td><code>Fettler/Fettler.csproj</code></td>
+<td>Why the project takes no <code>ProjectReference</code> at all, and why its
+package allowlist admits exactly one entry &mdash; each condition stated, with
+the consequence that produced it.</td></tr>
+<tr><td><code>burler/burler.csproj</code></td>
+<td>Why the disclosure screen's model host is a <em>second executable</em>
+rather than a class: the inference needs a native dependency the allowlist
+disqualifies, so the rule was kept and the program was split.</td></tr>
+<tr><td><code>Fettler/Core/</code></td>
+<td>The operations themselves, each carrying the refusal it enforces and the
+failure that made the refusal necessary.</td></tr>
+<tr><td><code>Fettler.Tests</code>, <code>burler.Tests</code></td>
+<td>The proof. Constraints that are merely written down last until somebody is
+in a hurry, so the boundary, the allowlist and the layering are each asserted
+by a test that fails when they stop being true.</td></tr>
+<tr><td>This site</td>
+<td><a href="index.html">What the tool guarantees</a>, and
+<a href="index.html#threat">what it deliberately does not</a>.</td></tr>
+</tbody>
+</table>
+<p>The commit history of this repository carries the rest: what changed, when,
+and in response to what.</p>
+
+<h2 id="the-law">The legal position</h2>
+<p>United States law now speaks clearly to projects made this way. It is
+worth setting out what the law actually says &mdash; both because it supports
+the claim above and because it disciplines it.</p>
+<p><strong>A machine cannot be an author. A person using a machine can be.</strong> In
+<a href="https://media.cadc.uscourts.gov/opinions/docs/2025/03/23-5233.pdf"><em>Thaler v. Perlmutter</em></a>,
+No.&nbsp;23-5233 (D.C.&nbsp;Cir. Mar.&nbsp;18, 2025), <em>cert. denied</em>
+(U.S. Mar.&nbsp;2, 2026 &mdash; meaning the Supreme Court declined to review it),
+the Court of Appeals held that the Copyright Act requires a human author.
+A work generated <em>autonomously</em> by a machine &mdash; where the human
+claims no creative role at all &mdash; has none. That case is the opposite of
+this project. Dr.&nbsp;Thaler insisted his machine created the work by
+itself. The record above shows a person making every decision that shaped
+this one. The court itself was careful to note that its holding does not
+reach works made <em>by humans using</em> AI tools.</p>
+<p><strong>Using an AI tool does not diminish protection; abdicating to one
+does.</strong> The U.S. Copyright Office's report
+<a href="https://www.copyright.gov/ai/Copyright-and-Artificial-Intelligence-Part-2-Copyrightability-Report.pdf"><em>Copyright and Artificial Intelligence, Part&nbsp;2: Copyrightability</em></a>
+(Jan.&nbsp;2025) draws the operative line: &ldquo;there is an important
+distinction between using AI as a tool to assist in the creation of
+works and using AI as a stand-in for human creativity.&rdquo; Assistive use
+does not limit protection at all. Where a system drafts content, the
+Office identifies three ways human authorship attaches:</p>
+<ul>
+<li>the human's own expression is perceptible in the output;</li>
+<li>the human creatively selects, coordinates, and arranges the
+material;</li>
+<li>or the human modifies the output in ways that constitute new
+authorship.</li>
+</ul>
+<p>All three describe this project. The report also warns that <em>prompts
+alone</em> &mdash; instructions tossed to a system whose output the human merely
+adopts &mdash; do not make their writer an author. That warning is why this page
+rests the claim not on the fact that the author wrote the prompts, but on
+what the record shows those prompts to be: sustained creative control over
+the design, contents, arrangement, naming, and acceptance of the whole work,
+together with substantial expression contributed and revised directly by the
+author across the documentation, the tests, and the repository.</p>
+<p><strong>The registration decisions mark both edges.</strong> In
+<a href="https://www.copyright.gov/docs/zarya-of-the-dawn.pdf"><em>Zarya of the Dawn</em></a>
+(U.S. Copyright Office, Feb.&nbsp;2023), the Office registered the human
+author's text and her creative selection and arrangement of a comic book,
+while excluding the raw machine-generated images as such. The human
+contribution was protected. The machine output alone was not. In
+<a href="https://www.copyright.gov/rulings-filings/review-board/docs/Theatre-Dopera-Spatial.pdf"><em>Th&eacute;&acirc;tre D'Op&eacute;ra Spatial</em></a>
+(Review Board, Sept.&nbsp;2023), registration was refused where the claim
+rested on prompting alone &mdash; a refusal now under challenge in
+<em>Allen v. Perlmutter</em>, No.&nbsp;1:24-cv-2665 (D.&nbsp;Colo., pending).
+Fettler's claim is built on the <em>Zarya</em> side of that line, and the
+design record described above is the evidence that it belongs there:
+contemporaneous documentation of the human contribution &mdash; exactly what
+the Office and current practice guidance recommend keeping.</p>
+<p><strong>And one limit is acknowledged rather than contested.</strong> Copyright
+protects expression, not systems or methods of operation
+(17&nbsp;U.S.C. &sect;&nbsp;102(b); cf. <em>Google&nbsp;v.&nbsp;Oracle</em>, 593&nbsp;U.S.&nbsp;1 (2021)).
+The abstract idea of a bounded file tool &mdash; declared trees, a permission
+set, a configuration the tool may not write &mdash; is a method anyone is free
+to reimplement. What copyright protects is the expression of this project:
+this site's text, the documentation, the source, the tests, and the record
+itself. Stating that boundary honestly costs the claim nothing.</p>
+
+<h2 id="claimed-not-claimed">What is claimed, and what is not</h2>
+<p><strong>Claimed:</strong> authorship and copyright in the works of this project &mdash;
+the documentation, this website, the source of <code>fettle</code> and
+<code>burler</code>, the test suite, and the name as used here. These are
+claimed as works created by a human author exercising creative control. The
+machine-drafted portions are embodied in them through that author's
+direction, selection, arrangement, and revision. The claim runs to the full
+extent United States law protects such works.</p>
+<p><strong>Not claimed:</strong></p>
+<ul>
+<li>that a machine is or could be an author of any part of this
+project;</li>
+<li>any exclusive right in the abstract design of a bounded file tool,
+which anyone may implement;</li>
+<li>and any right beyond what the MIT License already grants &mdash; which is
+to say, nearly everything is granted.</li>
+</ul>
+<p>The claim of ownership and the openness of the license are not in
+tension. One must own a thing to license it, and this page is the account
+of that ownership.</p>
+
+<h2 id="declaration">Declaration</h2>
+<p>I conceived Fettler, directed its design, and made every decision
+recorded above. I wrote and revised its documents, structured its
+repository, set its acceptance criteria, and named it. I take
+responsibility for all of it &mdash; including the portions first drafted by a
+tool at my direction. I used Claude (Anthropic) as a development tool,
+openly, and this page discloses that use in the interest of honesty and
+the historical record. I claim authorship and ownership of this project
+in good faith and to the full extent of the law.</p>
+<p><strong>Stephen Vincent Foster</strong><br>
+August&nbsp;2, 2026</p>
+
+<h2 id="sources">Sources and further reading</h2>
+<p><em>Thaler v. Perlmutter</em>, No.&nbsp;23-5233 (D.C.&nbsp;Cir. Mar.&nbsp;18, 2025)
+(<a href="https://media.cadc.uscourts.gov/opinions/docs/2025/03/23-5233.pdf">opinion</a>),
+<em>cert. denied</em> (U.S. Mar.&nbsp;2, 2026) &middot;
+U.S. Copyright Office, <a href="https://www.copyright.gov/ai/Copyright-and-Artificial-Intelligence-Part-2-Copyrightability-Report.pdf"><em>Copyright and Artificial Intelligence, Part&nbsp;2: Copyrightability</em></a> (Jan.&nbsp;2025) &middot;
+U.S. Copyright Office, <a href="https://www.copyright.gov/docs/zarya-of-the-dawn.pdf"><em>Zarya of the Dawn</em></a> registration decision (Feb.&nbsp;2023) &middot;
+Copyright Review Board, <a href="https://www.copyright.gov/rulings-filings/review-board/docs/Theatre-Dopera-Spatial.pdf"><em>Th&eacute;&acirc;tre D'Op&eacute;ra Spatial</em></a> decision (Sept.&nbsp;2023) &middot;
+<a href="https://www.copyright.gov/ai/">Copyright Office AI initiative</a> (registration guidance, Mar.&nbsp;2023) &middot;
+<a href="https://openinfra.org/legal/ai-policy/">OpenInfra Foundation AI policy</a> &middot;
+17&nbsp;U.S.C. &sect;&nbsp;102(b) &middot; <em>Google v. Oracle</em>, 593&nbsp;U.S.&nbsp;1 (2021).</p>
+<p><em>This page is a disclosure and a declaration, not legal advice.</em></p>
+
+<footer>Named for the fettler who kept a mill's carding engines in order
+(<a href="heritage.html">the heritage of the name</a>).<br>
+&copy; 2026 Stephen Vincent Foster</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,312 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1570 1180" role="img"
+  aria-label="Component diagram of three boundaries. First, the model, Claude in VS Code, whose eleven built-in tools are every one of them struck through as denied: the six file tools Read, Write, Edit, NotebookEdit, Grep and Glob; then the three shells Bash, PowerShell and Monitor, Monitor being a shell because it runs the command it is handed in the same environment Bash does; and last the two output readers BashOutput and TaskOutput, which start nothing and write nothing but hand back the output of work already done, bytes that reached the model without passing the tree boundary, the secret scan or the disclosure screen. Second, the Fettler MCP server, whose boundary comes from .fettler.json and which refuses to write the files that govern it or the model. Third, the filesystem, visible only as the declared trees, with everything else refused as nonexistent.">
+<style>
+/* Extracted from docs/diagram.html so the figure can stand alone in a README.
+   The palette is the site's: madder for what is refused, drab for what is
+   granted, indigo for what is read-only, over the unbleached wool ground.
+   Kept in step with the page by hand - if the diagram there is restyled,
+   re-extract rather than patching one of the two. */
+svg{
+  --madder:#6E3A33; --drab:#55604A; --indigo:#2F4560;
+  --ink:#2E2A26; --ink-soft:#5b544a; --line:#ddd6c6; --line-soft:#e7e2d5;
+  --paper:#efece4; --card:#f8f6f0; --code-bg:#e9e5da; --code-ink:#33302b;
+  --drab-tint:#e5e8dc; --indigo-tint:#e0e5ec; --madder-tint:#ecdfda;
+  --dim:#e7e4da; --brick:#e3cfc8;
+}
+text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.mono{font-family:Consolas,"Cascadia Code",ui-monospace,Menlo,monospace}
+.bframe{fill:none; stroke-dasharray:8 6; stroke-width:1.6}
+.btab{font-size:12.5px; font-weight:700; fill:var(--paper); letter-spacing:.04em}
+.bsub{font-size:11.5px; fill:var(--ink-soft); font-style:italic}
+.card2{fill:var(--card); stroke:var(--line)}
+.cardT{font-size:12.5px; font-weight:700; fill:var(--ink)}
+.cardTm{font-size:12px; font-weight:700}
+.snip{font-size:11px; fill:var(--code-ink)}
+.snipbg{fill:var(--code-bg); stroke:var(--line-soft)}
+.note{font-size:10.5px; fill:var(--ink-soft); font-style:italic}
+.grpT{font-size:11.5px; font-weight:650; fill:var(--ink-soft); letter-spacing:.05em}
+.chip{fill:var(--madder-tint); stroke:var(--madder)}
+.chipT{font-size:11.5px; fill:var(--madder); font-weight:600}
+.lbl{font-size:11px; fill:var(--ink-soft); paint-order:stroke; stroke:var(--card); stroke-width:4px; stroke-linejoin:round}
+.lblR{font-size:11px; fill:var(--madder); font-weight:650; paint-order:stroke; stroke:var(--card); stroke-width:4px; stroke-linejoin:round}
+.route{stroke:var(--drab); stroke-width:2; fill:none}
+.routeMain{stroke:var(--drab); stroke-width:3; fill:none}
+.blocked{stroke:var(--madder); stroke-width:1.8; fill:none; stroke-dasharray:5 4}
+.tree{font-size:12px}
+.ok{fill:var(--drab); font-weight:650}
+.ro{fill:var(--indigo); font-weight:650}
+.bad{fill:var(--madder); font-weight:650}
+.hid{fill:var(--ink-soft)}
+.badge{font-size:10.5px; font-weight:650}
+.leg{font-size:12px; fill:var(--ink)}
+.t-title{font-size:31px; font-weight:800; fill:var(--ink)}
+.t-sub{font-size:15.5px; fill:var(--ink-soft)}
+.t-frame{font-size:13.5px; font-weight:800; fill:var(--paper); letter-spacing:.1em}
+.t-zone{font-size:13.5px; font-weight:800; fill:var(--ink-soft); letter-spacing:.09em}
+.t-inN{font-size:16px; font-weight:750; fill:var(--drab)}
+.t-outN{font-size:15px; font-weight:700; fill:var(--madder)}
+.t-body{font-size:12.5px; fill:var(--ink)}
+.t-dim{font-size:12.5px; fill:var(--ink-soft)}
+.t-perm{font-size:12px; font-weight:700; fill:var(--drab); letter-spacing:.03em}
+.t-tag{font-size:11.5px; font-weight:700; fill:var(--madder); letter-spacing:.05em}
+.pill{font-size:10.5px; font-weight:800; fill:var(--paper); letter-spacing:.11em}
+.t-legend{font-size:13px; fill:var(--ink)}
+</style>
+<rect width="100%" height="100%" fill="var(--card)"/>
+<defs>
+  <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="var(--drab)"/>
+  </marker>
+  <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="var(--madder)"/>
+  </marker>
+  <pattern id="hatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+    <line x1="0" y1="0" x2="0" y2="7" stroke="var(--line)" stroke-width="1.4"/>
+  </pattern>
+</defs>
+
+<!-- ============ BOUNDARY FRAMES ============ -->
+<rect x="20" y="40" width="485" height="1050" class="bframe" stroke="var(--indigo)"/>
+<rect x="14" y="28" width="235" height="24" rx="4" fill="var(--indigo)"/>
+<text x="26" y="45" class="btab">&#171;boundary&#187; THE MODEL</text>
+<text x="40" y="72" class="bsub">everything the assistant is &#8212; and every file that shapes it</text>
+
+<rect x="560" y="40" width="460" height="1050" class="bframe" stroke="var(--madder)"/>
+<rect x="554" y="28" width="272" height="24" rx="4" fill="var(--madder)"/>
+<text x="566" y="45" class="btab">&#171;boundary&#187; THE TOOL &#8212; FETTLER</text>
+<text x="580" y="72" class="bsub">one process between the model and the disk</text>
+
+<rect x="1065" y="40" width="480" height="1050" class="bframe" stroke="var(--drab)"/>
+<rect x="1059" y="28" width="248" height="24" rx="4" fill="var(--drab)"/>
+<text x="1071" y="45" class="btab">&#171;boundary&#187; THE FILESYSTEM</text>
+<text x="1085" y="72" class="bsub">what exists, seen through the declared trees</text>
+
+<!-- ============ COLUMN 1 : THE MODEL ============ -->
+<rect x="40" y="86" width="440" height="244" rx="8" class="card2"/>
+<text x="56" y="106" class="cardT">VS Code &#183; Claude Code extension</text>
+<text x="56" y="120" class="note">shares the CLI&#8217;s registry &#8212; one wiring, one verdict</text>
+
+<rect x="60" y="130" width="400" height="30" rx="6" fill="var(--indigo-tint)" stroke="var(--indigo)"/>
+<text x="260" y="149" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--indigo)">Claude &#8212; the model</text>
+
+<text x="60" y="180" class="grpT">THE ELEVEN BUILT-INS &#8212; DENIED BY permissions.deny</text>
+<g>
+  <rect x="60"  y="190" width="46"  height="21" rx="10" class="chip"/><text x="83"  y="204" text-anchor="middle" class="chipT">Read</text>
+  <line x1="62" y1="209" x2="104" y2="192" stroke="var(--madder)" stroke-width="1.4"/>
+  <rect x="114" y="190" width="50"  height="21" rx="10" class="chip"/><text x="139" y="204" text-anchor="middle" class="chipT">Write</text>
+  <line x1="116" y1="209" x2="162" y2="192" stroke="var(--madder)" stroke-width="1.4"/>
+  <rect x="172" y="190" width="44"  height="21" rx="10" class="chip"/><text x="194" y="204" text-anchor="middle" class="chipT">Edit</text>
+  <line x1="174" y1="209" x2="214" y2="192" stroke="var(--madder)" stroke-width="1.4"/>
+  <rect x="224" y="190" width="98"  height="21" rx="10" class="chip"/><text x="273" y="204" text-anchor="middle" class="chipT">NotebookEdit</text>
+  <line x1="226" y1="209" x2="320" y2="192" stroke="var(--madder)" stroke-width="1.4"/>
+  <rect x="60"  y="218" width="46"  height="21" rx="10" class="chip"/><text x="83"  y="232" text-anchor="middle" class="chipT">Grep</text>
+  <line x1="62" y1="237" x2="104" y2="220" stroke="var(--madder)" stroke-width="1.4"/>
+  <rect x="114" y="218" width="46"  height="21" rx="10" class="chip"/><text x="137" y="232" text-anchor="middle" class="chipT">Glob</text>
+  <line x1="116" y1="237" x2="158" y2="220" stroke="var(--madder)" stroke-width="1.4"/>
+  <rect x="168" y="218" width="46"  height="21" rx="10" class="chip"/><text x="191" y="232" text-anchor="middle" class="chipT">Bash</text>
+  <line x1="170" y1="237" x2="212" y2="220" stroke="var(--madder)" stroke-width="1.4"/>
+  <rect x="222" y="218" width="86"  height="21" rx="10" class="chip"/><text x="265" y="232" text-anchor="middle" class="chipT">PowerShell</text>
+  <line x1="224" y1="237" x2="306" y2="220" stroke="var(--madder)" stroke-width="1.4"/>
+  <rect x="60"  y="246" width="64"  height="21" rx="10" class="chip"/><text x="92"  y="260" text-anchor="middle" class="chipT">Monitor</text>
+  <line x1="62" y1="265" x2="122" y2="248" stroke="var(--madder)" stroke-width="1.4"/>
+  <rect x="132" y="246" width="86"  height="21" rx="10" class="chip"/><text x="175" y="260" text-anchor="middle" class="chipT">BashOutput</text>
+  <line x1="134" y1="265" x2="216" y2="248" stroke="var(--madder)" stroke-width="1.4"/>
+  <rect x="226" y="246" width="86"  height="21" rx="10" class="chip"/><text x="269" y="260" text-anchor="middle" class="chipT">TaskOutput</text>
+  <line x1="228" y1="265" x2="310" y2="248" stroke="var(--madder)" stroke-width="1.4"/>
+</g>
+<text x="60" y="288" class="grpT">THE ONE ROUTE LEFT &#8212; MCP TOOLS</text>
+<rect x="60" y="296" width="400" height="24" rx="6" fill="var(--drab-tint)" stroke="var(--drab)"/>
+<text x="70" y="312" class="mono" font-size="11" fill="var(--drab)" font-weight="650">mcp__fettler__*&#160;&#160;find search read write edit move run &#8230;</text>
+
+<text x="40" y="358" class="grpT">MACHINE LEVEL &#8212; C:\Users\you\.claude</text>
+<rect x="40" y="368" width="440" height="94" rx="8" class="card2"/>
+<text x="52" y="386" class="cardTm mono" fill="var(--ink)">~/.claude/CLAUDE.md &#8212; standing rules</text>
+<rect x="52" y="394" width="416" height="58" rx="5" class="snipbg"/>
+<text x="60" y="408" class="snip mono">Use the Fettler tools (mcp__fettler__*) for every</text>
+<text x="60" y="422" class="snip mono">file operation. They are the route, not an option.</text>
+<text x="60" y="436" class="snip mono">There is no working directory: ask roots first.</text>
+
+<rect x="40" y="474" width="440" height="64" rx="8" class="card2"/>
+<text x="52" y="492" class="cardTm mono" fill="var(--ink)">~/.claude.json &#8212; global MCP registry</text>
+<rect x="52" y="500" width="416" height="30" rx="5" class="snipbg"/>
+<text x="60" y="514" class="snip mono">"mcpServers": { "fettler":</text>
+<text x="60" y="526" class="snip mono">&#160;&#160;{ "command": "fettle", "args": ["serve"] } }</text>
+
+<rect x="40" y="550" width="440" height="64" rx="8" class="card2"/>
+<text x="52" y="568" class="cardTm mono" fill="var(--ink)">~/.claude/settings.json &#8212; machine-wide deny</text>
+<rect x="52" y="576" width="416" height="30" rx="5" class="snipbg"/>
+<text x="60" y="590" class="snip mono">"permissions": { "deny": [ &#8230;the same eleven ] }</text>
+<text x="60" y="602" class="snip mono">written only on request: fettle setup --global --deny</text>
+
+<text x="40" y="658" class="grpT">REPO LEVEL &#8212; the project&#8217;s own tree</text>
+<rect x="40" y="668" width="440" height="80" rx="8" class="card2"/>
+<text x="52" y="686" class="cardTm mono" fill="var(--ink)">.mcp.json &#8212; launches the server&#160;&#160;<tspan class="bad">&#8856; governed</tspan></text>
+<rect x="52" y="694" width="416" height="46" rx="5" class="snipbg"/>
+<text x="60" y="708" class="snip mono">{ "mcpServers": {</text>
+<text x="60" y="721" class="snip mono">&#160;&#160;&#160;&#160;"fettler": { "command": "fettle",</text>
+<text x="60" y="734" class="snip mono">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"args": ["serve"] } } }</text>
+
+<rect x="40" y="760" width="440" height="112" rx="8" class="card2"/>
+<text x="52" y="778" class="cardTm mono" fill="var(--ink)">.claude/settings.json &#8212; the deny list&#160;&#160;<tspan class="bad">&#8856; governed</tspan></text>
+<rect x="52" y="786" width="416" height="62" rx="5" class="snipbg"/>
+<text x="60" y="800" class="snip mono">{"permissions":{"deny":[</text>
+<text x="60" y="813" class="snip mono">&#160;&#160;&#160;&#160;"Read","Write","Edit","NotebookEdit","Grep","Glob",</text>
+<text x="60" y="826" class="snip mono">&#160;&#160;&#160;&#160;"Bash","PowerShell","Monitor","BashOutput","TaskOutput"]}}</text>
+<text x="60" y="839" class="snip mono">+ opt-in hook: SessionStart &#8594; fettle doctor --hook</text>
+<text x="52" y="866" class="note">merged, never clobbered; backup written beside it on first setup</text>
+
+<rect x="40" y="884" width="440" height="60" rx="8" class="card2"/>
+<text x="52" y="902" class="cardTm mono" fill="var(--ink)">CLAUDE.md &#8212; project grounding</text>
+<rect x="52" y="910" width="416" height="26" rx="5" class="snipbg"/>
+<text x="60" y="926" class="snip mono">Use the Fettler tools for every file operation.</text>
+
+<rect x="40" y="956" width="440" height="60" rx="8" class="card2"/>
+<text x="52" y="974" class="cardTm mono" fill="var(--ink)">.claude/settings.local.json&#160;&#160;<tspan class="bad">&#8856; governed</tspan></text>
+<text x="52" y="992" class="note">personal and gitignored &#8212; grants made here never appear in a</text>
+<text x="52" y="1006" class="note">review, so doctor names its presence (finding 2.13)</text>
+
+<!-- ============ COLUMN 2 : FETTLER ============ -->
+<rect x="580" y="86" width="430" height="216" rx="8" class="card2"/>
+<text x="596" y="106" class="cardT">fettle serve &#8212; the MCP front end</text>
+<text x="596" y="121" class="note">launched by the client, on stdio &#183; learns its trees at launch &#183;</text>
+<text x="596" y="134" class="note">a changed .fettler.json needs a restart &#183; no shell, anywhere</text>
+<text x="596" y="158" class="grpT">VERBS OFFERED TO THE MODEL</text>
+<rect x="596" y="166" width="398" height="66" rx="6" fill="var(--drab-tint)" stroke="var(--drab)"/>
+<text x="606" y="183" class="mono" font-size="11.5" fill="var(--ink)">roots &#183; find &#183; search &#183; read &#183; write &#183; edit &#183; replace</text>
+<text x="606" y="202" class="mono" font-size="11.5" fill="var(--ink)">move &#183; copy &#183; delete &#183; new &#183; mkdir &#183; extract &#183; exec</text>
+<text x="606" y="221" class="mono" font-size="11.5" fill="var(--ink)">batch &#183; tasks &#183; run &#183; doctor</text>
+<text x="596" y="254" class="mono" font-size="11.5" fill="var(--madder)" font-weight="650">setup</text>
+<line x1="595" y1="250" x2="631" y2="250" stroke="var(--madder)" stroke-width="1.4"/>
+<text x="638" y="254" class="note">&#8212; the one verb a model is never offered: it writes the wiring</text>
+<text x="596" y="284" class="note">run executes declared tasks only, takes no arguments, composes no command</text>
+
+<text x="580" y="330" class="grpT">THE BOUNDARY &#8212; A PERSON WRITES IT; THE TOOL REFUSES TO</text>
+<rect x="580" y="340" width="430" height="232" rx="8" class="card2"/>
+<text x="592" y="358" class="cardTm mono" fill="var(--ink)">.fettler.json &#8212; checked in&#160;&#160;<tspan class="bad">&#8856; governed</tspan></text>
+<rect x="592" y="366" width="406" height="196" rx="5" class="snipbg"/>
+<text x="600" y="380" class="snip mono">{ "trees": {</text>
+<text x="600" y="394" class="snip mono">&#160;&#160;&#160;&#160;"work": { "path": ".",</text>
+<text x="600" y="408" class="snip mono">&#160;&#160;&#160;&#160;&#160;&#160;"can": ["list","read","create","update",</text>
+<text x="600" y="422" class="snip mono">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"rename","delete","execute"] },</text>
+<text x="600" y="436" class="snip mono">&#160;&#160;&#160;&#160;"requirements": {</text>
+<text x="600" y="450" class="snip mono">&#160;&#160;&#160;&#160;&#160;&#160;"path": "../shoddy-requirements",</text>
+<text x="600" y="464" class="snip mono">&#160;&#160;&#160;&#160;&#160;&#160;"can": ["list","read"],</text>
+<text x="600" y="478" class="snip mono">&#160;&#160;&#160;&#160;&#160;&#160;"scopes": {</text>
+<text x="600" y="492" class="snip mono">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"backlog": { "can": ["list","read",</text>
+<text x="600" y="506" class="snip mono">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"create","update","rename"] },</text>
+<text x="600" y="520" class="snip mono">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"backlog/cancelled": { "can": [] } } } },</text>
+<text x="600" y="534" class="snip mono">&#160;&#160;"tasks": {</text>
+<text x="600" y="548" class="snip mono">&#160;&#160;&#160;&#160;"build": { "run": "pwsh -File build.ps1" } } }</text>
+
+<rect x="580" y="584" width="430" height="112" rx="8" class="card2"/>
+<text x="592" y="602" class="cardTm mono" fill="var(--ink)">.fettler.local.json &#8212; gitignored&#160;&#160;<tspan class="bad">&#8856; governed</tspan></text>
+<text x="592" y="616" class="note">this machine&#8217;s own; a name in both files is the overlay&#8217;s entirely</text>
+<rect x="592" y="622" width="406" height="64" rx="5" class="snipbg"/>
+<text x="600" y="636" class="snip mono">{ "trees": { "scratch": {</text>
+<text x="600" y="650" class="snip mono">&#160;&#160;&#160;&#160;"path": "C:/Users/you/&#8230;/Temp/claude/&lt;project&gt;",</text>
+<text x="600" y="664" class="snip mono">&#160;&#160;&#160;&#160;"can": ["list","read","create","update",</text>
+<text x="600" y="678" class="snip mono">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"rename","delete"] } } }</text>
+
+<rect x="580" y="732" width="430" height="226" rx="8" fill="var(--madder-tint)" stroke="var(--madder)"/>
+<text x="596" y="754" class="cardT" fill="var(--madder)">the refusals that make it hold</text>
+<text x="600" y="780" class="snip mono">path outside every tree&#160;&#160;&#160;&#160;&#160;&#8594; exit  4&#160;&#160;refused</text>
+<text x="600" y="798" class="snip mono">write .fettler[.local].json &#8594; exit 11&#160;&#160;governed</text>
+<text x="600" y="816" class="snip mono">write .claude/settings*&#160;&#160;&#160;&#160;&#8594; exit 11&#160;&#160;governed</text>
+<text x="600" y="834" class="snip mono">write .mcp / .vscode/mcp&#160;&#160;&#160;&#160;&#8594; exit 11&#160;&#160;governed</text>
+<text x="600" y="852" class="snip mono">write adds a credential&#160;&#160;&#160;&#160;&#160;&#8594; exit 12&#160;&#160;credential</text>
+<text x="600" y="870" class="snip mono">run w/o execute grant&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#8594; exit  8&#160;&#160;refused</text>
+<text x="596" y="898" class="note">outside is refused identically whether or not the file exists,</text>
+<text x="596" y="912" class="note">so a refusal cannot be used to probe the disk &#8212; and a model that</text>
+<text x="596" y="926" class="note">could edit its own deny list would have no deny list</text>
+
+<!-- ============ COLUMN 3 : FILESYSTEM ============ -->
+<rect x="1085" y="86" width="445" height="204" rx="8" fill="var(--drab-tint)" stroke="var(--drab)"/>
+<text x="1098" y="106" class="cardTm mono" fill="var(--ink)">work &#8594; /work/shoddy</text>
+<text x="1098" y="121" class="badge mono ok">can: list read create update rename delete execute</text>
+<text x="1102" y="145" class="tree mono" fill="var(--ink)">&#9500;&#9472; src/&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;<tspan class="ok">&#9679; read &amp; write</tspan></text>
+<text x="1102" y="164" class="tree mono" fill="var(--ink)">&#9500;&#9472; docs/&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;<tspan class="ok">&#9679; read &amp; write</tspan></text>
+<text x="1102" y="183" class="tree mono" fill="var(--ink)">&#9500;&#9472; build.ps1&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;<tspan class="ok">&#9654; run: task "build"</tspan></text>
+<text x="1102" y="202" class="tree mono" fill="var(--ink)">&#9500;&#9472; .fettler.json&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;<tspan class="bad">&#8856; write refused</tspan></text>
+<text x="1102" y="221" class="tree mono" fill="var(--ink)">&#9500;&#9472; .mcp.json&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;<tspan class="bad">&#8856; write refused</tspan></text>
+<text x="1102" y="240" class="tree mono" fill="var(--ink)">&#9492;&#9472; .claude/settings.json&#160;&#160;&#160;&#160;<tspan class="bad">&#8856; write refused</tspan></text>
+<text x="1098" y="268" class="note">execute reaches the declared tasks and nothing else &#8212; never a default,</text>
+<text x="1098" y="281" class="note">even in the tree the configuration sits in</text>
+
+<rect x="1085" y="308" width="445" height="180" rx="8" fill="var(--indigo-tint)" stroke="var(--indigo)"/>
+<text x="1098" y="328" class="cardTm mono" fill="var(--ink)">requirements &#8594; /work/shoddy-requirements</text>
+<text x="1098" y="343" class="badge mono ro">can: list read</text>
+<text x="1102" y="367" class="tree mono" fill="var(--ink)">&#9500;&#9472; spec.md&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;<tspan class="ro">&#9685; read-only</tspan></text>
+<text x="1102" y="386" class="tree mono" fill="var(--ink)">&#9500;&#9472; backlog/&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;<tspan class="ok">&#9679; create update rename</tspan></text>
+<text x="1102" y="405" class="tree mono" fill="var(--ink)">&#9474;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;<tspan class="hid">no delete &#8212; may not destroy</tspan></text>
+<text x="1102" y="424" class="tree mono" fill="var(--ink)">&#9492;&#9472; backlog/cancelled/&#160;&#160;&#160;&#160;&#160;&#160;&#160;<tspan class="hid">&#9618; hidden &#8212; can: []</tspan></text>
+<text x="1098" y="450" class="note">a scope replaces what its tree grants; the most specific scope decides.</text>
+<text x="1098" y="463" class="note">cancelled/ is absent from every find and search, and a direct path is</text>
+<text x="1098" y="476" class="note">refused in the same words as a file that was never there</text>
+
+<rect x="1085" y="506" width="445" height="110" rx="8" fill="var(--drab-tint)" stroke="var(--drab)"/>
+<text x="1098" y="526" class="cardTm mono" fill="var(--ink)">scratch &#8594; C:/Users/you/&#8230;/Temp/claude/&lt;project&gt;</text>
+<text x="1098" y="541" class="badge mono ok">can: list read create update rename delete</text>
+<text x="1098" y="566" class="note">the harness&#8217;s staging area, declared in the gitignored overlay.</text>
+<text x="1098" y="579" class="note">without it, denying the built-in Write closes staging entirely &#8212;</text>
+<text x="1098" y="592" class="note">doctor names the gap (finding 2.15). no execute: staging, not running</text>
+
+<rect x="1085" y="640" width="445" height="230" rx="8" fill="var(--dim)" stroke="var(--line)"/>
+<rect x="1085" y="640" width="445" height="230" rx="8" fill="url(#hatch)" opacity="0.5"/>
+<text x="1098" y="664" class="cardT" fill="var(--ink-soft)">outside every declared tree</text>
+<text x="1102" y="692" class="tree mono hid">C:\Windows\</text>
+<text x="1102" y="711" class="tree mono hid">C:\Users\you\&#160;&#160;&#160;(including ~/.claude\)</text>
+<text x="1102" y="730" class="tree mono hid">D:\another-checkout\&#160;&#160;&#160;(last year&#8217;s answers)</text>
+<text x="1102" y="749" class="tree mono hid">/etc/passwd</text>
+<text x="1098" y="782" class="tree mono bad">not listable &#183; not readable &#183; not knowable</text>
+<text x="1098" y="801" class="tree mono bad">every path &#8594; exit 4, file or no file</text>
+<text x="1098" y="828" class="note">the model&#8217;s own machine-level configuration lives out here &#8212;</text>
+<text x="1098" y="841" class="note">reachable by you in an editor, unreachable through the boundary</text>
+
+<!-- ============ ROUTES ============ -->
+<line x1="460" y1="145" x2="574" y2="145" class="route" marker-end="url(#arrG)"/>
+<text x="517" y="136" text-anchor="middle" class="lbl">tool calls &#183; stdio</text>
+
+<path d="M 480 708 H 542 V 150 H 572" class="route" fill="none" marker-end="url(#arrG)"/>
+<text transform="rotate(-90 552 420)" x="552" y="424" text-anchor="middle" class="lbl">launches at session start</text>
+
+<line x1="655" y1="336" x2="655" y2="308" class="route" marker-end="url(#arrG)"/>
+<text x="668" y="322" class="lbl">declares the trees &#8212; read once at launch</text>
+
+<path d="M 950 302 V 332" class="blocked"/>
+<line x1="944" y1="328" x2="956" y2="340" stroke="var(--madder)" stroke-width="2"/>
+<line x1="956" y1="328" x2="944" y2="340" stroke="var(--madder)" stroke-width="2"/>
+<text x="938" y="322" text-anchor="end" class="lblR">write &#8594; exit 11</text>
+
+<path d="M 580 268 H 520 V 816 H 500" class="blocked"/>
+<line x1="494" y1="810" x2="506" y2="822" stroke="var(--madder)" stroke-width="2"/>
+<line x1="506" y1="810" x2="494" y2="822" stroke="var(--madder)" stroke-width="2"/>
+<text transform="rotate(-90 531 544)" x="531" y="548" text-anchor="middle" class="lblR">write the files that govern the model &#8594; exit 11</text>
+
+<line x1="330" y1="228" x2="500" y2="228" class="blocked"/>
+<line x1="494" y1="222" x2="506" y2="234" stroke="var(--madder)" stroke-width="2"/>
+<line x1="506" y1="222" x2="494" y2="234" stroke="var(--madder)" stroke-width="2"/>
+<text x="416" y="220" text-anchor="middle" class="lblR">no direct route to disk</text>
+
+<path d="M 1010 145 H 1044" class="routeMain" fill="none"/>
+<path d="M 1044 145 H 1078" class="routeMain" fill="none" marker-end="url(#arrG)"/>
+<path d="M 1044 145 V 398 H 1078" class="routeMain" fill="none" marker-end="url(#arrG)"/>
+<path d="M 1044 398 V 560 H 1078" class="routeMain" fill="none" marker-end="url(#arrG)"/>
+<text x="1044" y="98" text-anchor="middle" class="lbl">bounded verbs</text>
+
+<path d="M 1010 262 H 1060 V 179 H 1078" class="route" fill="none" marker-end="url(#arrG)"/>
+
+<path d="M 1010 820 H 1072" class="blocked"/>
+<line x1="1066" y1="814" x2="1078" y2="826" stroke="var(--madder)" stroke-width="2"/>
+<line x1="1078" y1="814" x2="1066" y2="826" stroke="var(--madder)" stroke-width="2"/>
+<text x="1041" y="810" text-anchor="middle" class="lblR">exit 4</text>
+
+<!-- ============ LEGEND ============ -->
+<line x1="20" y1="1108" x2="1545" y2="1108" stroke="var(--line)" stroke-width="1"/>
+<text x="20"   y="1136" class="leg"><tspan class="ok">&#9679;</tspan> writable</text>
+<text x="130"  y="1136" class="leg"><tspan class="ro">&#9685;</tspan> read-only</text>
+<text x="248"  y="1136" class="leg"><tspan class="ok">&#9654;</tspan> execute &#8212; declared task only</text>
+<text x="510"  y="1136" class="leg"><tspan class="hid">&#9618;</tspan> hidden scope</text>
+<text x="650"  y="1136" class="leg"><tspan class="bad">&#8856;</tspan> governed &#8212; the tool never writes its own rules</text>
+<text x="1030" y="1136" class="leg" fill="var(--drab)">&#9472;&#9472;&#9654; allowed route</text>
+<text x="1200" y="1136" class="leg" fill="var(--madder)">&#9476;&#9476;&#10005; blocked route</text>
+</svg>

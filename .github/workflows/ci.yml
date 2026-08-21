@@ -1,0 +1,276 @@
+name: CI
+
+# NO PATH FILTERS, ON PURPOSE.
+#
+# This is the one deliberate departure from how Fettler's workflow looked in
+# the repository it came from, and it is a reaction to what happened there.
+# Every lane was path-filtered, so a change outside a lane's paths ran none
+# of its suites - and Directory.Build.props, which sets the version every
+# binary reports, matched no filter at all. Three of four test projects were
+# proved only by workflows that a given push might never trigger.
+#
+# The counter-argument is cost: a typo in a doc page rebuilds on two
+# operating systems for nothing. That is a real cost and it is small - this
+# repository is two executables and two test projects, minutes per run - and
+# it buys the guarantee that every push is proved by everything. When the
+# choice is between wasting a runner and not knowing, waste the runner.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # The cheapest job, and first: pure text, one Linux runner, no build. If a
+  # boundary has been crossed there is no point spending two more runners to
+  # find out the code still compiles.
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # R1.2 from outside the code as well as from inside it. The test in
+      # Fettler.Tests reads the BUILT assemblies' references; this reads the
+      # PROJECT FILES, so a reference added and not yet built is caught in
+      # the same push that adds it.
+      #
+      # Two separate rules, and the second is the one a reader is likely to
+      # miss: fettle referencing Fettler is correct and expected, but Fettler
+      # and burler must not reference each other IN EITHER DIRECTION. The
+      # wire format is the whole contract between them.
+      - name: No project reference leaves this repository
+        run: |
+          if grep -rE '<ProjectReference[^>]*Include="[^"]*\.\.[/\\]\.\.[/\\]' \
+               . --include='*.csproj'; then
+            echo 'no project here may reference one outside this repository (R1.2)'
+            exit 1
+          fi
+
+      - name: Fettler and burler do not reference each other
+        run: |
+          if grep -rE '<ProjectReference[^>]*Include="[^"]*burler' \
+               Fettler Fettler.Tests fettle --include='*.csproj'; then
+            echo 'nothing on the Fettler side may reference burler (R1.2)'
+            exit 1
+          fi
+          if grep -rE '<ProjectReference' burler --include='*.csproj'; then
+            echo 'burler references nothing at all - the pipe is the contract'
+            exit 1
+          fi
+
+      # R1.2, package side, narrowed to what its reason supports: an
+      # ALLOWLIST, checked as an exact set. A package added to a csproj and
+      # not to this list fails the push that added it, which makes widening
+      # the rule a deliberate act rather than a drift.
+      #
+      # burler is deliberately NOT checked here. Its whole purpose is to
+      # hold the dependency the allowlist cannot admit, and it ships as its
+      # own archive - what rides in it is governed by NOTICE, below, not by
+      # this list.
+      - name: Only allowlisted packages ride along in what fettle ships
+        run: |
+          allowed='PdfPig'
+          found=$(grep -hoE '<PackageReference Include="[^"]+"' \
+                    Fettler/Fettler.csproj fettle/fettle.csproj \
+                  | sed -E 's/.*Include="([^"]+)".*/\1/' | sort -u)
+          for pkg in $found; do
+            echo "$allowed" | tr ' ' '\n' | grep -qx "$pkg" || {
+              echo "fettle takes $pkg, which is not on R1.2's allowlist"
+              echo "adding one is a decision: put it in this list, in the csproj comment,"
+              echo "in FrontEndTests.Allowed, in THIRD-PARTY-NOTICES.md, and in"
+              echo "NOTICE if its licence asks - NOTICE is what reaches a downloader"
+              exit 1
+            }
+          done
+          echo "packages: ${found:-none}"
+
+      # Two obligations travel with a distributed binary. Apache-2.0 wants
+      # the licence and any NOTICE alongside it, because fettle bundles
+      # PdfPig into the single file it ships; MIT wants the copyright notice
+      # in every copy, and an archive is a copy. Either one left behind in
+      # the repository has not reached the person who downloaded a release.
+      #
+      # The scope sentence is checked too: a NOTICE that stopped saying
+      # PdfPig is in fettle alone would be describing burler as carrying a
+      # PDF component it has never had.
+      - name: The notice and the licence travel with the binary
+        run: |
+          grep -q 'PdfPig' NOTICE || { echo 'NOTICE does not mention PdfPig'; exit 1; }
+          grep -q 'fettle alone' NOTICE || {
+            echo 'NOTICE no longer scopes PdfPig to fettle alone'; exit 1; }
+          for f in scripts/build.ps1 scripts/build.sh; do
+            grep -q 'NOTICE'  "$f" || { echo "$f does not put NOTICE in the archive";  exit 1; }
+            grep -q 'LICENSE' "$f" || { echo "$f does not put LICENSE in the archive"; exit 1; }
+          done
+
+      # Every .ps1 has its .sh and the two offer the same verbs. The twin
+      # nobody runs is the twin that rots, and it rots silently, because the
+      # person who would notice is on the other operating system.
+      - name: The script twins have not drifted apart
+        run: node scripts/verify-twins.js
+
+      # --check, NOT the fixing form. A runner's index is thrown away at the
+      # end of the job, so a fixing run here would repair the bit, print a
+      # cheerful line, exit 0, and let the fault sail through to the release
+      # that honors it literally. A gate that repairs the evidence is not a
+      # gate.
+      - name: Every script carries its executable bit
+        run: node scripts/verify-permissions.js --check
+
+      - name: The site matches the sources
+        run: node scripts/verify-docs.js
+
+      - name: Every outcome and exit code is documented
+        run: node scripts/verify-errors.js
+
+  # windows AND macos, both required, and NEITHER is the reference platform
+  # (R9.1). Several tests cannot execute on one of them at all - a POSIX
+  # execute bit, an APFS case-only rename, a decomposed filename, an NTFS
+  # alternate data stream - so a green run on one platform is only half the
+  # proof. They are attributed with the platform they need and print the
+  # reason they skipped, because a skip nobody can see is a test that
+  # quietly stopped existing.
+  lane:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # global.json is a FLOOR (rollForward: latestMinor), so whatever 10.x
+      # the runner installs satisfies it.
+
+      - name: Build
+        run: dotnet build Fettler.slnx -c Release
+
+      # BOTH test projects, because there are two. burler is a separate
+      # project so that its native ONNX dependency stays out of what fettle
+      # ships, and a second project is exactly the kind of thing a workflow
+      # naming one by hand goes on not running - silently, and for as long
+      # as nobody looks. scripts/build.* runs both under `test`; this
+      # is the same list, kept in step by being written down twice rather
+      # than by being remembered once.
+      - name: Test Fettler
+        run: dotnet test Fettler.Tests -c Release --logger "console;verbosity=normal"
+
+      - name: Test burler
+        run: dotnet test burler.Tests -c Release --logger "console;verbosity=normal"
+
+      # R2.5: drive the built binary end to end on every push, so the
+      # shipped artefact cannot rot between releases. This is the published
+      # single-file executable, not a dotnet run.
+      - name: Publish the single-file executable
+        run: dotnet publish fettle -c Release --self-contained -p:PublishSingleFile=true -o published
+
+      - name: Drive it (unix)
+        if: runner.os != 'Windows'
+        run: |
+          set -euo pipefail
+          exe=./published/fettle
+          mkdir -p smoke/src && printf 'public sealed class A\n' > smoke/src/A.cs
+
+          "$exe" --root smoke find '**/*.cs' --json
+          "$exe" --root smoke search '^public sealed' --glob '**/*.cs' --json
+          "$exe" --root smoke read src/A.cs --json
+
+          # R3.7: a failure arrives complete on STDOUT, and reading it must
+          # not need a stderr redirection anywhere.
+          out=$("$exe" --root smoke read absent.cs --json) && code=0 || code=$?
+          echo "$out" | grep -q '"outcome":"not-found"' || { echo "expected not-found on stdout"; exit 1; }
+          [ "$code" = "3" ] || { echo "expected exit 3, got $code"; exit 1; }
+
+          # --root grants list read and can NEVER grant more, at any level,
+          # with no override. So a write through one is refused, and
+          # asserting that is the point.
+          out=$("$exe" --root smoke exec src/A.cs --on --json) && code=0 || code=$?
+          [ "$code" = "8" ] || { echo "expected --root to refuse a write with exit 8, got $code: $out"; exit 1; }
+
+          # To write to a tree you put a file in it. Paths in it resolve
+          # against the file's own directory, so "." is smoke/ wherever this
+          # runs from.
+          printf '%s\n' '{"trees":{"smoke":{"path":".","can":["list","read","create","update","rename","delete"]}}}' > smoke/.fettler.json
+
+          # R6.9: the bit this whole clause is about, on the platform that
+          # has one.
+          "$exe" --config smoke/.fettler.json exec src/A.cs --on --json
+          [ -x smoke/src/A.cs ] || { echo "exec --on did not set the executable bit"; exit 1; }
+
+      - name: Drive it (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # fettle answers with an exit code, and a non-zero one is an
+          # ANSWER rather than a failure - asserting them is this step's
+          # whole job. GitHub sets $ErrorActionPreference='stop' for its
+          # pwsh shell, and pwsh 7.4 turns a native command's non-zero exit
+          # into a TERMINATING error under it. So `read absent.cs`, whose
+          # entire point is to come back 3, killed the step before the line
+          # that checks for 3 ever ran.
+          $ErrorActionPreference = 'Continue'
+          $PSNativeCommandUseErrorActionPreference = $false
+
+          $exe = './published/fettle.exe'
+          New-Item -ItemType Directory -Force smoke/src | Out-Null
+          Set-Content smoke/src/A.cs "public sealed class A" -Encoding utf8
+
+          & $exe --root smoke find '**/*.cs' --json
+          & $exe --root smoke search '^public sealed' --glob '**/*.cs' --json
+          & $exe --root smoke read src/A.cs --json
+
+          # R3.7 is a clause because of THIS shell: Windows PowerShell turns
+          # a native program's redirected stderr into NativeCommandError
+          # records and sets $? false even on exit 0. Reading the answer must
+          # therefore need no redirection at all.
+          Write-Host "pwsh $($PSVersionTable.PSVersion); EAP=$ErrorActionPreference; native=$PSNativeCommandUseErrorActionPreference"
+
+          $out = & $exe --root smoke read absent.cs --json
+          $code = $LASTEXITCODE
+          Write-Host "read absent.cs -> code=$code out=$out"
+          if ($code -ne 3) { Write-Host "expected exit 3, got $code"; exit 1 }
+          if ($out -notmatch '"outcome":"not-found"') { Write-Host "expected not-found on stdout, got: $out"; exit 1 }
+
+          # --root grants list read and can never grant more, whatever the
+          # verb. The unix lane asserts the same thing through exec.
+          $refused = & $exe --root smoke write src/B.cs --text 'public sealed class B' --json
+          $code = $LASTEXITCODE
+          Write-Host "root write -> code=$code out=$refused"
+          if ($code -ne 8) { Write-Host "expected --root to refuse a write with exit 8, got $code"; exit 1 }
+
+          # Every assertion above passed, and the LAST thing this step ran
+          # was a command that answered 8 on purpose. GitHub's pwsh wrapper
+          # ends with `exit $LASTEXITCODE`, so without this the step fails
+          # carrying the exit code of an assertion that SUCCEEDED.
+          exit 0
+
+      # R3.2: the MCP front end speaks on stdio, and stdout carries the
+      # protocol and nothing else. One initialize is enough to prove the
+      # binary starts, answers, and stops when stdin closes.
+      - name: Drive the MCP front end (unix)
+        if: runner.os != 'Windows'
+        run: |
+          set -euo pipefail
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}' \
+            | ./published/fettle serve --root smoke > reply.json
+          grep -q '"serverInfo"' reply.json || { echo "no serverInfo in: $(cat reply.json)"; exit 1; }
+          head -c 1 reply.json | grep -q '{' || { echo "stdout did not start with the message"; exit 1; }
+
+      - name: Drive the MCP front end (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $request = '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}'
+          $reply = $request | & ./published/fettle.exe serve --root smoke
+          if ($reply -notmatch '"serverInfo"') { throw "no serverInfo in: $reply" }

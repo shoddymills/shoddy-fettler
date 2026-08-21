@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Fettler: the file, search and edit operations, the two front ends
+       over them, and nothing else.
+
+       R1.2 is the load-bearing decision in this file, and it is now
+       stated rather than visible as an absence.
+
+       NO ProjectReference, EVER. That is the part carrying the reason:
+       Fettler shares this repository, its release and its version number
+       with what else lives here, and shares nothing else.
+
+       A PackageReference only from the allowlist below, each entry
+       meeting ALL of: a permissive licence (MIT, Apache-2.0, BSD) and
+       never copyleft; pure managed with no native assets, because fettle
+       publishes self-contained and single-file per OS; a minimal
+       transitive closure; and actively maintained. Fettler.Tests asserts
+       the resulting reference set from outside (R1.4), because a
+       constraint that is not tested lasts until somebody is in a hurry.
+
+       The allowlist, in full:
+
+         PdfPig (UglyToad.PdfPig) - Apache-2.0, pure managed C#, ZERO
+         transitive dependencies, ships lib/ only and no runtimes/.
+         Verified at the version pinned below rather than remembered.
+         It is here because `Read` is denied to the assistant outright,
+         which makes Fettler the only reader - and a developer holding a
+         PDF of the requirements would otherwise simply be stranded.
+         Apache-2.0 requires the licence and any NOTICE to travel with a
+         distributed binary, and MIT requires this project's own copyright
+         notice in every copy, so each fettle archive carries BOTH
+         NOTICE and LICENSE from the top of this repository.
+
+         The dependency stops here. PdfPig is bundled into fettle and
+         into nothing else this repository distributes: burler is the
+         only other program, it has no PDF component and no dependency
+         on one, direct or transitive, and the no-ProjectReference rule
+         above is what guarantees that. NOTICE and THIRD-PARTY-NOTICES.md
+         both say so, and ci.yml fails the build if NOTICE stops saying
+         it.
+
+       Inside this one assembly the layering of R3.1 is kept by namespace
+       and asserted by test: Fettler.Core may not name System.Text.Json,
+       System.Console or an exit code, because a core that knows about a
+       protocol has already stopped being one. The two front ends live
+       beside it in Fettler.Cli and Fettler.Mcp and are ordinary classes,
+       so the tests drive both without a process. -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Fettler</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PdfPig" Version="0.1.15" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,100 @@
+Fettler
+Copyright (c) 2026 Stephen Vincent Foster.
+Licensed under the MIT License; see LICENSE, which travels beside this file.
+
+This product includes software developed by third parties, listed below.
+This file must travel with every distributed binary that contains them.
+
+--------------------------------------------------------------------------
+WHICH DOWNLOAD CONTAINS WHICH
+
+This repository distributes two programs, and each carries its own
+third-party software:
+
+  fettle-<version>-<os>.zip / .tar.gz    CONTAINS PdfPig, listed below
+  burler-<version>-<os>.zip / .tar.gz    CONTAINS ONNX Runtime and
+                                         Microsoft.ML.Tokenizers, below
+
+The two are separate archives on purpose. burler is optional: it is only
+wanted by somebody who has switched the disclosure screen on, and fettle
+runs perfectly well without it. Folding burler into fettle's archive would
+make every download pay for ONNX Runtime to get a feature most trees never
+use. fettle looks for burler BESIDE ITSELF, so the two unpack into one
+directory when both are wanted.
+
+NO MODEL WEIGHTS ARE DISTRIBUTED BY THIS PROJECT, in any archive. The
+screening models burler runs are downloaded by whoever uses them and
+placed in a directory they name; their licences and provenance are
+recorded in that directory's own manifest. Nothing here redistributes
+them, so no obligation attaching to their redistribution is incurred.
+
+--------------------------------------------------------------------------
+PdfPig  (UglyToad.PdfPig)
+https://github.com/UglyToad/PdfPig
+Copyright the PdfPig authors and contributors.
+Licensed under the Apache License, Version 2.0.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+    implied. See the License for the specific language governing
+    permissions and limitations under the License.
+
+Used by: fettle alone, to read PDF documents as text. No other program
+built from this repository references it - burler included.
+
+Why it is here: the assistant's own file reader is denied outright, which
+makes fettle the only reader on the machine. A developer holding a PDF of
+the requirements would otherwise simply be unable to open it. PdfPig was
+chosen because it is pure managed C# with no native assets - fettle
+publishes self-contained and single-file per operating system - and has
+no transitive dependencies at all.
+--------------------------------------------------------------------------
+ONNX Runtime  (Microsoft.ML.OnnxRuntime)
+https://github.com/microsoft/onnxruntime
+Copyright (c) Microsoft Corporation.
+Licensed under the MIT License.
+
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
+
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+    BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+    ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+    CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+
+Used by: burler alone, to run named-entity models over a payload the
+disclosure screen is about to return. fettle does not reference it.
+
+Why it is not in fettle: ONNX Runtime ships native per-RID binaries, and
+fettle's package allowlist admits only pure managed assemblies because
+fettle publishes self-contained and single-file. That is the whole reason
+burler is a separate program rather than a class.
+--------------------------------------------------------------------------
+Microsoft.ML.Tokenizers
+https://github.com/dotnet/machinelearning
+Copyright (c) .NET Foundation and Contributors.
+Licensed under the MIT License, reproduced in full above.
+
+Used by: burler alone, for the WordPiece tokenizer a BERT-family model
+needs. It is pure managed; it is here rather than in fettle only because
+nothing but burler has any use for it.
+--------------------------------------------------------------------------

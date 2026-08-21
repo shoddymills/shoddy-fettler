@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://shoddymills.github.io/shoddy-fettler/sitemap.xml

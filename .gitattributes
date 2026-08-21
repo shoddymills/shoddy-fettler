@@ -1,0 +1,32 @@
+# Every text file is LF, on disk and in the repository, on every platform.
+# `text=auto` alone still lets core.autocrlf convert to CRLF on a Windows
+# checkout, which is exactly what makes git print "warning: LF will be
+# replaced by CRLF" on every add - it is flagging that mismatch between
+# the working copy and what a fresh checkout would produce. Pinning eol=lf
+# removes the mismatch instead of just explaining it: checkout matches
+# storage matches working copy, on every platform, and the warning has
+# nothing left to report.
+* text=auto eol=lf
+
+# Spelled out so nothing above can ever misdetect one of these and attempt
+# a line-ending conversion that would corrupt it.
+*.png    binary
+*.gif    binary
+*.ico    binary
+*.woff2  binary
+*.bin    binary
+*.onnx   binary
+
+# The shell twins must keep LF whatever a Windows checkout would prefer: a
+# .sh with CRLF line endings fails on a Linux runner with a "bad
+# interpreter" error naming a shebang that looks perfectly correct in an
+# editor. `* text=auto eol=lf` above already does this; naming them makes
+# it survive somebody relaxing that line.
+*.sh     text eol=lf
+
+# Fettler's own tests write fixture files and compare what comes back byte
+# for byte - line endings included, because preserving a file's existing
+# endings through an edit is one of the things Fettler promises. A checkout
+# that rewrote them would change what the fixtures test.
+Fettler.Tests/files/** text eol=lf
+burler.Tests/files/**  text eol=lf

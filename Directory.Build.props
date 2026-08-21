@@ -1,0 +1,43 @@
+<Project>
+
+  <!-- Centralize every project's build output into artifacts/ instead of each
+       project's own bin/ and obj/. Keeps fettle.dll, burler.dll and the test
+       assemblies in one predictable place for plain `dotnet build`/`dotnet
+       test` runs. The publish step in build.ps1 uses an explicit -o and is
+       unaffected. -->
+  <PropertyGroup>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+  </PropertyGroup>
+
+  <!-- ONE version for both programs, because they ship as a pair: fettle
+       looks for burler beside itself, and a burler from a different release
+       is a wire-format gamble nobody signed up for.
+
+       THIS NUMBER IS THE DEVELOPMENT DEFAULT AND NOTHING ELSE. What a
+       release reports comes from the git tag: release.yml passes
+       -p:Version=<tag without its v> to both the build and the publish, so
+       no file is rewritten, no version-bump commit is made, and no release
+       branch has to be cut and merged back to carry one.
+
+       That is deliberate. A version kept in a file has to be bumped in a
+       commit, carried on a release branch, tagged once it lands, and merged
+       back - a sequence of git operations each of which can fail with the
+       previous ones already done, which is why that shape needs a written
+       recovery procedure. Here the tag IS the version, so releasing is one
+       operation: push the tag. There is no sequence to get halfway through.
+
+       The consequence to know about: a locally built fettle reports this
+       number rather than a release number, whatever branch it came from.
+       That is honest - a local build is not a release - and a downloaded
+       archive, asked for its version, still answers with the number
+       printed on the archive it came out of.
+
+       (No double hyphen anywhere in this comment: XML forbids one inside
+       a comment, and MSBuild reports it as a props file that could not be
+       loaded rather than as a typo.) -->
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+</Project>
