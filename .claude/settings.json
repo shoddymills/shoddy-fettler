@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "deny": [
+      "Read",
+      "Write",
+      "Edit",
+      "NotebookEdit",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Monitor",
+      "BashOutput",
+      "TaskOutput"
+    ]
+  }
+}

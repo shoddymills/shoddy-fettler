@@ -1,0 +1,9 @@
+{
+  "trees": {
+    "work": { 
+      "path": ".", 
+      "can": ["list", "read", "create", "update", "rename", "delete", "execute"]}
+  },
+  "tasks": {
+  }
+}
