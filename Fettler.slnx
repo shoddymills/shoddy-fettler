@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Fettler/Fettler.csproj" />
+  <Project Path="fettle/fettle.csproj" />
+  <Project Path="burler/burler.csproj" />
+  <Project Path="Fettler.Tests/Fettler.Tests.csproj" />
+  <Project Path="burler.Tests/burler.Tests.csproj" />
+</Solution>

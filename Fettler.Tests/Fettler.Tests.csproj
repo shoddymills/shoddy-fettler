@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The lane's proof. R10 lists what has to be true; this project is
+       where each item becomes an assertion.
+
+       The test packages here are the one place third-party references
+       are allowed in this lane, and they are deliberately outside what
+       R1.4 guards: the independence test reads the references of the
+       SHIPPED assemblies, Fettler and fettle, not of the harness that
+       grades them. Nothing here rides along into a release.
+
+       Several R10 items cannot execute on Windows at all - a decomposed
+       filename round trip, an APFS case-only rename, a POSIX execute
+       bit. They are written, they are attributed with the platform they
+       need, and CI runs them on macOS. A skip that nobody can see is a
+       test that quietly stopped existing, so PlatformFact prints the
+       reason it skipped rather than passing in silence. -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Fettler.Tests</RootNamespace>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fettler\Fettler.csproj" />
+    <ProjectReference Include="..\fettle\fettle.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.1" />
+  </ItemGroup>
+
+</Project>

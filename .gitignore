@@ -427,3 +427,21 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# ---- Fettler ----
+
+# `dotnet publish -o published` is what ci.yml drives end to end, and
+# `build.ps1 publish` stages each program per RID under artifacts/publish
+# before archiving it. Both are build output.
+published/
+
+# The throwaway tree ci.yml declares and drives fettle against. It exists
+# for the length of one job; a copy committed by accident would be a
+# .fettler.json in the repository granting write to ".".
+smoke/
+
+# Models are never committed and never shipped: four quantised models run
+# about 400 MB against a download measured in single-digit MB. A person
+# places them in a directory named in .fettler.local.json.
+models/
+*.onnx

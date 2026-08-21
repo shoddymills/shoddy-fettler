@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- burler's own proof, and its own project on purpose.
+
+       R3.3 says the two sides of the pipe share no assembly and carry
+       their own DTOs, with a protocol test ON EACH SIDE asserting the
+       wire. Folding these into Fettler.Tests would make one project that
+       references both sides, and a single test comparing two shapes it
+       can both see is not the same assertion at all - it would pass on
+       the day the wire changed in both places at once, which is exactly
+       the day it should fail.
+
+       Nothing here needs a model. The tokenizer, the window arithmetic,
+       the BIO decode and the wire are all pure logic, which is what
+       makes them testable on a machine that has never downloaded a
+       checkpoint - and R7.3 asks for precisely those four. -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Burler.Tests</RootNamespace>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\burler\burler.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.1" />
+  </ItemGroup>
+
+</Project>

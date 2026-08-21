@@ -1,0 +1,232 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 990" role="img"
+  aria-label="A map of a developer's disk and the network beyond it. The machine is one hatched area meaning out of bounds by default. On the left, the code folder holds a sibling project that is out of bounds, a planning repository that grants nothing at its root but opens two folders by name while keeping two others invisible, and the shoddy project which is fully in bounds apart from a sealed pocket holding its own configuration files. On the right, the user's folder holds one permitted scratch directory and several refused ones: keys and credentials, Documents which contains a Dropbox folder, browser profiles, and the operating system. Below the machine is the network: two sanctioned exits lead from the shoddy project to github.com and nuget.org, every other address has no route, and the Dropbox folder has its own continuous sync door to dropbox.com that no task opens and nothing here can close.">
+<style>
+/* Extracted from docs/diagram.html so the figure can stand alone in a README.
+   The palette is the site's: madder for what is refused, drab for what is
+   granted, indigo for what is read-only, over the unbleached wool ground.
+   Kept in step with the page by hand - if the diagram there is restyled,
+   re-extract rather than patching one of the two. */
+svg{
+  --madder:#6E3A33; --drab:#55604A; --indigo:#2F4560;
+  --ink:#2E2A26; --ink-soft:#5b544a; --line:#ddd6c6; --line-soft:#e7e2d5;
+  --paper:#efece4; --card:#f8f6f0; --code-bg:#e9e5da; --code-ink:#33302b;
+  --drab-tint:#e5e8dc; --indigo-tint:#e0e5ec; --madder-tint:#ecdfda;
+  --dim:#e7e4da; --brick:#e3cfc8;
+}
+text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.mono{font-family:Consolas,"Cascadia Code",ui-monospace,Menlo,monospace}
+.bframe{fill:none; stroke-dasharray:8 6; stroke-width:1.6}
+.btab{font-size:12.5px; font-weight:700; fill:var(--paper); letter-spacing:.04em}
+.bsub{font-size:11.5px; fill:var(--ink-soft); font-style:italic}
+.card2{fill:var(--card); stroke:var(--line)}
+.cardT{font-size:12.5px; font-weight:700; fill:var(--ink)}
+.cardTm{font-size:12px; font-weight:700}
+.snip{font-size:11px; fill:var(--code-ink)}
+.snipbg{fill:var(--code-bg); stroke:var(--line-soft)}
+.note{font-size:10.5px; fill:var(--ink-soft); font-style:italic}
+.grpT{font-size:11.5px; font-weight:650; fill:var(--ink-soft); letter-spacing:.05em}
+.chip{fill:var(--madder-tint); stroke:var(--madder)}
+.chipT{font-size:11.5px; fill:var(--madder); font-weight:600}
+.lbl{font-size:11px; fill:var(--ink-soft); paint-order:stroke; stroke:var(--card); stroke-width:4px; stroke-linejoin:round}
+.lblR{font-size:11px; fill:var(--madder); font-weight:650; paint-order:stroke; stroke:var(--card); stroke-width:4px; stroke-linejoin:round}
+.route{stroke:var(--drab); stroke-width:2; fill:none}
+.routeMain{stroke:var(--drab); stroke-width:3; fill:none}
+.blocked{stroke:var(--madder); stroke-width:1.8; fill:none; stroke-dasharray:5 4}
+.tree{font-size:12px}
+.ok{fill:var(--drab); font-weight:650}
+.ro{fill:var(--indigo); font-weight:650}
+.bad{fill:var(--madder); font-weight:650}
+.hid{fill:var(--ink-soft)}
+.badge{font-size:10.5px; font-weight:650}
+.leg{font-size:12px; fill:var(--ink)}
+.t-title{font-size:31px; font-weight:800; fill:var(--ink)}
+.t-sub{font-size:15.5px; fill:var(--ink-soft)}
+.t-frame{font-size:13.5px; font-weight:800; fill:var(--paper); letter-spacing:.1em}
+.t-zone{font-size:13.5px; font-weight:800; fill:var(--ink-soft); letter-spacing:.09em}
+.t-inN{font-size:16px; font-weight:750; fill:var(--drab)}
+.t-outN{font-size:15px; font-weight:700; fill:var(--madder)}
+.t-body{font-size:12.5px; fill:var(--ink)}
+.t-dim{font-size:12.5px; fill:var(--ink-soft)}
+.t-perm{font-size:12px; font-weight:700; fill:var(--drab); letter-spacing:.03em}
+.t-tag{font-size:11.5px; font-weight:700; fill:var(--madder); letter-spacing:.05em}
+.pill{font-size:10.5px; font-weight:800; fill:var(--paper); letter-spacing:.11em}
+.t-legend{font-size:13px; fill:var(--ink)}
+</style>
+<rect width="100%" height="100%" fill="var(--card)"/>
+<defs>
+  <pattern id="dmHatch" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+    <line x1="0" y1="0" x2="0" y2="8" stroke="var(--line)" stroke-width="1.5"/>
+  </pattern>
+  <pattern id="dmHatchR" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+    <rect width="7" height="7" fill="var(--dim)"/>
+    <line x1="0" y1="0" x2="0" y2="7" stroke="#dcc9c2" stroke-width="1.6"/>
+  </pattern>
+  <marker id="dmArrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="var(--drab)"/>
+  </marker>
+  <marker id="dmArrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="var(--madder)"/>
+  </marker>
+  <g id="dmYes">
+    <circle r="12" fill="var(--drab-tint)" stroke="var(--drab)" stroke-width="1.7"/>
+    <path d="M -5.4,0.6 L -1.6,4.8 L 5.8,-4.4" fill="none" stroke="var(--drab)"
+      stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g id="dmNo">
+    <circle r="11" fill="var(--madder-tint)" stroke="var(--madder)" stroke-width="1.6"/>
+    <path d="M -4.4,-4.4 L 4.4,4.4 M 4.4,-4.4 L -4.4,4.4" fill="none" stroke="var(--madder)"
+      stroke-width="2.6" stroke-linecap="round"/>
+  </g>
+</defs>
+
+<text x="44" y="50" class="t-title">The disk, and every way off it</text>
+<text x="44" y="80" class="t-sub">Four places in bounds, two ways out &#8212; and one door that opens by itself.</text>
+
+<rect x="80" y="108" width="1120" height="602" rx="12" fill="url(#dmHatch)" stroke="var(--line)" stroke-width="1.4"/>
+<rect x="80" y="108" width="1120" height="34" rx="12" fill="var(--ink-soft)"/>
+<rect x="80" y="126" width="1120" height="16" fill="var(--ink-soft)"/>
+<text x="100" y="131" class="t-frame">THIS MACHINE &#183; OUT OF BOUNDS UNLESS THE LIST SAYS OTHERWISE</text>
+
+<text x="96" y="172" class="t-zone">c:\github\ &#8212; THE CODE</text>
+
+<rect x="96" y="182" width="644" height="62" rx="8" fill="var(--madder-tint)" stroke="var(--madder)"
+  stroke-width="1.8" stroke-dasharray="6 5"/>
+<use href="#dmNo" x="124" y="213"/>
+<text x="146" y="208" class="t-outN mono" style="font-size:14px">c:\github\shoddy-devilsdust</text>
+<text x="146" y="230" class="t-dim">A sibling project on the same disk &#8212; simply not on the list.</text>
+
+<rect x="96" y="256" width="644" height="248" rx="8" fill="url(#dmHatchR)" stroke="var(--madder)"
+  stroke-width="1.6" stroke-dasharray="7 5"/>
+<text x="118" y="284" class="t-outN mono">c:\github\shoddy-planning</text>
+<text x="118" y="303" class="t-dim">Grants nothing at its root. Two folders inside it are opened by name.</text>
+
+<rect x="118" y="316" width="296" height="80" rx="7" fill="var(--drab-tint)" stroke="var(--drab)" stroke-width="2"/>
+<use href="#dmYes" x="144" y="345"/>
+<text x="166" y="341" class="t-inN mono" style="font-size:13.5px">requirements\backlog</text>
+<text x="166" y="361" class="t-body">Read, write, rename.</text>
+<text x="166" y="381" class="t-tag">NOTHING HERE CAN BE DELETED</text>
+
+<rect x="426" y="316" width="296" height="80" rx="7" fill="var(--drab-tint)" stroke="var(--drab)" stroke-width="2"/>
+<use href="#dmYes" x="452" y="345"/>
+<text x="474" y="341" class="t-inN mono" style="font-size:13.5px">requirements\inprogress</text>
+<text x="474" y="361" class="t-body">Read, write, rename.</text>
+<text x="474" y="381" class="t-tag">NOTHING HERE CAN BE DELETED</text>
+
+<rect x="118" y="408" width="296" height="66" rx="7" fill="var(--madder-tint)" stroke="var(--madder)"
+  stroke-width="1.6" stroke-dasharray="5 4"/>
+<use href="#dmNo" x="144" y="435"/>
+<text x="166" y="431" class="t-outN mono" style="font-size:13.5px">requirements\completed</text>
+<text x="166" y="453" class="t-tag">SEALED &#183; NEVER EVEN LISTED</text>
+
+<rect x="426" y="408" width="296" height="66" rx="7" fill="var(--madder-tint)" stroke="var(--madder)"
+  stroke-width="1.6" stroke-dasharray="5 4"/>
+<use href="#dmNo" x="452" y="435"/>
+<text x="474" y="431" class="t-outN mono" style="font-size:13.5px">requirements\cancelled</text>
+<text x="474" y="453" class="t-tag">SEALED &#183; NEVER EVEN LISTED</text>
+
+<text x="118" y="492" class="t-dim">Every other folder in this repository &#8212; plans, notes, history &#8212; is out of bounds.</text>
+
+<rect x="96" y="518" width="644" height="176" rx="8" fill="var(--drab-tint)" stroke="var(--drab)" stroke-width="2.4"/>
+<use href="#dmYes" x="124" y="550"/>
+<text x="146" y="546" class="t-inN mono">c:\github\shoddy</text>
+<text x="146" y="566" class="t-body">The project being worked on &#8212; the whole tree.</text>
+<text x="440" y="546" class="t-perm">READ &#183; WRITE &#183; DELETE &#183; RUN TASKS</text>
+
+<rect x="146" y="584" width="568" height="60" rx="6" fill="var(--madder-tint)" stroke="var(--madder)"
+  stroke-width="1.4" stroke-dasharray="5 4"/>
+<use href="#dmNo" x="170" y="614"/>
+<text x="192" y="606" class="t-outN mono" style="font-size:12.5px">.fettler.json &#183; .fettler.local.json &#183; .claude\settings.json</text>
+<text x="192" y="628" class="t-dim">Sealed inside the tree that grants everything else. The rules cannot be edited by the tool they govern.</text>
+
+<text x="146" y="668" class="t-dim" style="font-style:italic">The only place on the machine permitted to run anything &#8212; so the only place with a way out.</text>
+
+<text x="768" y="172" class="t-zone">C:\Users\foster\ &#8212; THE PERSON</text>
+
+<rect x="768" y="182" width="416" height="104" rx="8" fill="var(--drab-tint)" stroke="var(--drab)" stroke-width="2.2"/>
+<use href="#dmYes" x="794" y="212"/>
+<text x="816" y="207" class="t-inN mono" style="font-size:13.5px">AppData\Local\Temp\claude\...</text>
+<text x="816" y="227" class="t-body">The assistant's own scratch folder.</text>
+<text x="816" y="247" class="t-perm">READ &#183; WRITE &#183; DELETE</text>
+<text x="816" y="269" class="t-tag">NOTHING MAY BE EXECUTED HERE</text>
+
+<rect x="768" y="300" width="416" height="76" rx="8" fill="var(--madder-tint)" stroke="var(--madder)"
+  stroke-width="1.8" stroke-dasharray="6 5"/>
+<use href="#dmNo" x="794" y="332"/>
+<text x="816" y="327" class="t-outN mono" style="font-size:14px">.ssh &#183; .aws &#183; .npmrc &#183; .gitconfig</text>
+<text x="816" y="349" class="t-dim">Private keys, cloud credentials, registry tokens.</text>
+<text x="816" y="366" class="t-dim">The highest-value files on the machine.</text>
+
+<rect x="768" y="390" width="416" height="166" rx="8" fill="var(--madder-tint)" stroke="var(--madder)"
+  stroke-width="1.8" stroke-dasharray="6 5"/>
+<use href="#dmNo" x="794" y="422"/>
+<text x="816" y="417" class="t-outN mono" style="font-size:14px">Documents &#183; Desktop &#183; Downloads</text>
+<text x="816" y="439" class="t-dim">Everything personal, and everything that</text>
+<text x="816" y="456" class="t-dim">arrived from somewhere else.</text>
+
+<rect x="790" y="470" width="372" height="72" rx="7" fill="var(--brick)" stroke="var(--madder)" stroke-width="2.4"/>
+<use href="#dmNo" x="814" y="500"/>
+<text x="836" y="495" class="t-outN mono" style="font-size:14px">Documents\Dropbox</text>
+<text x="836" y="516" class="t-dim">Anything written here leaves the machine at once.</text>
+<text x="836" y="534" class="t-tag">SEALED &#8212; AND THIS IS WHY</text>
+
+<rect x="768" y="570" width="416" height="62" rx="8" fill="var(--madder-tint)" stroke="var(--madder)"
+  stroke-width="1.8" stroke-dasharray="6 5"/>
+<use href="#dmNo" x="794" y="601"/>
+<text x="816" y="596" class="t-outN mono" style="font-size:14px">AppData\Roaming</text>
+<text x="816" y="618" class="t-dim">Browser profiles, saved sessions, other applications' secrets.</text>
+
+<text x="768" y="662" class="t-zone">C:\ &#8212; THE SYSTEM</text>
+<rect x="768" y="670" width="416" height="24" rx="6" fill="var(--madder-tint)" stroke="var(--madder)"
+  stroke-width="1.6" stroke-dasharray="6 5"/>
+<text x="782" y="687" class="t-dim mono" style="font-size:12px">Windows &#183; Program Files &#183; ProgramData &#8212; all of it, out of bounds</text>
+
+<path d="M 220,694 V 760" stroke="var(--drab)" stroke-width="5" fill="none" marker-end="url(#dmArrG)"/>
+<path d="M 470,694 V 760" stroke="var(--drab)" stroke-width="5" fill="none" marker-end="url(#dmArrG)"/>
+<rect x="206" y="704" width="28" height="12" fill="var(--drab)"/>
+<rect x="456" y="704" width="28" height="12" fill="var(--drab)"/>
+
+<path d="M 1184,506 H 1238 V 838 H 1186" stroke="var(--madder)" stroke-width="4" fill="none"
+  stroke-dasharray="7 5" marker-end="url(#dmArrR)"/>
+
+<text x="80" y="750" class="t-zone">OUTSIDE THE MACHINE &#8212; THE NETWORK</text>
+<rect x="80" y="760" width="1120" height="164" rx="12" fill="var(--card)"
+  stroke="var(--line)" stroke-width="1.4" stroke-dasharray="9 6"/>
+
+<rect x="104" y="784" width="248" height="112" rx="8" fill="var(--drab-tint)" stroke="var(--drab)" stroke-width="2.2"/>
+<rect x="104" y="784" width="66" height="19" rx="4" fill="var(--drab)"/>
+<text x="137" y="798" text-anchor="middle" class="pill">EXIT 1</text>
+<text x="122" y="832" class="t-inN mono">github.com</text>
+<text x="122" y="853" class="t-dim">git fetch &#183; pull &#183; push</text>
+<text x="122" y="874" class="t-perm">THE feature AND ship TASKS</text>
+
+<rect x="376" y="784" width="248" height="112" rx="8" fill="var(--drab-tint)" stroke="var(--drab)" stroke-width="2.2"/>
+<rect x="376" y="784" width="66" height="19" rx="4" fill="var(--drab)"/>
+<text x="409" y="798" text-anchor="middle" class="pill">EXIT 2</text>
+<text x="394" y="832" class="t-inN mono">nuget.org</text>
+<text x="394" y="853" class="t-dim">package restore</text>
+<text x="394" y="874" class="t-perm">THE build AND test TASKS</text>
+
+<rect x="648" y="784" width="286" height="112" rx="8" fill="url(#dmHatchR)" stroke="var(--madder)"
+  stroke-width="2" stroke-dasharray="6 5"/>
+<use href="#dmNo" x="674" y="814"/>
+<text x="696" y="810" class="t-outN">Every other address</text>
+<text x="674" y="836" class="t-dim">No route out. There is no shell to</text>
+<text x="674" y="854" class="t-dim">open one, and no task names one.</text>
+<text x="674" y="878" class="t-tag">NOTHING ELSE IS REACHABLE</text>
+
+<rect x="958" y="784" width="228" height="112" rx="8" fill="var(--brick)" stroke="var(--madder)"
+  stroke-width="2.4" stroke-dasharray="6 4"/>
+<text x="978" y="812" class="t-outN mono">dropbox.com</text>
+<text x="978" y="834" class="t-dim">Syncs continuously,</text>
+<text x="978" y="852" class="t-dim">by itself, unattended.</text>
+<text x="978" y="876" class="t-tag">NOT OUR DOOR</text>
+
+<use href="#dmYes" x="96" y="954"/>
+<text x="116" y="959" class="t-legend">In bounds</text>
+<use href="#dmNo" x="216" y="954"/>
+<text x="234" y="959" class="t-legend">Out of bounds &#8212; and invisible: asking returns <tspan style="font-style:italic">no such path</tspan></text>
+<path d="M 700,954 H 730" stroke="var(--drab)" stroke-width="5" fill="none"/>
+<text x="740" y="959" class="t-legend">a way out a person wrote down</text>
+<path d="M 1000,954 H 1030" stroke="var(--madder)" stroke-width="4" fill="none" stroke-dasharray="7 5"/>
+<text x="1040" y="959" class="t-legend">a way out nobody here opened</text>
+</svg>

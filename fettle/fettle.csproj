@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The executable, and the whole of it is wiring: read argv, hand it
+       to one of the two front ends in Fettler, write what comes back to
+       the real stdout, return the exit code. Every decision worth making
+       was made in Fettler and is tested there without a process.
+
+       R2.6 names it: the project and the server are Fettler, and the
+       thing a person or a script types is `fettle`, the imperative,
+       because `fettle move a.txt b.txt` reads as an instruction.
+
+       R2.7 chooses the front end by the `serve` subcommand rather than
+       by the name the executable was invoked under, which is the Unix
+       convention and rests on a mechanism not in ordinary use on
+       Windows. Both required platforms spell a subcommand the same way.
+
+       PublishSingleFile and self-contained are set by the publish step
+       in build.ps1 rather than here, exactly as the MCP lane does it,
+       so a plain `dotnet build` stays fast. -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>fettle</AssemblyName>
+    <RootNamespace>Fettle</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fettler\Fettler.csproj" />
+  </ItemGroup>
+
+</Project>

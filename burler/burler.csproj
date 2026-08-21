@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- burler: the disclosure screen's model host, and nothing else.
+
+       THE WHOLE POINT OF THIS PROJECT IS THAT IT IS NOT FETTLER.
+       Fettler.csproj takes a PackageReference only from an allowlist
+       requiring PURE MANAGED assemblies with no native assets, because
+       fettle publishes self-contained and single-file per OS, and
+       Fettler.Tests asserts that reference set from outside (R1.4).
+
+       BERT inference needs ONNX Runtime, which ships native per-RID
+       binaries. That is disqualified from Fettler by the stated, tested
+       design of the tool - not by an oversight anybody is free to
+       correct. So the inference lives here, in a separate executable
+       Fettler talks to over a pipe, and the allowlist is untouched.
+
+       NO ProjectReference, EVER, IN EITHER DIRECTION. Fettler does not
+       reference burler and burler does not reference Fettler. The wire
+       format is the whole contract between them, and each side carries
+       its own copy of the shapes that cross it, proven equivalent by a
+       protocol test on each side rather than by a shared assembly. That
+       is the verify-twins argument applied to a process boundary: twins
+       proven equivalent by test, not by sharing.
+
+       THE MODELS ARE NOT HERE AND ARE NEVER SHIPPED. Four quantised
+       models run about 400 MB against a fettle download measured in
+       single-digit MB, so a person places them in a models directory
+       named in .fettler.local.json and burler refuses to start a
+       category whose model or manifest is missing. Their licences and
+       provenance live in that directory's manifest rather than in this
+       repository's THIRD-PARTY-NOTICES.md, because a licence obligation
+       binds on redistribution and none occurs (L6). What DOES enter the
+       notices is what burler itself ships: ONNX Runtime and
+       Microsoft.ML.Tokenizers, both MIT. -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Burler</RootNamespace>
+    <AssemblyName>burler</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.20.1" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" Version="1.0.0" />
+  </ItemGroup>
+
+</Project>

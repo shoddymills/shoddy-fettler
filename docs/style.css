@@ -1,0 +1,427 @@
+/* Shoddy documentation — shared stylesheet.
+   One sheet for every page under doc/; page-specific components are
+   grouped at the bottom (trace tables, pagers, badges, setup steps). */
+
+/* The ground is unbleached wool, not paper: reclaimed fibre could never be
+   bleached, only dyed darker, so white was the one colour the trade never had.
+   The three thread colours are the district's staples — madder oxblood, drab
+   olive, indigo navy — and are also a shade of R, a shade of G and a shade of
+   B, the primaries of the new loom dyed in the old lots. The story, and these
+   same hex values, are on heritage.html under "The mark".
+   Every ink here clears WCAG AA against the ground it actually sits on. */
+:root{
+  --madder:#6E3A33; --drab:#55604A; --indigo:#2F4560;
+  --ink:#2E2A26; --ink-soft:#5b544a; --line:#ddd6c6; --line-soft:#e7e2d5;
+  --paper:#efece4; --card:#f8f6f0; --accent:#6E3A33; --accent-soft:#eae0d9;
+  --code-bg:#e9e5da; --code-ink:#33302b;
+  /* Syntax wears the three threads: keyword madder, builtin drab, number
+     indigo. Strings keep the ochre of undyed stock, comments recede. */
+  --k:#6E3A33; --b:#55604A; --s:#8a5a2b; --n:#2F4560; --c:#6b6559;
+  --max:46rem;
+}
+/* Besley SemiBold — the wordmark's own face, a Clarendon revival, which is the
+   slab the Victorian mill trade actually printed in. Used for page titles only;
+   body copy stays on the system stack, so this is one 17 KB latin subset and
+   nothing on the critical path. SIL OFL 1.1 — media/font/OFL.txt. */
+@font-face{
+  font-family:"Besley"; src:url("media/font/besley-semibold-latin.woff2") format("woff2");
+  font-weight:600; font-style:normal; font-display:swap;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:17px; line-height:1.65; letter-spacing:.002em}
+.wrap{max-width:var(--max); margin:0 auto; padding:0 1.25rem 5rem}
+.wrap a{color:var(--accent)}
+
+/* --- top bar / doc nav --- */
+.topbar{position:sticky; top:0; z-index:10; background:rgba(239,236,228,.92);
+  backdrop-filter:saturate(120%) blur(6px); border-bottom:1px solid var(--line)}
+/* Two rows: the wordmark and the about-links ride together up top, the
+   fourteen-item single row this replaced wrapped raggedly at any width. */
+.topbar .inner{max-width:var(--max); margin:0 auto; padding:.5rem 1.25rem .55rem; font-size:.82rem}
+.topbar .row{display:flex; flex-wrap:wrap; align-items:center; gap:.75rem; row-gap:.2rem}
+.topbar .phase{display:inline-flex; align-items:center; gap:.42rem;
+  text-decoration:none; color:var(--accent); font-weight:600; letter-spacing:.04em; text-transform:uppercase; font-size:.72rem; white-space:nowrap}
+/* The mark rides in every topbar. Decorative — the wordmark beside it already
+   carries the name, so it is alt="" rather than repeating it to a screen reader. */
+.topbar .phase .mark{width:23px; height:23px; flex:none; display:block}
+.topbar .spacer{flex:1}
+.docnav{display:flex; flex-wrap:wrap; gap:.2rem .85rem}
+.docnav.meta{justify-content:flex-end}
+/* Fettler is a tool, not an about-link, and the main row was full at fourteen
+   items. It rides up here in the house madder with a rule between it and the
+   about-links, so the two kinds of link read as two groups rather than four
+   equal words. The rule is padding plus a border rather than a separator
+   element: no extra markup to keep in step across 123 pages. */
+.docnav.meta .tool{color:var(--madder); font-weight:600;
+  padding-right:.85rem; border-right:1px solid var(--line)}
+.docnav.meta .tool:hover{color:var(--madder)}
+/* The remaining items spread the full width, so the row reads as one band
+   rather than a left-packed list with a gap after it. */
+.docnav.main{justify-content:space-between; gap:.2rem .5rem; margin-top:.3rem}
+.docnav a{color:var(--ink-soft); text-decoration:none; font-weight:500}
+.docnav a:hover{color:var(--accent)}
+.docnav .here{color:var(--accent); font-weight:700}
+/* Justified spacing turns ugly once the row wraps — pack left instead. */
+@media (max-width:760px){.docnav.main{justify-content:flex-start; gap:.2rem .8rem}}
+
+/* An in-page jump list (e.g. machines/index.html's categories). Visually a
+   docnav row, but a different class on purpose: the nav-consistency check
+   in verify-docs.js matches any <nav class="docnav*">, and a per-page jump
+   list must never be compared against the sitewide bar. */
+.catnav{display:flex; flex-wrap:wrap; gap:.2rem .85rem; font-size:.85rem; margin:1.1rem 0 0}
+.catnav a{color:var(--ink-soft); text-decoration:none; font-weight:500}
+.catnav a:hover{color:var(--accent)}
+
+/* --- masthead + prose --- */
+header.mast{padding:2.6rem 0 1.4rem; border-bottom:1px solid var(--line); margin-bottom:1.2rem}
+/* an h2 straight after the masthead (heritage, authorship): the mast's own
+   rule already separates - one line, not two. */
+header.mast + h2{border-top:0; padding-top:0}
+.eyebrow{color:var(--accent); font-weight:600; letter-spacing:.06em; text-transform:uppercase; font-size:.74rem; margin:0 0 .5rem}
+h1{font-family:"Besley",Georgia,"Times New Roman",serif; font-weight:600;
+  font-size:2.15rem; line-height:1.15; margin:.1rem 0 .35rem; letter-spacing:-.005em}
+.kicker{color:var(--ink-soft); font-size:1.02rem; margin:.2rem 0 0}
+/* The trade motto, set as the README sets it: italic, its own line, and in
+   the accent so it reads as the project's own words rather than as the
+   first sentence of the paragraph under it. */
+.motto{font-style:italic; color:var(--accent); font-size:1.05rem; margin:0 0 1rem}
+/* h2 is every page's within-page headline tier - guide chapters, quickref
+   sections, spec sections, the homepage's own top-level breaks - so it
+   gets the wordmark's face too: it is already loaded wherever h1 is, so
+   this is free. h3 stays on the system stack; below h2 it starts running
+   into compact, denser contexts (e.g. .build h3) where a slab serif would
+   read as heavier than the content underneath it warrants.
+   The rule above it is what actually makes the break register - a font
+   swap alone still reads as "bigger paragraph" at a glance, the same gap
+   the machines/mills group headings had before the font was the fix
+   there too. .step-head overrides it: its h2 sits inline beside a step
+   badge, not opening a new section, so it gets none of this. */
+h2{font-family:"Besley",Georgia,"Times New Roman",serif; font-weight:600;
+  font-size:1.32rem; line-height:1.25; letter-spacing:-.005em; scroll-margin-top:4rem;
+  border-top:1px solid var(--line); padding-top:1.6rem; margin:2.6rem 0 .5rem}
+h3{font-size:1.05rem; margin:1.6rem 0 .4rem; scroll-margin-top:4rem}
+/* An h2 carrying an outbound link on its right. Where a section is ABOUT
+   something that lives elsewhere, the way to it belongs beside the heading
+   rather than buried in the prose underneath, where a reader who came for
+   exactly that has to read a paragraph to find it. Flex on the h2 itself
+   keeps the border-top and padding the plain rule already gives it;
+   align-items:baseline sits the small link on the heading's baseline
+   rather than its box; flex-wrap drops it onto its own line on a narrow
+   screen instead of crushing the heading. */
+h2.withside{display:flex; align-items:baseline; justify-content:space-between; gap:1rem; flex-wrap:wrap}
+h2.withside .side{font-size:.78rem; font-weight:600; color:var(--madder); text-decoration:none}
+h2.withside .side:hover{text-decoration:underline}
+p{margin:.7rem 0}
+ul,ol{margin:.6rem 0; padding-left:1.35rem}
+li{margin:.32rem 0}
+strong,b{font-weight:650}
+blockquote{margin:1rem 0; padding:.75rem 1rem; background:var(--card);
+  border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:.45rem; font-size:.96rem}
+blockquote p{margin:.3rem 0}
+section{margin:0 0 1.2rem}
+
+/* --- tutorials: "in the debugger" asides, cool against the warm page --- */
+.dbg{margin:1.1rem 0; padding:.75rem 1rem; background:#e6e9ef;
+  border:1px solid #d3d9e3; border-radius:.45rem; font-size:.94rem}
+.dbg b{color:var(--indigo)}
+.dbg ul{margin:.4rem 0 0; padding-left:1.1rem}
+.dbg li{margin:.15rem 0}
+
+/* --- errors page: diagnostic cards with broken/fixed pairs --- */
+/* Each diagnostic is a card opened by its message chips; a rule between
+   cards keeps a card's chips from reading as a caption for the previous
+   card's code panes. The rule is suppressed right after a heading or
+   intro paragraph, where the section break already separates. */
+.err{margin:0; padding:1.5rem 0 1.9rem; border-top:1px solid #d5cec0}
+h2 + .err, h3 + .err, p + .err, blockquote + .err{border-top:0; padding-top:.4rem}
+.emsg{margin:0 0 .5rem; border-left:3px solid var(--accent); padding-left:.65rem}
+.emsg code{display:inline-block; background:var(--accent-soft); border:1px solid var(--line);
+  border-radius:.4rem; padding:.14rem .5rem; margin:0 .3rem .3rem 0; font-size:.84rem;
+  white-space:normal; overflow-wrap:anywhere}
+.err p{margin:.35rem 0}
+.fixpair{display:grid; grid-template-columns:1fr 1fr; gap:.8rem; margin:.6rem 0 0; align-items:start}
+@media (max-width:660px){.fixpair{grid-template-columns:1fr}}
+.fixpair>div{border:1px solid var(--line); border-radius:.5rem; overflow:hidden; background:var(--card)}
+.fixpair b{display:block; font-size:.7rem; letter-spacing:.06em; text-transform:uppercase; padding:.32rem .65rem}
+.fixpair .bad b{background:#f0dfdb; color:var(--madder)}
+.fixpair .good b{background:#e2e7dc; color:#47523d}
+/* Build guides: a copyable prompt, numbered work steps, and their gates.
+   Class names are deliberately distinct from .step / .steps used elsewhere. */
+.wrap.wide{max-width:50rem}
+.topbar .inner.wide{max-width:50rem}
+.promptbox{position:relative; margin:1rem 0}
+.promptbox pre{margin:0; padding-top:2.4rem}
+.promptbox .copy{position:absolute; top:.5rem; right:.5rem; z-index:2;
+  font:600 .68rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  letter-spacing:.05em; text-transform:uppercase; color:var(--ink-soft);
+  background:var(--card); border:1px solid var(--line); border-radius:.35rem;
+  padding:.38rem .6rem; cursor:pointer; opacity:.75;
+  transition:opacity .15s,color .15s,border-color .15s}
+.promptbox:hover .copy{opacity:1}
+.promptbox .copy:hover{color:var(--accent); border-color:var(--accent)}
+.promptbox .copy.done{color:var(--b); border-color:#c3cfba; opacity:1}
+.build{border-top:1px solid var(--line); padding-top:1.6rem; margin-top:2.4rem;
+  scroll-margin-top:4rem}
+.build .num{color:var(--accent); font-weight:700; font-size:.72rem;
+  letter-spacing:.06em; text-transform:uppercase}
+.build h3{margin-top:.15rem}
+.gates{display:grid; grid-template-columns:auto 1fr; gap:.35rem .9rem;
+  margin:1rem 0; font-size:.94rem}
+.gates dt{font-weight:650; color:var(--ink-soft); font-size:.76rem;
+  text-transform:uppercase; letter-spacing:.05em; padding-top:.22rem; white-space:nowrap}
+.gates dd{margin:0}
+.gates dd code{font-size:.82em}
+@media (max-width:620px){.gates{grid-template-columns:1fr; gap:.1rem .4rem}
+  .gates dt{padding-top:.6rem}}
+.steplist{columns:2; column-gap:2rem; font-size:.92rem; margin:1rem 0}
+.steplist a{text-decoration:none; display:block; padding:.12rem 0; color:var(--ink)}
+.steplist a:hover{color:var(--accent)}
+.steplist .n{color:var(--accent); font-weight:700; display:inline-block; width:1.9rem}
+@media (max-width:620px){.steplist{columns:1}}
+.ext{font-size:.86rem; color:var(--ink-soft)}
+.note.mile{background:var(--accent-soft); border-color:#ded0bd}
+.note.mile .lab{color:var(--accent)}
+details.worked{margin:1.1rem 0; border:1px solid var(--line); border-radius:.5rem;
+  background:var(--card)}
+details.worked summary{cursor:pointer; padding:.6rem .9rem; font-weight:650;
+  font-size:.92rem; color:var(--accent); list-style:none}
+details.worked summary::-webkit-details-marker{display:none}
+details.worked summary::before{content:"\25B8 "; display:inline-block; transition:transform .15s}
+details.worked[open] summary::before{transform:rotate(90deg)}
+details.worked pre{border:0; border-top:1px solid var(--line); border-radius:0; margin:0}
+details.worked p{padding:0 .9rem .8rem; margin:.5rem 0 0}
+
+.ask{margin:.8rem 0; padding:.55rem .85rem; background:var(--accent-soft);
+  border-radius:.45rem}
+.ask .lab{font-weight:700; font-size:.7rem; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--accent); margin-right:.5rem}
+/* Scoped to p deliberately: setup.html wraps each step in <section class="step">,
+   and an unscoped .step handed those whole sections this label's uppercase,
+   bold, .7rem and letter-spacing — text-transform and font-weight inherit, so
+   every paragraph inside them rendered as shouted small print. */
+p.step{margin:1rem 0 -.7rem; font-weight:700; font-size:.7rem; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--ink-soft)}
+.fixpair pre{margin:0; border:0; border-radius:0; border-top:1px solid var(--line-soft); padding:.6rem .7rem}
+.fixpair pre code{font-size:.8rem}
+
+/* --- code --- */
+pre{margin:1rem 0; padding:.95rem 1.05rem; background:var(--code-bg);
+  border:1px solid var(--line); border-radius:.5rem; overflow-x:auto}
+pre code{font-family:"SF Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.86rem; line-height:1.55; color:var(--code-ink); white-space:pre;
+  background:none; border:none; padding:0}
+code{font-family:"SF Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.86em; background:var(--code-bg); border:1px solid var(--line-soft);
+  padding:.05em .32em; border-radius:.3rem; color:var(--code-ink)}
+code.inline{white-space:nowrap}
+.tok .k{color:var(--k); font-weight:600}
+.tok .b{color:var(--b)}
+.tok .s{color:var(--s)}
+.tok .n{color:var(--n)}
+.tok .c{color:var(--c); font-style:italic}
+
+/* --- tables --- */
+table{width:100%; border-collapse:collapse; margin:1rem 0; font-size:.9rem}
+th,td{padding:.42rem .6rem; border:1px solid var(--line); text-align:left; vertical-align:top}
+th{background:var(--accent-soft); color:var(--ink); font-weight:650}
+tr:nth-child(even) td{background:var(--card)}
+table.prose td:first-child{font-family:inherit; font-size:inherit}
+td:first-child{font-family:"SF Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.84rem}
+table.trace td:last-child{font-family:"SF Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.84rem}
+table.trace td:nth-child(2){font-family:"SF Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.84rem}
+
+/* --- callouts --- */
+.note{margin:1rem 0; padding:.75rem 1rem; border-radius:.45rem; font-size:.94rem;
+  background:#f5f2ea; border:1px solid var(--line); color:var(--ink-soft)}
+.note .lab{font-weight:700; font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin-right:.4rem}
+.note.tip{background:#e6ece3; border-color:#d6dfd0}
+.note.tip .lab{color:var(--b)}
+.note.watch{background:#f2e6de; border-color:#e5d3c7}
+.note.watch .lab{color:var(--s)}
+.takeaway{margin:1.4rem 0 0; padding:.85rem 1.05rem; background:var(--accent-soft);
+  border-left:3px solid var(--accent); border-radius:.3rem; font-size:.96rem}
+.takeaway b{color:var(--accent)}
+
+/* --- catalog labels (machines / mills) --- */
+.lib{color:var(--accent); font-weight:700; font-size:.7rem; letter-spacing:.03em}
+.tag{color:var(--accent); font-weight:700; font-size:.7rem; text-transform:uppercase; letter-spacing:.03em}
+.status{font-size:.7rem; text-transform:uppercase; letter-spacing:.03em; color:var(--b); font-weight:600}
+dl.doors dt{font-weight:650; color:var(--accent); margin-top:1.1rem}
+dl.doors dd{margin:.25rem 0 0 0}
+
+/* --- catalog tables: a thumbnail in the first column (mills, machines) --- */
+table.thumbs td.thumb{width:150px; padding:.42rem}
+table.thumbs td.thumb a{display:block; line-height:0}
+table.thumbs td.thumb img{display:block; width:100%; height:auto;
+  border-radius:.3rem; background:#0d1016}
+/* Catalog names are hyphenated (pac-vt100, simplex-from-mps) and would
+   otherwise break at the hyphen into something that reads as two names */
+table.thumbs td:nth-child(2){white-space:nowrap}
+/* .code cards carry a line of Shoddy rather than a picture, and text needs
+   more width than a screenshot to stay legible at thumbnail size */
+table.thumbs.code td.thumb{width:180px}
+/* Narrow screens: the thumbnail is decorative here and a fourth column
+   squeezes the description to two words a line, so drop it and leave the
+   plain name/description/status table. */
+@media (max-width:560px){
+  table.thumbs td.thumb, table.thumbs th:first-child{display:none}
+  table.thumbs td:nth-child(2){white-space:normal}
+}
+
+/* --- gallery (mills / home screenshots) --- */
+.gallery{display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+  gap:.9rem; margin:1.2rem 0 1.6rem; align-items:stretch}
+.gallery.hero{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.gallery.stack{grid-template-columns:1fr}
+.gallery.compact{grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:.7rem}
+.gallery.compact .lab b{font-size:.84rem}
+.gallery.compact .lab span{font-size:.72rem; min-height:2.1em}
+.gallery.mini{grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:.55rem}
+.gallery.mini .lab{padding:.4rem .55rem .5rem}
+.gallery.mini .lab b{font-size:.8rem}
+.gallery.mini .lab span{font-size:.68rem; min-height:2em}
+.onramp{display:grid; grid-template-columns:minmax(0,3fr) minmax(220px,2fr);
+  gap:1.2rem; align-items:center; margin:1.2rem 0 1.6rem}
+.onramp p{margin:0}
+@media (max-width:640px){.onramp{grid-template-columns:1fr}}
+.mast.has-icon{display:flex; align-items:center; justify-content:space-between;
+  gap:1.2rem; flex-wrap:wrap}
+.mast.has-icon > div{flex:1 1 320px; min-width:0}
+.mast.has-icon .micon{width:216px; max-width:42%; height:auto; flex:0 0 auto;
+  border:1px solid var(--line); border-radius:.6rem; background:#0d1016}
+.pageshot{margin:1.2rem 0 0}
+.pageshot img{display:block; max-width:380px; width:100%; height:auto;
+  border:1px solid var(--line); border-radius:.6rem; background:#0d1016}
+.pageshot.icon img{max-width:260px}
+/* .wide gives the figure the whole text column. The 380px a screenshot
+   gets is a thumbnail you click through from; the tour is six cards of
+   code side by side and has nothing to click through TO, so at thumbnail
+   width it is an illegible smear rather than a smaller version of itself. */
+.pageshot.wide img{max-width:100%}
+/* .flow sets the figure into the prose rather than under it — floated right,
+   with the paragraph running down its left. The mark is 2.5:1, so at this
+   width it stands about five lines tall and the text closes underneath it.
+   Light ground, not the dark one screenshots want. */
+.pageshot.flow{float:right; width:min(340px,44%); margin:.35rem 0 .9rem 1.5rem}
+.pageshot.flow img{max-width:100%; background:var(--card)}
+/* Below this the text column has no room left to read beside a figure. */
+@media (max-width:620px){
+  .pageshot.flow{float:none; width:auto; margin:1.2rem 0 0}
+}
+table td.uicon{width:96px; padding:.42rem}
+table td.uicon a{display:block; line-height:0}
+table td.uicon img{display:block; width:100%; height:auto;
+  border:1px solid var(--line); border-radius:.35rem}
+@media (max-width:560px){table td.uicon{display:none}}
+.shot{display:flex; flex-direction:column; text-decoration:none; color:var(--ink);
+  border:1px solid var(--line); border-radius:.6rem; overflow:hidden; background:var(--card);
+  transition:border-color .15s, transform .15s, box-shadow .15s}
+.shot:hover, .shot:focus-visible{border-color:var(--accent); transform:translateY(-2px);
+  box-shadow:0 8px 20px -12px rgba(60,40,20,.35)}
+
+/* --- the same lift, on every other picture on the site --- */
+/* The gallery cards above set the pattern; these are the catalog thumbnails,
+   the cross-reference icons in the "who uses it" tables, and the masthead
+   icon, so no image on any page sits inert under the pointer. The
+   border-color half is a no-op where the image has no border (the catalog
+   thumbnails), which is why the whole rule can be shared. */
+table.thumbs td.thumb img,
+table td.uicon img,
+.mast.has-icon .micon,
+.pageshot img{transition:border-color .15s, transform .15s, box-shadow .15s}
+table.thumbs td.thumb a:hover img, table.thumbs td.thumb a:focus-visible img,
+table td.uicon a:hover img, table td.uicon a:focus-visible img,
+.mast.has-icon .micon:hover,
+.pageshot img:hover{border-color:var(--accent); transform:translateY(-2px);
+  box-shadow:0 8px 20px -12px rgba(60,40,20,.35)}
+
+/* Readers who ask for less motion keep the colour and shadow cues, and lose
+   only the movement. */
+@media (prefers-reduced-motion:reduce){
+  .shot, table.thumbs td.thumb img, table td.uicon img,
+  .mast.has-icon .micon, .pageshot img{transition:border-color .15s, box-shadow .15s}
+  .shot:hover, .shot:focus-visible,
+  table.thumbs td.thumb a:hover img, table.thumbs td.thumb a:focus-visible img,
+  table td.uicon a:hover img, table td.uicon a:focus-visible img,
+  .mast.has-icon .micon:hover, .pageshot img:hover{transform:none}
+}
+.shot img{display:block; width:100%; height:auto; background:#0d1016; border-bottom:1px solid var(--line)}
+.shot .lab{padding:.55rem .7rem .65rem}
+.shot .lab b{display:block; font-size:.92rem; font-weight:650}
+.shot .lab span{display:block; color:var(--ink-soft); font-size:.78rem; margin-top:.1rem;
+  line-height:1.4; min-height:2.24em}
+
+/* --- pagers (machine / mill detail pages) --- */
+.pager{display:flex; justify-content:space-between; gap:1rem; margin:3rem 0 0; padding-top:1.4rem; border-top:1px solid var(--line)}
+.pager a{text-decoration:none; color:var(--ink); border:1px solid var(--line);
+  background:var(--card); border-radius:.5rem; padding:.6rem .85rem; font-size:.9rem;
+  max-width:48%; transition:border-color .15s}
+.pager a:hover{border-color:var(--accent)}
+.pager .dir{display:block; font-size:.7rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); margin-bottom:.15rem}
+.pager .ttl{color:var(--accent); font-weight:600}
+.pager a.next{text-align:right; margin-left:auto}
+.pagertop{display:flex; justify-content:space-between; gap:1rem; font-size:.85rem; margin:1.1rem 0 0}
+
+/* --- pagenav (unified prev/all/next ribbon, header + footer) --- */
+.pagenav{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:1rem}
+.pagenav-top{margin:1.1rem 0 0}
+.pagenav-top + h2{margin-top:1.1rem}
+/* fettler pages: no h2 follows the top ribbon, so it draws the rule the
+   machine and mill pages get from their Summary heading */
+.pagenav-top.ruled{border-bottom:1px solid var(--line); padding-bottom:1.1rem; margin-bottom:1.6rem}
+.pagenav-bottom{margin:3rem 0 0; padding-top:1.4rem; border-top:1px solid var(--line)}
+.pagenav a{display:flex; align-items:center; justify-content:center; gap:.35rem; height:2.4rem;
+  box-sizing:border-box; text-decoration:none; color:var(--ink); border:1px solid var(--line);
+  background:var(--card); border-radius:.5rem; padding:0 .85rem; font-size:.85rem;
+  white-space:nowrap; overflow:hidden;
+  transition:border-color .15s}
+.pagenav a:hover{border-color:var(--accent)}
+.pagenav a:has(.pnwrap){align-items:stretch}
+.pagenav .pnwrap{display:flex; align-items:stretch; gap:.35rem}
+.pagenav a.prev{grid-column:1; justify-self:start}
+.pagenav a.all{grid-column:2; justify-self:center; text-transform:uppercase; letter-spacing:.05em; font-size:.7rem}
+.pagenav a.next{grid-column:3; justify-self:end}
+.pagenav a.all-first{grid-column:1; justify-self:start}
+.pagenav a.all-last{grid-column:3; justify-self:end}
+.pagenav .dir{display:flex; align-items:center; color:var(--ink-soft); font-size:.7rem; text-transform:uppercase; letter-spacing:.05em}
+.pagenav .ttl{display:flex; align-items:center; font-family:"Besley",Georgia,"Times New Roman",serif; font-weight:600; font-size:1.25rem;
+  color:var(--accent); overflow:hidden; text-overflow:ellipsis}
+
+/* --- badges (vscode page) --- */
+.badge{display:inline-block; margin-left:.55rem; padding:.08rem .5rem; border-radius:.35rem;
+  font-size:.66rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+  vertical-align:middle; border:1px solid var(--line)}
+.badge.req{color:var(--b); background:#e6ece3; border-color:#d6dfd0}
+.badge.opt{color:var(--s); background:#f2e6de; border-color:#e5d3c7}
+.badge.info{color:var(--ink-soft); background:var(--card)}
+
+/* --- setup steps --- */
+section.step{margin:2.4rem 0 0; scroll-margin-top:4rem}
+.step-head{display:flex; align-items:baseline; gap:.7rem; margin:0 0 .3rem}
+.step-head h2{margin:0; border-top:none; padding-top:0}
+.step-num{flex:none; font-size:.76rem; font-weight:700; color:var(--accent);
+  border:1px solid var(--line); background:var(--card); border-radius:.35rem;
+  padding:.12rem .5rem; letter-spacing:.03em}
+.step .sub{color:var(--ink-soft); font-size:.9rem; margin:.15rem 0 .9rem}
+
+/* --- per-platform blocks (setup page) --- */
+.plat{margin:.9rem 0; border:1px solid var(--line); border-radius:.5rem;
+  background:var(--card); overflow:hidden}
+.plat .os{display:block; padding:.4rem 1rem .3rem; background:var(--line-soft);
+  font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; font-weight:700}
+.plat.win .os{color:var(--n)}
+.plat.mac .os{color:var(--b)}
+.plat .body{padding:.2rem 1rem .75rem}
+.plat .body p{margin:.55rem 0}
+.plat pre{margin:.6rem 0; border:none; border-radius:.4rem}
+
+/* --- footers --- */
+.src{margin:2.4rem 0 0; font-size:.82rem; color:var(--ink-soft); font-style:italic; border-top:1px dashed var(--line); padding-top:1rem}
+/* clear: a floated figure in the last section must not push the rule up beside it. */
+footer{clear:both; margin-top:3rem; font-size:.82rem; color:var(--ink-soft); border-top:1px dashed var(--line); padding-top:1rem}
+.pagenav-bottom + footer{margin-top:1.25rem}
+
+@media (max-width:560px){ body{font-size:16px} h1{font-size:1.7rem} }
