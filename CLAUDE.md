@@ -30,6 +30,8 @@ denial.
 ./scripts/build.ps1 check                      # the verifiers: twins, permissions, docs, errors
 ./scripts/build.ps1 release                    # Release build
 ./scripts/build.ps1 publish 1.0.0              # self-contained single-file per OS, per program
+./scripts/install.ps1                          # install over the fettle on PATH; NOT a task
+./scripts/install.ps1 -Stop                    # ...and end the servers still on the old build
 
 ./scripts/branch.ps1 feature NAME              # cut a branch off an up-to-date main
 ./scripts/branch.ps1 sync                      # merge main into the current branch

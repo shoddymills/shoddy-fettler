@@ -17,7 +17,7 @@
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <nav class="docnav main" aria-label="Documentation"><a href="index.html">Overview</a><a href="diagram.html">The workstation</a><span class="here">Quick start</span><a href="install.html">Install</a><a href="setup.html">In a project</a><a href="screening.html">Screening</a></nav>
+  <nav class="docnav main" aria-label="Documentation"><a href="index.html">Overview</a><a href="diagram.html">The workstation</a><span class="here">Quick start</span><a href="install.html">Install</a><a href="setup.html">In a project</a><a href="screening.html">Screening</a><a href="reference.html">Reference</a></nav>
 </div></div>
 <div class="wrap">
 <header class="mast">
@@ -65,7 +65,7 @@ list of folders your terminal searches when you type a command.
 the old <code>PATH</code>. Then check it:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle --version
-fettle 2.3.0</code></pre></div>
+fettle 1.0.0</code></pre></div>
 
 <div class="note"><b>If that says <em>not recognised</em> or <em>command
 not found</em></b>, the usual cause is the terminal &mdash; open a new
@@ -156,7 +156,7 @@ machine has.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle doctor</code></pre></div>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>fettle 2.3.0  C:\Users\you\AppData\Local\Programs\fettle\fettle.exe
+<div class="promptbox"><button class="copy">Copy</button><pre><code>fettle 1.0.0  C:\Users\you\AppData\Local\Programs\fettle\fettle.exe
 on PATH: C:\Users\you\AppData\Local\Programs\fettle\fettle.exe
 tool inventory drawn 2026-08-20; check 2.8 says nothing about a tool added to the client since
 
@@ -201,9 +201,9 @@ past Fettler rather than a broken registration.</p>
 <table>
 <tr><th>What you see</th><th>What to do</th></tr>
 <tr><td><code>on PATH: no</code></td><td>Step 1 did not take. <a href="install.html#path">Putting it on <code>PATH</code></a> &mdash; and open a new terminal. Nothing else works until this does.</td></tr>
-<tr><td><code>absent</code></td><td>Run step 2 or step 3 for that client and level. <a href="setup.html#findings">The wiring table</a> gives the exact command per row.</td></tr>
-<tr><td><code>broken</code></td><td>The registration is there, and its command does not resolve. Re-run <code>setup</code> with <code>--command</code> naming the binary, and <code>--force</code> to overwrite an entry that says something else. <a href="setup.html#findings">Details</a>.</td></tr>
-<tr><td>A numbered finding &mdash; <code>2.6</code>, <code>2.8</code>, <code>B.17</code>&hellip;</td><td><a href="setup.html#findings">Everything doctor can report, and how to clear it</a> has a row per check: what it found, and the edit that clears it.</td></tr>
+<tr><td><code>absent</code></td><td>Run step 2 or step 3 for that client and level. <a href="reference.html#findings">The wiring table</a> gives the exact command per row.</td></tr>
+<tr><td><code>broken</code></td><td>The registration is there, and its command does not resolve. Re-run <code>setup</code> with <code>--command</code> naming the binary, and <code>--force</code> to overwrite an entry that says something else. <a href="reference.html#findings">Details</a>.</td></tr>
+<tr><td>A numbered finding &mdash; <code>2.6</code>, <code>2.8</code>, <code>B.17</code>&hellip;</td><td><a href="reference.html#findings">Everything doctor can report, and how to clear it</a> has a row per check: what it found, and the edit that clears it.</td></tr>
 <tr><td>Exit <b>1</b> with no finding you recognise</td><td>Warnings only, nothing broken. <a href="setup.html#verdicts">The four verdicts</a> says which rows count as what.</td></tr>
 </table>
 
@@ -256,9 +256,10 @@ write.</p>
 <tr><th>You want</th><th>Page</th></tr>
 <tr><td>To widen the tree, add a second one, or hide a folder from the assistant entirely</td><td><a href="setup.html#declare">Step 1, declaring your trees</a></td></tr>
 <tr><td>The scratch directory an assistant stages work in, which needs declaring before <code>Write</code> is denied</td><td><a href="setup.html#scratch">Step 2, declaring the scratch</a></td></tr>
-<tr><td>Every flag <code>setup</code> takes, and the exit codes</td><td><a href="install.html#global">Installing it</a></td></tr>
+<tr><td>Every flag <code>setup</code> takes</td><td><a href="setup.html#flags">In a project</a></td></tr>
+<tr><td>Every exit code a script can branch on</td><td><a href="reference.html#codes">The reference</a></td></tr>
 <tr><td>To stop a tree of health or customer records leaving in a transcript</td><td><a href="screening.html">Screening</a></td></tr>
-<tr><td>What the permissions mean and why the defaults are what they are</td><td><a href="index.html#permissions">Fettler</a></td></tr>
+<tr><td>What the permissions mean and why the defaults are what they are</td><td><a href="reference.html#permissions">Fettler</a></td></tr>
 <tr><td>To run it from a script instead of an assistant, or to register it by hand</td><td><a href="install.html#mcp">The MCP front end</a></td></tr>
 </table>
 

@@ -37,7 +37,7 @@ public static class ToolCatalogue
             }}
             """),
 
-        new("search", "Matching lines as records: path, line, column, text, optional context. Takes several patterns at once. Searches only inside declared trees; there is nothing outside them to search. A document that has to be rendered before it can be read - a PDF - is rendered and searched with everything else, and a hit inside one carries the page it sits on.", """
+        new("search", "Matching lines as records: path, line, column, text, optional context. Takes several patterns at once. Searches only inside declared trees; there is nothing outside them to search. A document that has to be rendered before it can be read - a PDF - is rendered and searched with everything else, and a hit inside one carries the page it sits on. Hits stop at `limit`, and also at 40,000 characters of matched text, because one hit can be a thousand-character line; `truncated` says either happened.", """
             {"type":"object","required":["patterns"],"properties":{
               "patterns":{"type":"array","items":{"type":"string"},"description":".NET regular expressions unless literal is true"},
               "glob":{"type":"string","description":"restrict to a subset of files"},
@@ -53,11 +53,11 @@ public static class ToolCatalogue
             }}
             """),
 
-        new("read", "Content, encoding, line ending, trailing-newline state and a content hash. Takes several paths in one call. Reads notebooks as cells, PDFs as text per page, spreadsheets as rows of cells with their formulas, Word documents as paragraphs and tables under their headings, and images as facts plus a native image part - so this is the reader for every file type, not only for source. Those are rendered, never written back: a document is refused by write, edit and replace, because the text is a fraction of the file. Stops at 2000 lines unless `to` says otherwise, and says how many were left. For a log or a build transcript ask for `tail` instead - the end of the file, without needing to know its length.", """
+        new("read", "Content, encoding, line ending, trailing-newline state and a content hash. Takes several paths in one call. Reads notebooks as cells, PDFs as text per page, spreadsheets as rows of cells with their formulas, Word documents as paragraphs and tables under their headings, and images as facts plus a native image part - so this is the reader for every file type, not only for source. Those are rendered, never written back: a document is refused by write, edit and replace, because the text is a fraction of the file. Stops at 2000 lines unless `to` says otherwise, and at 40,000 characters across the whole call whatever `to` says - either way it reports the lines it did not return, so ask again from where it stopped. For a log or a build transcript ask for `tail` instead - the end of the file, without needing to know its length.", """
             {"type":"object","required":["paths"],"properties":{
               "paths":{"type":"array","items":{"type":"string"}},
               "from":{"type":"integer"},
-              "to":{"type":"integer","description":"lifts the default 2000-line cap; say what you need"},
+              "to":{"type":"integer","description":"lifts the default 2000-line cap; say what you need. It does NOT lift the 40,000-character one: that is how much of your range survives the trip, and a range too big to send comes back short rather than not at all."},
               "tail":{"type":"integer","description":"the LAST n lines, counted from the end. Use this for logs and build output rather than reading the file to find out how long it is. Not combinable with from/to."},
               "member":{"type":"string","description":"read ONE entry out of a .zip/.tar/.tar.gz instead of its manifest, decoded like any other file. Nothing is unpacked to disk."}
             }}
@@ -397,7 +397,7 @@ public static class ToolCatalogue
             var images = new List<ImagePart>();
             var buffer = new MemoryStream();
 
-            using (var w = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = false }))
+            using (var w = new Utf8JsonWriter(buffer, Command.Writing))
             {
                 w.WriteStartObject();
                 foreach (JsonProperty top in doc.RootElement.EnumerateObject())

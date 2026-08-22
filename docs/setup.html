@@ -17,7 +17,7 @@
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <nav class="docnav main" aria-label="Documentation"><a href="index.html">Overview</a><a href="diagram.html">The workstation</a><a href="quickstart.html">Quick start</a><a href="install.html">Install</a><span class="here">In a project</span><a href="screening.html">Screening</a></nav>
+  <nav class="docnav main" aria-label="Documentation"><a href="index.html">Overview</a><a href="diagram.html">The workstation</a><a href="quickstart.html">Quick start</a><a href="install.html">Install</a><span class="here">In a project</span><a href="screening.html">Screening</a><a href="reference.html">Reference</a></nav>
 </div></div>
 <div class="wrap">
 <header class="mast">
@@ -37,7 +37,7 @@ decoration: <b>each step needs the one before it.</b></p>
 you run anything.</b> It is the file that declares your trees, and
 until it exists this project has no boundary. The server learns its
 trees at launch, from the <code>.fettler.json</code> in the folder it
-starts in &mdash; and <a href="index.html#defaults">declaring nothing
+starts in &mdash; and <a href="reference.html#defaults">declaring nothing
 is a refusal</a>, not a fallback to the current directory.
 <code>setup --local</code> will <em>create</em> the file if none is
 there, and it is the only thing that does. But what it writes is the
@@ -110,11 +110,11 @@ and only a configuration file can widen that.</li>
 it.</b> A scope naming <code>create</code> and nothing else grants
 <code>create</code> and nothing else &mdash; not even
 <code>read</code>. The rules are on
-<a href="index.html#scopes">the Fettler page</a>.</li>
+<a href="reference.html#scopes">the Fettler page</a>.</li>
 <li><b>Paths are relative, forward-slashed, no drive letter.</b> They
 resolve against the file, not against whoever is calling &mdash; which
 is what lets the file be checked in.
-<a href="install.html#paths">The spelling table</a> has the
+<a href="reference.html#paths">The spelling table</a> has the
 cases.</li>
 <li><b>A tree that does not exist is a startup failure.</b> So the
 checked-in file can only name trees that travel with the project.
@@ -181,7 +181,7 @@ being written.</li>
 anyway. A scratch tree is for staging text, not for running what is
 staged.</li>
 <li><b><code>fettle doctor</code> reports its absence as
-<a href="#findings">2.15</a></b>, and stops once a tree inside it is
+<a href="reference.html#findings">2.15</a></b>, and stops once a tree inside it is
 declared.</li>
 </ul>
 
@@ -191,7 +191,7 @@ declared.</li>
 the files that say what Fettler may do, and Fettler refuses to write
 those at every permission level. <code>setup</code> is bound by the same
 rule. If it could declare a tree, it could grant itself any tree, and
-<a href="index.html#rules">the refusal that makes every other rule
+<a href="reference.html#rules">the refusal that makes every other rule
 hold</a> would be decoration. It may <b>create</b> a starter
 <code>.fettler.json</code> where none exists; it never changes one. So
 it names the fix, and a person applies it &mdash; the same shape as
@@ -225,7 +225,7 @@ shell command. It also <b>needs the tree to grant
 <code>pwsh</code> on a machine that only has Windows PowerShell fails at
 launch, not at declaration time.</li>
 <li><b>A task takes no arguments from its caller.</b> A variant is a
-second declared task, or a value the file declares. <a href="index.html#grammar">The command
+second declared task, or a value the file declares. <a href="reference.html#grammar">The command
 grammar</a> is exact about quoting and backslashes.</li>
 <li><b>A value that changes every time goes in
 <code>replacements</code>.</b> The branch to cut, or the note to commit
@@ -233,7 +233,7 @@ under, cannot be a second task &mdash; it is a fresh string each time.
 Declare it once, name it in the command line, and keep the value in the
 <a href="#local">personal overlay</a>, which is gitignored, so today's
 branch name never becomes a diff.
-<a href="index.html#replacements">What a replacement means</a> is on
+<a href="reference.html#replacements">What a replacement means</a> is on
 the reference page. Only an identifier between braces is a name, so a
 brace already on a command line keeps meaning what it meant.</li>
 <li><b><code>cwd</code> &mdash; the folder the task runs in &mdash; is
@@ -249,72 +249,34 @@ included &mdash; can execute.</div>
 
 <h2 id="screening">3a. Screen what leaves a tree, if it holds regulated data</h2>
 
-<p>Skip this unless a tree holds health, consumer-report or education
-records. It is off everywhere until a tree asks for it. This is the
-short version; <a href="screening.html">Screening</a> is the
-whole procedure, including installing the sidecar, choosing models and
-proving a refusal.</p>
+<p><b>Skip this unless a tree holds health, consumer-report or education
+records.</b> It is off everywhere until a tree asks for it, and asking
+is one line in the file you have just written:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>{
   "trees": {
     "records": {
       "path": "../records",
       "can": ["list", "read"],
-      "screen": ["identifiers", "clinical"],
-      "scopes": {
-        "anonymised": { "can": ["list", "read"], "screen": false }
-      }
+      "screen": ["identifiers"]
     }
   }
 }</code></pre></div>
 
-<ul>
-<li><b><code>true</code> screens all four categories</b> &mdash;
-<code>identifiers</code>, <code>clinical</code>, <code>legal</code>,
-<code>scientific</code>. A bare list screens only what it names; a list
-of <code>-</code> words screens everything except those. Mixing the two
-forms in one list is refused when the file is read, because
-<code>["identifiers", "-scientific"]</code> has two readings that differ
-by two whole categories.</li>
-<li><b>Only <code>identifiers</code> works with nothing installed.</b>
-It is the pattern tier, and it catches identifiers with a fixed shape or
-an explicit label &mdash; a social security number, a Luhn-valid card, a
-formatted phone number, an email address, a labelled record number, a
-labelled date of birth. <b>The other three screen nothing at all until
-you install a model</b>, and <code>fettle roots</code> says so in as
-many words rather than letting the category name imply otherwise.</li>
-<li><b><code>phi</code>, <code>pii</code> and <code>sci</code> are
-refused.</b> They name a regulation rather than what runs, and so promise
-coverage that only arrives once a model is installed. Write
-<code>identifiers</code> for the patterns, <code>clinical</code> for
-model screening of clinical text, <code>scientific</code> for the
-scientific model. The refusal names the replacement; nothing is silently
-translated.</li>
-<li><b>A scope's <code>screen</code> replaces the tree's</b>, so a scope
-is how you carve out an anonymised subdirectory. A scope that says
-nothing about it inherits.</li>
-<li><b>Any detection refuses the whole response.</b> There is no
-confidence dial, deliberately &mdash; a dial gets turned until the check
-is off.</li>
-<li><b>The models go in the personal overlay, not here.</b> Nothing
-ships them; a person downloads them and names the directory as
-<code>"models"</code> in <a href="#local"><code>.fettler.local.json</code></a>,
-because where they sit is a fact about a disk. <b>Until that name
-exists, the structural detectors are the whole screen</b> and a clean
-payload is served. After it exists, a screened category with no model
-refuses. Either way <code>fettle roots</code> reports which it is, and
-names the checkpoint and revision where one is installed.</li>
-</ul>
+<p><code>identifiers</code> is the tier that works with nothing
+installed &mdash; identifiers with a fixed shape or an explicit label.
+The other three categories, <code>clinical</code>, <code>legal</code>
+and <code>scientific</code>, <b>screen nothing at all until you install
+a model</b>, and <code>fettle roots</code> says so in as many words
+rather than letting the name imply otherwise.</p>
 
-<div class="takeaway"><b>It is a safety net and not a boundary.</b> The
-models miss entities and the patterns miss anything written a way they
-do not expect. A clean verdict is evidence of absence, never a
-certificate of it. <b>Out of the box it catches structured identifiers
-and nothing else</b>: names, addresses, conditions and free text need a
-model you install. And <b>FCRA and FERPA are not covered
-categories</b>, only the structured identifiers in them.
-<a href="index.html#screen">The reference page</a> is the whole of it,
-including what it deliberately does not do.</div>
+<div class="takeaway"><b>It is a safety net and not a boundary.</b> A
+clean verdict is evidence of absence, never a certificate of it.
+<a href="screening.html">Screening</a> is the whole procedure &mdash;
+what each category covers, how to prove a refusal actually refuses, and
+what it deliberately does not do.
+<a href="screening-models.html">The models</a> is the other half, for
+the three categories that need one.</div>
 
 <h2 id="setup">4. Run <code>fettle setup</code></h2>
 
@@ -365,7 +327,7 @@ than writing a registration it knows will fail to launch.</li>
 <li><b>It creates a <code>.fettler.json</code> at <code>--local</code>,
 and never changes one.</b> Creating where none exists is scaffolding.
 Rewriting one is the escape
-<a href="index.html#rules">the rule-file refusal</a> closes, and
+<a href="reference.html#rules">the rule-file refusal</a> closes, and
 belongs to a person with an editor. <code>--global</code> declares no
 tree and so writes no such file &mdash; it says so in its own output.
 What it creates declares the folder as <code>work</code> and nothing
@@ -400,7 +362,7 @@ it. <code>--hook</code> always exits 0.</li>
 </ul>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle doctor
-fettle 2.3.0  C:\tools\fettle\fettle.exe
+fettle 1.0.0  C:\tools\fettle\fettle.exe
 on PATH: no - every registration naming a bare 'fettle' will fail to launch
 tool inventory drawn 2026-08-20; check 2.8 says nothing about a tool added to the client since
 
@@ -425,6 +387,15 @@ what could let the assistant go round the boundary:
          may reach. It is: sparky. Deny mcp__&lt;name&gt;__* for any that should not be a route
       C:\Users\you\.claude.json</code></pre></div>
 
+<p><b>The report is two halves.</b> The wiring is one row per client
+per level, ending in a verdict. The findings are numbered, and each one
+is a way round the boundary &mdash; <code>!</code> is serious,
+<code>-</code> is worth knowing.
+<a href="reference.html#findings">Everything doctor can report, and how
+to clear it</a> gives a row per check: what it found, and the edit that
+clears it. <code>setup</code> adds and never deletes, so any finding
+whose fix is "remove" is yours to make in an editor.</p>
+
 <h3 id="verdicts">The four verdicts</h3>
 
 <table>
@@ -433,64 +404,6 @@ what could let the assistant go round the boundary:
 <tr><td><code>absent</code></td><td>The client is here; Fettler is not registered with it.</td><td>warning</td></tr>
 <tr><td><code>broken</code></td><td>Registered and wrong: the command resolves to nothing, the configuration will not parse, a tree does not exist.</td><td>failure</td></tr>
 <tr><td><code>healthy</code></td><td>Registered, and the command it names actually resolves.</td><td>&mdash;</td></tr>
-</table>
-
-<h3 id="findings">Everything doctor can report, and how to clear it</h3>
-
-<p>The report is two halves. <b>The wiring</b> is one row per client
-per level, ending in a verdict. <b>The findings</b> are numbered, and
-each one is a way round the boundary. A finding marked <code>!</code>
-is serious; one marked <code>-</code> is worth knowing.</p>
-
-<p class="note"><span class="lab">Note</span> <code>setup</code> adds
-and never deletes. So anything below whose fix is "remove" is a
-person's edit, in an editor. That is deliberate: a tool that quietly
-removed your configuration would be doing the very thing this design
-objects to.</p>
-
-<h4>The wiring</h4>
-
-<table>
-<tr><th>What it says</th><th>What it means</th><th>How to clear it</th></tr>
-<tr><td><code>on PATH: no</code></td><td>Nothing on <code>PATH</code> resolves <code>fettle</code>, so every registration naming a bare <code>fettle</code> will fail to launch.</td><td><a href="install.html#path">Put it on <code>PATH</code></a> and open a new terminal &mdash; or register an absolute path with <code>fettle setup CLIENT --local --command "C:\tools\fettle\fettle.exe"</code>.</td></tr>
-<tr><td><code>absent</code></td><td>No server called <code>fettler</code> is registered in that file.</td><td><code>fettle setup CLIENT --local</code> (or <code>--global</code>). Run it with <code>--dry-run</code> first.</td></tr>
-<tr><td><code>broken</code> (2.12)</td><td>A registration is there, but its command does not resolve &mdash; checked the way the client would check it, through <code>PATH</code> and <code>PATHEXT</code>.</td><td>Fix <code>PATH</code>, or re-run <code>setup</code> with <code>--command</code> naming the binary; add <code>--force</code> to overwrite the existing entry.</td></tr>
-<tr><td><code>healthy</code></td><td>Registered, and the command launches.</td><td>Nothing.</td></tr>
-<tr><td><code>n/a</code></td><td>The client is not installed, or has nothing at this level &mdash; Claude Desktop has no project scope, so its repo row is always this.</td><td>Nothing. Never a failure.</td></tr>
-</table>
-
-<h4>The findings</h4>
-
-<table>
-<tr><th>Check</th><th>What it found</th><th>How to clear it</th></tr>
-
-<tr><td><b>2.6</b> <code>!</code></td><td>An <code>allow</code> entry pre-approving a shell command that writes files &mdash; <code>sed&nbsp;-i</code>, <code>cp</code>, <code>rm</code>, <code>Set-Content</code>, a redirect. Each runs without a prompt, and each is a complete route round the boundary.</td><td><b>Remove those allow entries.</b> No tool can do this for you, and no blocklist can replace it &mdash; <a href="install.html#shell">the shell section</a> explains why <code>echo x &gt; file</code> defeats any list that could be written. The rule worth adopting: stop pre-approving shell commands that write.</td></tr>
-
-<tr><td><b>2.7</b> <code>!</code></td><td>An <code>allow</code> on a built-in tool Fettler replaces. <code>Read</code> in particular defeats containment, the read permission, and hidden scopes at once.</td><td><b>Remove the allow</b>, then <code>fettle setup CLIENT --local</code> to add the matching deny. Leaving both is finding B.17.</td></tr>
-
-<tr><td><b>2.8</b> <code>-</code></td><td>Nothing <em>denies</em> one of the eleven &mdash; the six built-in editors and readers; the shells <code>Bash</code>, <code>PowerShell</code> and <code>Monitor</code>; and <code>BashOutput</code> and <code>TaskOutput</code>. Each undenied name is a route round the boundary. A shell is the widest of them: <code>node x.js</code> writes anywhere, and it is not a writing command. <b><code>Monitor</code> is a shell</b> &mdash; it runs the command it is handed in the same environment <code>Bash</code> does, so denying <code>Bash</code> and leaving it open denies the word and not the thing. <b><code>BashOutput</code> and <code>TaskOutput</code> are readers</b>: they start nothing and write nothing, but they hand back the output of work already done, and those bytes reached the model without passing the tree boundary, the secret scan or the <a href="screening.html">disclosure screen</a>.</td><td><code>fettle setup claude-code --local</code> writes all eleven denies at the repo level by default. Then <a href="install.html#shell">allow back</a> the commands this project needs. For every project at once, <code>--global --deny</code> &mdash; said out loud, because changing how the assistant works everywhere is not a side effect.</td></tr>
-
-<tr><td><b>2.9</b> <code>-</code></td><td>An <code>additionalDirectories</code> entry naming somewhere outside every declared tree. When two boundaries disagree, the wider one is what applies, and the narrower one is decoration.</td><td><b>Pick one.</b> Either drop the entry from the client's settings, or add that directory to <code>.fettler.json</code> as a tree with the permissions you actually mean.</td></tr>
-
-<tr><td><b>2.10</b> <code>-</code></td><td>An instructions file &mdash; <code>CLAUDE.md</code>, <code>copilot-instructions.md</code> &mdash; that never mentions Fettler. Nothing tells the assistant to prefer it over what it already reaches for.</td><td><b>Add a line to it.</b> Guidance is the weak lever and the deny list is the strong one &mdash; but its absence guarantees habit wins. <a href="install.html#grounding">Where to say it</a> has wording.</td></tr>
-
-<tr><td><b>2.11</b> <code>!</code></td><td>Two project entries naming one directory in different spellings &mdash; <code>c:/work/tree</code> and <code>C:/work/tree</code>. Permissions and approvals attach to whichever spelling was resolved that day, and silently do not apply to the other.</td><td><b>Merge them by hand</b> in <code>~/.claude.json</code>, keeping the settings you want and deleting the duplicate key. Nothing can guess which of the two you meant.</td></tr>
-
-<tr><td><b>2.16</b> <code>-</code></td><td>A task fills a <a href="index.html#replacements">declared value</a> into a string it hands to a shell to interpret &mdash; <code>pwsh&nbsp;-Command</code>, <code>bash&nbsp;-c</code>. Filling a value into a word makes it one argument whatever is in it, and that guarantee stops at the process boundary: here the argument is itself a script the shell parses, so a quote or a semicolon in the value changes what runs.</td><td><b>Take the shell out of it.</b> Declare the steps as separate tasks &mdash; <code>"stage": {"run": "git add -A"}</code> and <code>"commit": {"run": "git commit -m {commit-note}"}</code> &mdash; or call a script with the value as a parameter. Either way the value stays an argument the whole way down and never meets a parser. Warned rather than refused: which flags of which programs mean "interpret this" is an allowlist of shells this tool does not keep.</td></tr>
-
-<tr><td><b>2.13</b> <code>-</code></td><td>A <code>settings.local.json</code> is present. It is personal and uncommitted, so anything granted there never appears in a review.</td><td><b>Read it, and move anything that should apply to the project</b> into the committed <code>settings.json</code>. <code>setup</code> never writes a personal settings file.</td></tr>
-
-<tr><td><b>2.14</b> <code>!</code></td><td><code>chat.tools.autoApprove</code> is on. It approves arbitrary tools without asking, and reinstates every route the boundary removes.</td><td><b>Turn it off</b> in the client's settings. Nothing else on this page survives it being on.</td></tr>
-
-<tr><td><b>2.15</b> <code>-</code></td><td>An assistant scratch directory outside every declared tree. Nothing here granted it &mdash; the harness did &mdash; so work staged there is invisible to this boundary. <b>And once the built-in <code>Write</code> is denied, nothing can write there at all.</b></td><td><b>Declare the per-project folder inside it</b> as a tree in <code>.fettler.local.json</code>, which is gitignored. Declare the project folder, not its parent &mdash; the parent holds every project's scratch. See <a href="#scratch">step 2</a>.</td></tr>
-
-<tr><td><b>2.17</b> <code>-</code></td><td>Another MCP server is registered beside Fettler. The deny list closes <em>names</em>, and that server's tools are not called <code>Read</code> &mdash; so nothing <code>setup</code> writes says anything about what it may reach, and it reaches whatever its own process reaches.</td><td><b>Decide, one server at a time.</b> Most of them are wanted, and this is reported as a fact rather than a fault. For any that should not be a route, deny <code>mcp__&lt;name&gt;__*</code>. Unlike 2.8 this reads the servers actually registered on the machine in front of it, so a server installed tomorrow is reported tomorrow.</td></tr>
-
-<tr><td><b>2.18</b> <code>-</code></td><td>The configuration names a tool that is not in the inventory this <code>fettle</code> was built with. <b>Check 2.8 therefore said nothing about it either way &mdash; not that it is safe.</b> The client keeps growing new tools, and a closed list that has fallen behind reports exactly as clean as one that has not, which is why the inventory's date is printed with every report.</td><td><b>Decide by hand whether it reads files, writes them, or runs a shell</b> &mdash; and deny it if it does. A newer <code>fettle</code> may already know it, so <a href="install.html">upgrading</a> is the other half of the fix. Rules naming another server's tools (<code>mcp__&hellip;</code>) are 2.17's business and are never reported here.</td></tr>
-
-<tr><td><b>B.17</b> <code>!</code></td><td>A rule in <b>both</b> <code>allow</code> and <code>deny</code>. Which wins is the client's to decide, and cannot be determined from here. <b>A narrowed shell allow beside the shell deny is exempt</b> &mdash; <code>allow: Bash(git status:*)</code> with <code>deny: Bash</code> is the shape this tool asks for, not a conflict.</td><td><b>Remove it from one of the two lists</b> &mdash; whichever you meant. Do not rely on precedence; see <a href="install.html#precedence">deny versus allow</a>.</td></tr>
-
-<tr><td><b>2.x</b> <code>!</code></td><td>A configuration file that is there and could not be read &mdash; malformed JSON, or a permission error. The message is the parser's own.</td><td><b>Fix the file.</b> A configuration that cannot be read is not treated as absent, because "absent" and "broken" want different answers.</td></tr>
 </table>
 
 <h2 id="verify">6. Verify the guardrails</h2>

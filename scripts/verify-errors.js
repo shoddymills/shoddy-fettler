@@ -63,22 +63,42 @@ for (const m of outcomes.matchAll(/^\s{4}(\w+) = \d+,/gm)) {
     fail("Outcome." + member + " has no exit code in ExitCodes - it would report as " + numberOf.Fault);
 }
 
-// ---- the table on the page ----
-// install.html carries the exit-code table. The row shape is fixed by the
-// page and asserted here, so a table restyled into a different shape fails
-// loudly rather than silently matching nothing and passing.
+// ---- the table, wherever the site keeps it ----
+// The page is NOT named here. It has moved once already, and a check that
+// pins content to a filename turns a docs reorganisation into a build
+// failure - which is how a gate ends up being edited to suit the pages
+// instead of the pages being held to the gate. So: find the page carrying
+// rows of this shape, and insist there is exactly ONE. Two copies of the
+// table is itself the fault worth catching, because they drift apart in
+// silence and a reader believes whichever one they landed on.
+//
+// The row shape is fixed and asserted here, so a table restyled into a
+// different shape fails loudly rather than silently matching nothing and
+// passing.
 //
 // The outcome cell is EITHER a <code>spelling</code> OR an em dash. The dash
 // is not a gap in the documentation: exit code 1 is the default arm, which
 // belongs to no Outcome member, so there is no outcome word to put there and
 // printing one would invent a member that does not exist.
-const install = read("docs/install.html");
+const ROW = /<td>(\d\d?)<\/td><td>(?:<code>([a-z-]+)<\/code>|&mdash;)<\/td>/g;
 
-const rows = [...install.matchAll(
-  /<td>(\d\d?)<\/td><td>(?:<code>([a-z-]+)<\/code>|&mdash;)<\/td>/g)];
+const carriers = fs.readdirSync(path.join(root, "docs"))
+  .filter(f => f.endsWith(".html"))
+  .sort()
+  .map(f => ({ page: "docs/" + f, rows: [...read("docs/" + f).matchAll(ROW)] }))
+  .filter(c => c.rows.length);
 
-if (!rows.length)
-  fail("docs/install.html: no exit-code table rows found at all - has the table been restyled?");
+if (!carriers.length) {
+  console.log("no page in docs/ carries an exit-code table - restyled, or dropped?");
+  process.exit(1);
+}
+
+if (carriers.length > 1)
+  fail("the exit-code table is on more than one page (" +
+       carriers.map(c => c.page).join(", ") + ") - two copies drift apart in silence");
+
+const page = carriers[0].page;
+const rows = carriers[0].rows;
 
 const documented = new Set(rows.map(m => m[1] + " " + (m[2] || "")));
 const documentedNumbers = new Set(rows.map(m => m[1]));
@@ -87,13 +107,13 @@ for (const [member, spelling] of Object.entries(spellingOf)) {
   const number = numberOf[member];
   if (number === undefined) continue;   // already reported above
   if (!documented.has(number + " " + spelling))
-    fail("docs/install.html: exit code " + number + " (" + spelling + ") is not in the table");
+    fail(page + ": exit code " + number + " (" + spelling + ") is not in the table");
 }
 
 // The default arm still has to appear, because a caller can certainly meet
 // it - only its outcome cell is allowed to be a dash.
 if (!documentedNumbers.has(numberOf.Fault))
-  fail("docs/install.html: exit code " + numberOf.Fault + " (the internal fault) is not in the table");
+  fail(page + ": exit code " + numberOf.Fault + " (the internal fault) is not in the table");
 
 // ---- and nothing is documented that the tool cannot produce ----
 // The reverse direction, which is the half a hand-written check always
@@ -106,10 +126,11 @@ real.add(numberOf.Fault + " ");
 
 for (const row of documented)
   if (!real.has(row))
-    fail("docs/install.html: the table documents '" + row.trim() + "', which the tool cannot produce");
+    fail(page + ": the table documents '" + row.trim() + "', which the tool cannot produce");
+
 
 if (bad === 0) {
-  console.log("EVERY OUTCOME IS DOCUMENTED (" + real.size + " exit codes)");
+  console.log("EVERY OUTCOME IS DOCUMENTED (" + real.size + " exit codes, in " + page + ")");
   process.exit(0);
 }
 console.log("\n" + bad + " problem(s).");

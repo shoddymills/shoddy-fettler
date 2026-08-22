@@ -77,6 +77,12 @@ carries the same nav bar, and that the disclosure screen's section names every
 category the code has. `verify-errors.js` asserts that every outcome and exit
 code the tool can raise appears in the table that promises to list them.
 
+**Neither check names the page it looks on.** Both find it - the page with
+the screen section, the page with the exit-code table - and fail if there is
+more than one, because two copies of a table drift apart in silence. So
+moving a section between pages is a documentation decision, not a build
+failure, and a gate is never edited to suit the pages.
+
 A new page means adding it to the nav on every other page — that is what the
 nav check is for.
 

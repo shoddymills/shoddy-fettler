@@ -353,7 +353,7 @@ public sealed class McpServer : IDisposable
     static string Envelope(Action<Utf8JsonWriter> body)
     {
         var buffer = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(buffer))
+        using (var writer = new Utf8JsonWriter(buffer, Command.Writing))
         {
             writer.WriteStartObject();
             writer.WriteString("jsonrpc", "2.0");

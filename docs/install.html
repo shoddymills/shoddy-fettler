@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Installing Fettler &mdash; the archives, getting fettle onto PATH, the optional MCP front end for an assistant, and the exit-code and argument references.">
+<meta name="description" content="Installing Fettler &mdash; the archives, getting fettle onto PATH, and the optional MCP front end for an assistant.">
 <title>Installing It | Fettler</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -17,21 +17,21 @@
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <nav class="docnav main" aria-label="Documentation"><a href="index.html">Overview</a><a href="diagram.html">The workstation</a><a href="quickstart.html">Quick start</a><span class="here">Install</span><a href="setup.html">In a project</a><a href="screening.html">Screening</a></nav>
+  <nav class="docnav main" aria-label="Documentation"><a href="index.html">Overview</a><a href="diagram.html">The workstation</a><a href="quickstart.html">Quick start</a><span class="here">Install</span><a href="setup.html">In a project</a><a href="screening.html">Screening</a><a href="reference.html">Reference</a></nav>
 </div></div>
 <div class="wrap">
 <header class="mast">
 <p class="eyebrow">Shoddy &middot; Fettler</p>
 <h1 id="installing">Installing It</h1>
-<p class="kicker">The download, getting it on PATH, the optional MCP front end for an assistant, and the reference tables. Read this once per machine.</p>
+<p class="kicker">The download, getting it on PATH, and the optional MCP front end for an assistant. Read this once per machine.</p>
 </header>
 
 <nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="quickstart.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Quick Start</span></span></a><a class="next" href="setup.html"><span class="pnwrap"><span class="ttl">In a project</span><span class="dir">Next &rarr;</span></span></a></nav>
 
-<div class="takeaway"><b>This is the reference, not the fastest
+<div class="takeaway"><b>This is the long way round, not the fastest
 route.</b> If you just want Fettler working, three commands do it:
 <a href="quickstart.html">the quick start</a>. Come back here
-for the why, the flags, and the exit codes.</div>
+for the why and the flags.</div>
 
 <p><b>Everything on this page is done once on a machine and not
 again.</b> First, get the binary onto <code>PATH</code> &mdash; the list
@@ -43,12 +43,11 @@ or the route. Turning it on in a particular project comes after; that is
 actually is, and what its boundary means, is
 <a href="index.html">Fettler</a>.</p>
 
-<h2 id="download">1. The download</h2>
+<h2 id="download">The download</h2>
 
 <p>One download, one file on disk, no .NET runtime on the target
 machine. Every release attaches a self-contained, single-file
-<code>fettle</code> per operating system, beside the VS Code extension
-and sparky.</p>
+<code>fettle</code> per operating system.</p>
 
 <table>
 <tr><th>Platform</th><th>Archive</th></tr>
@@ -74,7 +73,7 @@ can leak between them — the wire between them is the whole contract.
 The full statement is in
 <code>THIRD-PARTY-NOTICES.md</code>.</div>
 
-<h2 id="path">2. Putting it on <code>PATH</code></h2>
+<h2 id="path">Putting it on <code>PATH</code></h2>
 
 <div class="takeaway"><b>This is the step everything else assumes, and
 the step most likely to be skipped.</b> Every registration on this page
@@ -115,7 +114,7 @@ environment it started with. That is the commonest reason
 there.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle --version
-fettle 2.3.0</code></pre></div>
+fettle 1.0.0</code></pre></div>
 
 </div></div>
 
@@ -153,21 +152,21 @@ installation step &mdash; and it says which of the two it did. The
 <p>Nothing else in this repository has to be built first. Fettler
 references no other project here:</p>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>cd fettler
-./build.ps1 publish        # or ./build.sh publish</code></pre></div>
+<div class="promptbox"><button class="copy">Copy</button><pre><code>./scripts/build.ps1 publish X.Y.Z    # X.Y.Z names the archives</code></pre></div>
 
 <p>Archives land in <code>artifacts/publish/</code>. A unix archive cut
 on Windows carries no execute bit, so the ones a release attaches always
 come from a unix build machine.</p>
 
-<h2 id="clients">3. The clients, and the files behind them</h2>
+<h2 id="clients">The clients, and the files behind them</h2>
 
-<div class="takeaway"><b>The install is finished at section 2, and it
-did not involve MCP.</b> <code>fettle</code> is a command-line program.
-Every verb runs from a terminal or a script, taking its boundary from a
-<code>.fettler.json</code> in the tree. Sections 3&ndash;7 additionally
-wire it into an assistant &mdash; a separate decision &mdash; and
-<a href="#mcp">section 8</a> is the front end that does it.</div>
+<div class="takeaway"><b>The install is finished once it is on
+<a href="#path"><code>PATH</code></a>, and it did not involve MCP.</b>
+<code>fettle</code> is a command-line program. Every verb runs from a
+terminal or a script, taking its boundary from a
+<code>.fettler.json</code> in the tree. Everything below this
+additionally wires it into an assistant &mdash; a separate decision
+&mdash; and <a href="#mcp">the MCP front end</a> is what does it.</div>
 
 <p>Each client keeps its registration in its own files, at two
 levels:</p>
@@ -184,7 +183,7 @@ levels:</p>
 shares the CLI's registry exactly. Reporting it separately would double
 every verdict and let the two disagree.</p>
 
-<h2 id="global">4. Registering it for every project</h2>
+<h2 id="global">Registering it for every project</h2>
 
 <p>The machine-level registration, written once, for every project this
 account opens:</p>
@@ -204,7 +203,7 @@ fettle setup --all --global             # change it</code></pre></div>
 exclusion makes it the route.</b> An assistant with its own file tools
 reaches for them out of habit, and a registered server it never calls
 changes nothing. <code>--deny</code> is how you say it at this level,
-and <a href="#exclusions">section 5</a> is what that list is and
+and <a href="#exclusions">the exclusion list</a> is what it is and
 why.</div>
 
 <p><b>A global run declares no tree.</b> So it writes no
@@ -221,12 +220,12 @@ full table is with the step that uses them:
 <a href="setup.html#setup"><code>fettle setup</code> in a
 project</a>.</p>
 
-<h2 id="exclusions">5. The exclusion list</h2>
+<h2 id="exclusions">The exclusion list</h2>
 
 <p>Denying the built-in file tools <em>routes</em> an assistant rather
 than disarming it, because <b>the Fettler tools have different names</b>
 &mdash; <code>mcp__fettler__edit</code> and so on, per
-<a href="#mcp">section 8</a>. Eleven entries, no arguments, no platform
+<a href="#mcp">the MCP front end</a>. Eleven entries, no arguments, no platform
 variants, and <code>setup --local</code> writes all eleven:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>{
@@ -261,11 +260,11 @@ can only close the names on it, and the client keeps growing new
 ones.</b> So <code>fettle doctor</code> prints the date its inventory
 was drawn, and reports any tool your configuration names that the
 inventory does not know
-(<a href="setup.html#findings">2.18</a>) &mdash; because silence
+(<a href="reference.html#findings">2.18</a>) &mdash; because silence
 about an unknown tool otherwise reads exactly like a clean bill of
 health. Other MCP servers are the same problem in a different shape and
 are reported separately
-(<a href="setup.html#findings">2.17</a>).</p>
+(<a href="reference.html#findings">2.17</a>).</p>
 
 <p><b><code>Read</code> is on the list, with no path-scoped
 exception.</b> A blanket <code>Read</code> defeats three protections at
@@ -273,7 +272,7 @@ once: containment, the <code>read</code> permission, and hidden scopes.
 A scope with no <code>list</code> is invisible to <code>search</code>
 &mdash; and one call away from being read in full. Denying
 <code>Read</code> is affordable because Fettler reads
-<a href="index.html#types">notebooks, images and PDF</a> as well as
+<a href="reference.html#types">notebooks, images and PDF</a> as well as
 source.</p>
 
 <div class="takeaway"><b>Before you deny <code>Write</code>, a project
@@ -295,16 +294,12 @@ second-order concern. <code>node x.js</code> writes anything anywhere,
 and it is not a writing command at all.</p>
 
 <p>What cannot be done is enumerate what to block. A blocklist would
-have to name <code>sed -i</code>, <code>cp</code>, <code>mv</code>,
-<code>rm</code>, <code>tee</code>, <code>dd</code>, <code>ln</code>,
-<code>patch</code>, <code>truncate</code>,
-<code>git checkout|restore|clean|apply</code>, <code>Set-Content</code>,
-<code>Add-Content</code>, <code>Out-File</code>, <code>Copy-Item</code>,
-<code>Move-Item</code>, <code>Remove-Item</code>, <code>python -c</code>,
-<code>node -e</code>, <code>perl -pi -e</code>, their aliases, and the
-platform variants of each. And then <code>echo x &gt; file</code>
-defeats the lot, because <code>&gt;</code> turns <b>any</b> command into
-a writer.</p>
+have to name <code>sed -i</code>, <code>cp</code>, <code>rm</code>,
+<code>git checkout</code>, <code>Set-Content</code>,
+<code>Remove-Item</code>, <code>python -c</code>, <code>node -e</code>,
+their aliases and every platform variant &mdash; and then
+<code>echo x &gt; file</code> defeats the lot, because
+<code>&gt;</code> turns <b>any</b> command into a writer.</p>
 
 <div class="takeaway"><b>So the deny is the tool name, and the allow
 list is the exception.</b> <code>"Bash"</code>,
@@ -324,7 +319,7 @@ better:</p>
 "allow": ["Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)"]</code></pre></div>
 
 <p><b>Never allowlist a command that writes.</b> That is
-<a href="setup.html#findings">doctor check 2.6</a>, and
+<a href="reference.html#findings">doctor check 2.6</a>, and
 <code>&gt;</code> and <code>&gt;&gt;</code> are on the list it matches
 against. A bare <code>"Bash"</code> in <code>allow</code> grants the
 whole shell back and undoes the deny entirely.</p>
@@ -345,7 +340,7 @@ its own rules. So it reports the <em>conflict</em>, and it names the
 fix that is correct under either outcome: <b>remove the allow</b>. An
 answer that does not depend on the assumption beats a guess at it.</p>
 
-<h2 id="hooks">6. The session hook</h2>
+<h2 id="hooks">The session hook</h2>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle setup claude-code --local --hooks</code></pre></div>
 
@@ -383,31 +378,9 @@ registration.</li>
 There is a backup beside that file from the first time setup wrote
 it.</p>
 
-<h2 id="grounding">7. Where to say it so it is read</h2>
+<h2 id="mcp">The MCP front end</h2>
 
-<p>Ranked by how much each actually changes behaviour.</p>
-
-<table>
-<tr><th>Rank</th><th>Where</th><th>Why</th></tr>
-<tr><td>1</td><td>The MCP <code>instructions</code> string and the per-verb tool descriptions</td><td>Read at the moment a tool is chosen, ships with the tool, needs setup by nobody, reaches every client at once. Ours to write.</td></tr>
-<tr><td>2</td><td>The <code>SessionStart</code> hook</td><td>Automatic, and costs one line.</td></tr>
-<tr><td>3</td><td>Global <code>CLAUDE.md</code></td><td>Where standing rules already live and demonstrably work.</td></tr>
-<tr><td>4</td><td>Repo <code>CLAUDE.md</code> and <a href="https://shoddymills.github.io/shoddy/assistants.html">the grounding page</a></td><td>Project scope, and the canonical long form.</td></tr>
-<tr><td>5</td><td><code>permissions.deny</code></td><td>Enforcement rather than instruction &mdash; the only one that does not rely on anything being read.</td></tr>
-</table>
-
-<div class="takeaway"><b>Instruction is the weak lever.</b> Ranks
-1&ndash;4 are worth doing, and none is sufficient. Rank 5 is the only
-one that does not depend on anything being read. <b>What works best is
-removing the need.</b> Fettler wants no working directory now that
-trees are declared. And everything else that wanted one &mdash; a
-build, <code>git</code>, a script &mdash; has a form that names its
-location instead (<code>git -C</code>, an absolute path,
-<code>fettle run</code>).</div>
-
-<h2 id="mcp">8. The MCP front end</h2>
-
-<div class="takeaway"><b>Sections 3&ndash;7 registered an MCP server
+<div class="takeaway"><b>Everything above registered an MCP server
 without requiring you to know what one is</b>, because
 <code>fettle setup</code> writes those files. MCP &mdash; the Model
 Context Protocol &mdash; is the standard way an assistant launches a
@@ -466,113 +439,6 @@ in each, and which one an unqualified path lands in. No such tool means
 no server started &mdash; which looks identical to <code>fettle</code>
 not being on <a href="#path"><code>PATH</code></a>, and usually is
 exactly that.</div>
-
-<h2 id="codes">9. Reference: exit codes</h2>
-
-<p>An exit code is the number a program hands back when it finishes; 0
-means success. Callers chain on exit codes because PowerShell 5.1 has no
-<code>&amp;&amp;</code>. The machine-readable answer carries the same
-word as an <code>outcome</code> field.</p>
-
-<table>
-<tr><th>Code</th><th>Outcome</th><th>Meaning</th></tr>
-<tr><td>0</td><td><code>ok</code></td><td>it worked</td></tr>
-<tr><td>1</td><td>&mdash;</td><td>an unexpected internal fault</td></tr>
-<tr><td>2</td><td><code>invalid</code></td><td>the request did not make sense &mdash; an unknown flag, a missing value, a malformed configuration</td></tr>
-<tr><td>3</td><td><code>not-found</code></td><td>the path, or the task, is not there</td></tr>
-<tr><td>4</td><td><code>outside-root</code></td><td>the path is outside every declared tree</td></tr>
-<tr><td>5</td><td><code>target-exists</code></td><td>the destination is occupied and no overwrite was asked for</td></tr>
-<tr><td>6</td><td><code>stale</code></td><td>the file changed since it was read &mdash; the hash passed as <code>--expect</code> no longer matches</td></tr>
-<tr><td>7</td><td><code>conflict</code></td><td>ambiguous or overlapping edits</td></tr>
-<tr><td>8</td><td><code>refused</code></td><td><b>Fettler declined</b>, for a stated reason</td></tr>
-<tr><td>9</td><td><code>denied</code></td><td><b>the operating system declined</b> &mdash; a sandbox, a restricted account, a read-only attribute, a file another process holds open</td></tr>
-<tr><td>10</td><td><code>timed-out</code></td><td>a task outran its timeout and was killed</td></tr>
-<tr><td>11</td><td><code>governed</code></td><td>the path names a file that says what this tool may do</td></tr>
-<tr><td>12</td><td><code>credential</code></td><td>the write would have <b>added</b> a secret the file did not already carry</td></tr>
-<tr><td>13</td><td><code>screened</code></td><td>the response would have <b>disclosed</b> regulated data out of a screened scope &mdash; or the screen that would have judged it could not run. See <a href="index.html#screen">the disclosure screen</a></td></tr>
-</table>
-
-<div class="takeaway"><b>8 and 9 are deliberately different.</b>
-Refused means Fettler declined. Denied means the platform did, for an
-operation Fettler was perfectly willing to perform. Collapsing them
-sends a caller off to debug a boundary that is working.</div>
-
-<p><code>doctor</code> is the exception, because it reports rather than
-operates: <b>0</b> healthy or not applicable, <b>1</b> warnings only,
-<b>2</b> anything broken. <code>--hook</code> always exits 0.</p>
-
-<h2 id="arguments">10. Reference: arguments it will not guess at</h2>
-
-<ul>
-<li><b>A flag no verb knows is refused, never ignored &mdash; one dash
-or two.</b> A flag that takes a value swallows the argument after it. So
-a misspelt <code>--gob "*.cs"</code> would eat the pattern, and the
-search would then run against the whole tree with complete confidence. A
-single dash is the same trap wearing one fewer character.
-<code>search PATTERN -i</code> &mdash; the spelling every grep in the
-world uses &mdash; would otherwise be read as a <em>second pattern</em>
-and answer the union of two questions. <code>-e</code> is the only
-short flag there is. A pattern or path that genuinely starts with a
-hyphen goes after a bare <code>--</code>, or through
-<code>--pattern-file</code> or <code>--pattern-stdin</code>.</li>
-<li><b>A known flag with no value is refused too.</b> The name was
-right; the value was missing. Write <code>--NAME=</code> for a
-deliberately empty one.</li>
-<li><b>A pattern may arrive as file content instead of an argument.</b>
-<code>--pattern-file</code> and <code>--pattern-stdin</code> take one
-pattern per line; likewise <code>--replace-file</code>,
-<code>--with-file</code> and <code>--text-file</code>. Text with quotes
-and newlines never has to be escaped onto a command line.</li>
-<li><b>A leading byte-order mark on a stream is taken off.</b> A
-byte-order mark is an invisible marker character some tools put at the
-start of text. Windows PowerShell emits one whether asked to or not.
-Keeping it made a pattern match nothing, and spliced an invisible
-character into the middle of a source file. This applies to the command
-line's streams and the MCP front end's alike. A mark further along is
-left alone.</li>
-<li><b>Text an edit brings in is rewritten into the file's own line
-endings; text already there is untouched.</b> A PowerShell here-string
-is CRLF whatever the file is. Splicing that in verbatim leaves a file
-disagreeing with itself by one line &mdash; which nothing notices until
-a version control system does.</li>
-<li><b>A file that disagrees with itself says so.</b> <code>read</code>
-marks it <code>(MIXED)</code> beside the dominant ending. Nothing is
-silently regularised.</li>
-</ul>
-
-<h2 id="callerrules">11. Reference: the rules a caller has to know</h2>
-
-<table>
-<tr><th>Rule</th><th>What it is</th></tr>
-<tr><td><b>Glob</b></td><td>a filename pattern: <code>*</code> stays within one path segment; <code>**</code> matches any number of whole segments, including none; <code>?</code> is one character and does not cross a separator. <b>Case-insensitive on every platform</b>, so a pattern behaves identically everywhere.</td></tr>
-<tr><td><b>Exclusions</b></td><td><code>.git</code>, <code>bin</code>, <code>obj</code>, <code>artifacts</code> and <code>node_modules</code>, by name, with the count reported; <code>--include-generated</code> turns it off. <code>.gitignore</code> is not honoured &mdash; implementing its rules subtly wrong hides files while appearing to work.</td></tr>
-<tr><td><b>Attributes never decide matching</b></td><td>a dotfile and a Windows hidden file are ordinary files, matched normally and reported.</td></tr>
-<tr><td><b>Regular expressions</b></td><td>.NET's dialect, which is neither PCRE nor ripgrep's, under a bound &mdash; non-backtracking where the pattern allows, an explicit timeout where it does not.</td></tr>
-<tr><td><b>Encoding</b></td><td>a byte-order mark decides and is preserved; absent one, content that decodes as UTF-8 is UTF-8; anything else is binary and refused. No statistical guess, because a wrong guess corrupts a file on the way out.</td></tr>
-<tr><td><b>Ordering</b></td><td>results are ordered before any limit, so a truncated result is the same truncation twice, and says it was truncated.</td></tr>
-<tr><td><b>What runs at once</b></td><td>reads run concurrently; changes are serialized against each other; <code>run</code> holds neither lock.</td></tr>
-</table>
-
-<h3 id="paths">How a declared path is written</h3>
-
-<p><b>Relative, forward-slashed, no drive letter.</b> There is no formal
-standard for this. There is a convention, and it is git's. It is what
-<code>.gitignore</code>, Docker, npm and VS Code's own task files use,
-and it is the only spelling that means one thing on all three
-platforms.</p>
-
-<table>
-<tr><th>Written as</th><th>What happens</th></tr>
-<tr><td><code>"path": "../shoddy-requirements"</code></td><td>correct, and means the same on every platform</td></tr>
-<tr><td><code>"path": "..\\shoddy-requirements"</code></td><td><b>refused.</b> Windows accepts <code>/</code> in every API. But on macOS and Linux a backslash is an ordinary character in a name, not a separator &mdash; so this names a file with a backslash in it, and finds nothing</td></tr>
-<tr><td><code>"path": "C:/work/tree"</code></td><td>allowed; absolute, so it names one machine either way</td></tr>
-<tr><td><code>"path": "C:\\work\\tree"</code></td><td>allowed. An absolute path cannot travel whatever its separators are, so a Windows path in a gitignored <code>.fettler.local.json</code> is a person describing their own machine</td></tr>
-</table>
-
-<p><b>Refused rather than converted</b>, because converting would make a
-file legitimately called <code>a\b</code> unreachable on the platforms
-where that is a legal name. The same rule applies to a scope key and to
-a task's <code>cwd</code>.</p>
 
 <div class="takeaway"><b>The machine is ready.</b> Everything from here
 is per-project and in a fixed order &mdash; declare your trees, declare
