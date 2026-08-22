@@ -15,7 +15,7 @@
        Windows. Both required platforms spell a subcommand the same way.
 
        PublishSingleFile and self-contained are set by the publish step
-       in build.ps1 rather than here, exactly as the MCP lane does it,
+       in fettler-build.ps1 rather than here, exactly as the MCP lane does it,
        so a plain `dotnet build` stays fast. -->
 
   <PropertyGroup>

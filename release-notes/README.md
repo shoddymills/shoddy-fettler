@@ -7,7 +7,7 @@ version as a heading — the release is already titled with it.
 
 **Write it on the branch, and commit it before the tag is pushed.** The
 Release workflow checks out the *tag* and reads only what that commit
-contains, so notes written afterwards are invisible to it. `ship.ps1` refuses
+contains, so notes written afterwards are invisible to it. `fettler-ship.ps1` refuses
 to tag without the file.
 
 ## What goes in one
@@ -26,7 +26,7 @@ does not belong here; that is what the commit history is for.
 ## Two Fettler-specific things worth calling out
 
 - **A new or changed exit code.** Scripts branch on these, so a change is
-  breaking even when nothing else is. `verify-errors.js` will not let one ship
+  breaking even when nothing else is. `fettler-verify-errors.js` will not let one ship
   undocumented, but the notes are where somebody finds out.
 - **Anything touching the boundary** — a new permission, a change to what a
   scope grants, a new rule file. People have written `.fettler.json` against

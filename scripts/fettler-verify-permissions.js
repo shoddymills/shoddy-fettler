@@ -1,8 +1,8 @@
 // MAINTAINER TOOL - checks (and fixes) the executable bit on every tracked
 // script, using git's own index rather than the filesystem.
 //
-//   node scripts/verify-permissions.js            check, and FIX what is wrong
-//   node scripts/verify-permissions.js --check    check only, and fail if it is
+//   node scripts/fettler-verify-permissions.js            check, and FIX what is wrong
+//   node scripts/fettler-verify-permissions.js --check    check only, and fail if it is
 //
 // TWO MODES, because the two callers want opposite things.
 //
@@ -69,7 +69,7 @@ if (fixed.length === 0) {
 if (checkOnly) {
   console.log(fixed.length + " SCRIPT(S) MISSING THE EXECUTABLE BIT:");
   for (const f of fixed) console.log(" - " + f);
-  console.log("\nRun `node scripts/verify-permissions.js` (no --check) to stage the fix,");
+  console.log("\nRun `node scripts/fettler-verify-permissions.js` (no --check) to stage the fix,");
   console.log("then commit it. A raw filesystem chmod will not do: a checkout with");
   console.log("core.filemode=false, the default on Windows, makes one invisible to git.");
   process.exit(1);

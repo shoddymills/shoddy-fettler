@@ -38,7 +38,7 @@ public sealed record ArchiveMember(
 ///
 /// <para><b>Why writing one does not.</b> Producing an archive is a
 /// BUILD OUTPUT, and building is what a declared task and <c>run</c> are
-/// for - <c>fettler/build.ps1</c> already cuts the release archives.
+/// for - <c>scripts/fettler-build.ps1</c> already cuts the release archives.
 /// A <c>compress</c> verb would put this tool in the business of
 /// producing artefacts rather than tending trees.</para>
 ///

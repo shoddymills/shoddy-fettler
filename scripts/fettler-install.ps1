@@ -1,11 +1,11 @@
 #!/usr/bin/env pwsh
 # Put the fettle you just built where the machine will actually find it.
 #
-#   ./scripts/install.ps1                 build, then install over the one on PATH
-#   ./scripts/install.ps1 -To DIR         install into DIR instead
-#   ./scripts/install.ps1 -Stop           end the servers still on the old build
-#   ./scripts/install.ps1 -DryRun         say what would happen and touch nothing
-#   ./scripts/install.ps1 -Program burler the sidecar instead of fettle
+#   ./scripts/fettler-install.ps1                 build, then install over the one on PATH
+#   ./scripts/fettler-install.ps1 -To DIR         install into DIR instead
+#   ./scripts/fettler-install.ps1 -Stop           end the servers still on the old build
+#   ./scripts/fettler-install.ps1 -DryRun         say what would happen and touch nothing
+#   ./scripts/fettler-install.ps1 -Program burler the sidecar instead of fettle
 #
 # WHERE IT INSTALLS IS DISCOVERED, NOT INVENTED: the directory holding the
 # `fettle` already on PATH, so this replaces the binary the machine is
@@ -81,7 +81,7 @@ Set-Location $root
 # NOT called Stop, Copy, Build or Install. PowerShell resolves a command
 # name as alias, then FUNCTION, then cmdlet, then external program, and it
 # does so case-insensitively - so a function named after the thing it wraps
-# shadows that thing and calls itself. build.ps1 hung for thirty minutes
+# shadows that thing and calls itself. fettler-build.ps1 hung for thirty minutes
 # twice on exactly that, and the note above `NodeCheck` there is the long
 # version. `Stop` is also a real parameter of this script, which is a
 # second reason not to make it a function name as well.
@@ -195,7 +195,7 @@ $staging = Join-Path $root "artifacts/install/$rid"
 $staged = Join-Path $staging $exe
 
 # burler carries native ONNX libraries, and a single file without them is a
-# single file that cannot start. build.ps1 says the same thing at its own
+# single file that cannot start. fettler-build.ps1 says the same thing at its own
 # publish step.
 $native = @()
 if ($Program -eq 'burler') { $native = @('-p:IncludeNativeLibrariesForSelfExtract=true') }

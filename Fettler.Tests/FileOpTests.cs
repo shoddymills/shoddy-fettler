@@ -127,7 +127,7 @@ public sealed class FileOpTests
 
     /// <summary>
     /// R6.9. This repository tracks 40 files at mode 100755 - every
-    /// build.sh, every build.ps1, both release scripts - so a copy that
+    /// fettler-*.sh, every fettler-*.ps1, both release scripts - so a copy that
     /// drops the bit breaks the macOS build R9.1 requires, and breaks it
     /// at run time far from whatever dropped it.
     /// </summary>

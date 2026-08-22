@@ -3,7 +3,7 @@
   <!-- Centralize every project's build output into artifacts/ instead of each
        project's own bin/ and obj/. Keeps fettle.dll, burler.dll and the test
        assemblies in one predictable place for plain `dotnet build`/`dotnet
-       test` runs. The publish step in build.ps1 uses an explicit -o and is
+       test` runs. The publish step in fettler-build.ps1 uses an explicit -o and is
        unaffected. -->
   <PropertyGroup>
     <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>

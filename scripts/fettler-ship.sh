@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Cut a release: tag main and push the tag. CI does the rest.
 #
-#   ./scripts/ship.sh X.Y.Z         tag vX.Y.Z on main and push it
-#   ./scripts/ship.sh X.Y.Z -Yes    the same, without the confirmation prompt
+#   ./scripts/fettler-ship.sh X.Y.Z         tag vX.Y.Z on main and push it
+#   ./scripts/fettler-ship.sh X.Y.Z -Yes    the same, without the confirmation prompt
 #
-# The twin of ship.ps1 and equivalent to it, down to the spelling of the
+# The twin of fettler-ship.ps1 and equivalent to it, down to the spelling of the
 # flag: -Yes on both sides, deliberately. A pair that took -Yes in
 # PowerShell and -y in the shell, while the docs said they "take the same
-# arguments", is one of the two drifts verify-twins.js was written for.
+# arguments", is one of the two drifts fettler-verify-twins.js was written for.
 #
 # THIS SCRIPT DOES EXACTLY TWO MUTATING THINGS: it creates a tag and it
 # pushes that tag. Everything else it does is refuse. There is no version

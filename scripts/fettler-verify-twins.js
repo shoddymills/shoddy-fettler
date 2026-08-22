@@ -1,6 +1,6 @@
 // MAINTAINER TOOL - every .ps1 has its .sh, and the two offer the same verbs.
 //
-//   node scripts/verify-twins.js
+//   node scripts/fettler-verify-twins.js
 //
 // EVERY SCRIPT IN THIS REPOSITORY SHIPS TWICE, and only one of the pair ever
 // gets run on any given machine. That is the whole problem: the twin nobody
@@ -58,7 +58,7 @@
 // oversight. A script written and not yet added is invisible to the index,
 // so an index-based check passes on the exact tree where a new twin is
 // missing - which is the moment this most needs to speak up. driver.mjs
-// wrote the same lesson down about verify-permissions.js.
+// wrote the same lesson down about fettler-verify-permissions.js.
 
 const fs = require("fs");
 const path = require("path");

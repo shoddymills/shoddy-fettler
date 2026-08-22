@@ -4,7 +4,7 @@ Fettler distributes two programs. This file is the developer-facing summary
 of what rides along inside each of them.
 
 **[`NOTICE`](NOTICE) is the file that matters legally**, and it is the one
-that travels: `scripts/build.ps1 publish` copies `NOTICE` and `LICENSE` into every
+that travels: `scripts/fettler-build.ps1 publish` copies `NOTICE` and `LICENSE` into every
 archive, because an obligation that stops at the repository has not reached
 the person who downloaded a release. This file is a convenience for anyone
 reading the source; it does not ship.

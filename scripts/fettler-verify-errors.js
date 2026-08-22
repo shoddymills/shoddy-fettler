@@ -1,7 +1,7 @@
 // MAINTAINER TOOL - read-only. Every outcome and exit code the tool can
 // raise is documented on the page that promises to list them.
 //
-//   node scripts/verify-errors.js
+//   node scripts/fettler-verify-errors.js
 //
 // R3.5 is the clause this serves: each distinct failure class gets its own
 // exit code so a script can branch on it without parsing text. That promise

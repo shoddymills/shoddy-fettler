@@ -1,6 +1,6 @@
 // MAINTAINER TOOL - read-only. Checks the site against the sources.
 //
-//   node scripts/verify-docs.js        (run from anywhere; finds the repo from its own path)
+//   node scripts/fettler-verify-docs.js        (run from anywhere; finds the repo from its own path)
 //
 // Rebuilds ground truth from the tree on every run rather than comparing the
 // pages against a list somebody has to remember to update. Six checks:
@@ -236,7 +236,7 @@ for (const p of pages) {
   }
 
   // The exit code the screen actually raises, in the table that promises to
-  // list every one - on whichever page keeps that table. verify-errors.js
+  // list every one - on whichever page keeps that table. fettler-verify-errors.js
   // holds that table to the source row by row; this asks only that the
   // screen's own number is in it, so a screen documented as a feature always
   // has the code a caller branches on written down beside it.

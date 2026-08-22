@@ -213,10 +213,10 @@ shell command. It also <b>needs the tree to grant
     "feature-branch": "hebdenbridge"
   },
   "tasks": {
-    "build":   { "run": "pwsh -File build.ps1" },
+    "build":   { "run": "pwsh -File shoddy-build.ps1" },
     "gate":    { "run": "node scripts/gate/driver.mjs gate --resume", "cwd": "." },
     "sign":    { "run": "signtool sign /f \"C:\\keys\\my cert.pfx\" bin/app.exe" },
-    "feature": { "run": "pwsh -File scripts/feature.ps1 new {feature-branch}" }
+    "feature": { "run": "pwsh -File scripts/shoddy-feature.ps1 new {feature-branch}" }
   }
 }</code></pre></div>
 
@@ -239,6 +239,13 @@ brace already on a command line keeps meaning what it meant.</li>
 <li><b><code>cwd</code> &mdash; the folder the task runs in &mdash; is
 optional.</b> It defaults to the top of the default tree, and is
 checked for containment like any other path.</li>
+<li><b>Prefix scripts and task names with your project's own name</b>
+&mdash; <code>shoddy-build.ps1</code> rather than <code>build.ps1</code>, a
+<code>checkin</code> task rather than <code>commit</code>. An assistant's
+own permission layer reads these names, and a task named with a bare git
+word can be refused as if it were the raw command it resembles. A prefixed
+name says whose procedure it is, and stops the pattern-match before it
+starts.</li>
 </ul>
 
 <div class="takeaway"><b>That configuration is trusted input.</b>

@@ -108,23 +108,23 @@ the same file with the same arguments — there is no privileged path.
 
 **This repository needs nothing built first.** Fettler references no project
 outside its own tree, so there is no staged binary to publish and nothing to
-weave. `scripts/build.ps1 test` is the whole suite and it runs in minutes: no gate
+weave. `scripts/fettler-build.ps1 test` is the whole suite and it runs in minutes: no gate
 harness, no receipt store, and no `--resume`, because there is nothing long
 enough to be worth resuming.
 
 ### From a terminal
 
 ```powershell
-./scripts/build.ps1               # restore + build (Debug)
-./scripts/build.ps1 test          # Fettler.Tests AND burler.Tests — both, always
-./scripts/build.ps1 check         # the verifiers: twins, permissions, docs, errors
-./scripts/build.ps1 release       # Release build
-./scripts/build.ps1 publish 1.0.0 # self-contained single-file per OS, per program
-./scripts/install.ps1             # install over the fettle on PATH
-./scripts/install.ps1 -Stop       # ...and end the servers still on the old build
+./scripts/fettler-build.ps1               # restore + build (Debug)
+./scripts/fettler-build.ps1 test          # Fettler.Tests AND burler.Tests — both, always
+./scripts/fettler-build.ps1 check         # the verifiers: twins, permissions, docs, errors
+./scripts/fettler-build.ps1 release       # Release build
+./scripts/fettler-build.ps1 publish 1.0.0 # self-contained single-file per OS, per program
+./scripts/fettler-install.ps1             # install over the fettle on PATH
+./scripts/fettler-install.ps1 -Stop       # ...and end the servers still on the old build
 ```
 
-`install.ps1` is the one that closes the loop on a change: it publishes a
+`fettler-install.ps1` is the one that closes the loop on a change: it publishes a
 self-contained `fettle` for this machine and puts it over whichever one is
 already on `PATH`.
 
@@ -148,16 +148,16 @@ client.
 The git workflow is scripted too, end to end apart from the merge:
 
 ```powershell
-./scripts/branch.ps1 feature NAME              # cut a branch off an up-to-date main
-./scripts/commit.ps1 -Message "what changed"   # stage and commit; pushes nothing
-./scripts/pr.ps1                               # push and open a pull request
-                                       #   <- a person merges it on GitHub
-./scripts/branch.ps1 land                      # return to main, delete the branch
-./scripts/ship.ps1 1.0.0                       # tag and push — CI publishes
+./scripts/fettler-branch.ps1 feature NAME              # cut a branch off an up-to-date main
+./scripts/fettler-checkin.ps1 -Message "what changed"  # stage and commit; pushes nothing
+./scripts/fettler-pr.ps1                               # push and open a pull request
+                                               #   <- a person merges it on GitHub
+./scripts/fettler-branch.ps1 land                      # return to main, delete the branch
+./scripts/fettler-ship.ps1 1.0.0                       # tag and push — CI publishes
 ```
 
 Every script has a `.sh` twin taking the same arguments, flags included, and
-`verify-twins.js` fails the build if the two drift apart. **On Windows run the
+`fettler-verify-twins.js` fails the build if the two drift apart. **On Windows run the
 `.ps1`** — it is the half that actually ships there, and the twin that goes
 unexercised is the twin that rots.
 
@@ -179,24 +179,29 @@ second declared task, or a value the configuration declares in braces.
 
 | Task | Runs | Mutates |
 |---|---|---|
-| `build` | `scripts/build.ps1 build` | build output |
-| `test` | `scripts/build.ps1 test` | build output |
-| `check` | `scripts/build.ps1 check` | stages an executable bit, if one is wrong |
-| `build-release` | `scripts/build.ps1 release` | build output |
-| `publish` | `scripts/build.ps1 publish {release-version}` | build output |
-| `verify-twins` | `scripts/verify-twins.js` | nothing |
-| `verify-permissions` | `scripts/verify-permissions.js` | stages an executable bit |
-| `verify-docs` | `scripts/verify-docs.js` | nothing |
-| `verify-errors` | `scripts/verify-errors.js` | nothing |
-| `sitemap` | `scripts/make-sitemap.ps1` | `docs/sitemap.xml` |
-| `feature` | `scripts/branch.ps1 feature {feature-branch}` | a local branch |
-| `bug` | `scripts/branch.ps1 bug {bug-branch}` | a local branch |
-| `sync` | `scripts/branch.ps1 sync` | your branch |
-| `commit` | `scripts/commit.ps1 -Message {commit-note}` | **history**, locally |
-| `pr` | `scripts/pr.ps1` | **origin**, and opens a pull request |
-| `pr-draft` | `scripts/pr.ps1 -Draft` | as above, as a draft |
-| `land` | `scripts/branch.ps1 land -Yes` | **deletes** a merged branch |
-| `ship` | `scripts/ship.ps1 {release-version} -Yes` | **publishes** a release |
+| `build` | `scripts/fettler-build.ps1 build` | build output |
+| `test` | `scripts/fettler-build.ps1 test` | build output |
+| `check` | `scripts/fettler-build.ps1 check` | stages an executable bit, if one is wrong |
+| `build-release` | `scripts/fettler-build.ps1 release` | build output |
+| `publish` | `scripts/fettler-build.ps1 publish {release-version}` | build output |
+| `verify-twins` | `scripts/fettler-verify-twins.js` | nothing |
+| `verify-permissions` | `scripts/fettler-verify-permissions.js` | stages an executable bit |
+| `verify-docs` | `scripts/fettler-verify-docs.js` | nothing |
+| `verify-errors` | `scripts/fettler-verify-errors.js` | nothing |
+| `sitemap` | `scripts/fettler-make-sitemap.ps1` | `docs/sitemap.xml` |
+| `feature` | `scripts/fettler-branch.ps1 feature {feature-branch}` | a local branch |
+| `bug` | `scripts/fettler-branch.ps1 bug {bug-branch}` | a local branch |
+| `sync` | `scripts/fettler-branch.ps1 sync` | your branch |
+| `checkin` | `scripts/fettler-checkin.ps1 -Message {checkin-note}` | **history**, locally |
+| `pr` | `scripts/fettler-pr.ps1` | **origin**, and opens a pull request |
+| `pr-draft` | `scripts/fettler-pr.ps1 -Draft` | as above, as a draft |
+| `land` | `scripts/fettler-branch.ps1 land -Yes` | **deletes** a merged branch |
+| `ship` | `scripts/fettler-ship.ps1 {release-version} -Yes` | **publishes** a release |
+
+**No task is named with a bare git word** — the committing task is `checkin`,
+not `commit` — and every script carries the `fettler-` prefix, so an
+assistant's permission layer never mistakes a declared task for the raw git
+command it resembles.
 
 The braced names are **replacements** — values the configuration supplies, so
 a branch name or a version never has to be composed into a command line by

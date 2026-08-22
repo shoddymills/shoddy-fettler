@@ -2,8 +2,8 @@
 # MAINTAINER TOOL - stages everything and commits it. Writes history; pushes
 # nothing. Run from anywhere inside the repo.
 #
-#   ./scripts/commit.ps1 -Message "what changed"
-#   ./scripts/commit.ps1 -Message "..." -Force      allow it on main
+#   ./scripts/fettler-checkin.ps1 -Message "what changed"
+#   ./scripts/fettler-checkin.ps1 -Message "..." -Force      allow it on main
 #
 # This exists so the procedure is reachable as a script rather than as a raw
 # `git add -A; git commit -m ...` composed inside a shell and buried in a
@@ -16,7 +16,7 @@
 # -Force is the deliberate exception that has to be typed out.
 #
 # IT PUSHES NOTHING. Committing and publishing are separate decisions, and
-# this script only makes the first. `./scripts/pr.ps1` is what puts the work where
+# this script only makes the first. `./scripts/fettler-pr.ps1` is what puts the work where
 # anyone else can see it.
 [CmdletBinding()]
 param(
@@ -62,7 +62,7 @@ $branch = "$branch".Trim()
 
 if (($branch -eq 'main' -or $branch -eq 'master') -and -not $Force) {
     Fail "on $branch, which takes merges and not commits." `
-         'Cut a branch with ./scripts/branch.ps1 feature NAME, or pass -Force if you mean it.'
+         'Cut a branch with ./scripts/fettler-branch.ps1 feature NAME, or pass -Force if you mean it.'
 }
 
 Gq rev-parse -q --verify MERGE_HEAD > $null
@@ -75,7 +75,7 @@ $dirty = Gq status --porcelain
 if (-not $dirty) { Fail 'nothing to commit - the tree is clean.' }
 
 # A .sh git has never seen is staged 100644 unless it is added with the bit
-# set, and verify-permissions.js cannot cover it: that check walks TRACKED
+# set, and fettler-verify-permissions.js cannot cover it: that check walks TRACKED
 # files, so the window between writing a script and adding it is invisible to
 # it. Four scripts once shipped through that window and one took a release
 # workflow down with "Permission denied", exit 126.
@@ -93,4 +93,4 @@ G commit -m $Message
 
 Write-Host ''
 Write-Host "Committed on $branch. Nothing has been pushed." -ForegroundColor Green
-Write-Host "When the work is ready: ./scripts/pr.ps1"
+Write-Host "When the work is ready: ./scripts/fettler-pr.ps1"

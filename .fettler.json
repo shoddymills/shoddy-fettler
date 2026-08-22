@@ -6,27 +6,27 @@
     }
   },
   "tasks": {
-    "build":                { "run": "pwsh -File scripts/build.ps1 build",                     "cwd": "." },
-    "test":                 { "run": "pwsh -File scripts/build.ps1 test",                      "cwd": "." },
-    "check":                { "run": "pwsh -File scripts/build.ps1 check",                     "cwd": "." },
-    "build-release":        { "run": "pwsh -File scripts/build.ps1 release",                   "cwd": "." },
-    "publish":              { "run": "pwsh -File scripts/build.ps1 publish {release-version}", "cwd": "." },
+    "build":              { "run": "pwsh -File scripts/fettler-build.ps1 build",                     "cwd": "." },
+    "test":               { "run": "pwsh -File scripts/fettler-build.ps1 test",                      "cwd": "." },
+    "check":              { "run": "pwsh -File scripts/fettler-build.ps1 check",                     "cwd": "." },
+    "build-release":      { "run": "pwsh -File scripts/fettler-build.ps1 release",                   "cwd": "." },
+    "publish":            { "run": "pwsh -File scripts/fettler-build.ps1 publish {release-version}", "cwd": "." },
 
-    "feature":              { "run": "pwsh -File scripts/branch.ps1 feature {feature-branch}", "cwd": "." },
-    "bug":                  { "run": "pwsh -File scripts/branch.ps1 bug {bug-branch}",         "cwd": "." },
-    "sync":                 { "run": "pwsh -File scripts/branch.ps1 sync",                     "cwd": "." },
-    "commit":               { "run": "pwsh -File scripts/commit.ps1 -Message {commit-note}",   "cwd": "." },
-    "pr":                   { "run": "pwsh -File scripts/pr.ps1",                              "cwd": "." },
-    "pr-draft":             { "run": "pwsh -File scripts/pr.ps1 -Draft",                       "cwd": "." },
-    "land":                 { "run": "pwsh -File scripts/branch.ps1 land -Yes",                "cwd": "." },
+    "feature":            { "run": "pwsh -File scripts/fettler-branch.ps1 feature {feature-branch}", "cwd": "." },
+    "bug":                { "run": "pwsh -File scripts/fettler-branch.ps1 bug {bug-branch}",         "cwd": "." },
+    "sync":               { "run": "pwsh -File scripts/fettler-branch.ps1 sync",                     "cwd": "." },
+    "checkin":            { "run": "pwsh -File scripts/fettler-checkin.ps1 -Message {checkin-note}", "cwd": "." },
+    "pr":                 { "run": "pwsh -File scripts/fettler-pr.ps1",                              "cwd": "." },
+    "pr-draft":           { "run": "pwsh -File scripts/fettler-pr.ps1 -Draft",                       "cwd": "." },
+    "land":               { "run": "pwsh -File scripts/fettler-branch.ps1 land -Yes",                "cwd": "." },
 
-    "verify-twins":         { "run": "node scripts/verify-twins.js",                           "cwd": "." },
-    "verify-permissions":   { "run": "node scripts/verify-permissions.js",                     "cwd": "." },
-    "verify-docs":          { "run": "node scripts/verify-docs.js",                            "cwd": "." },
-    "verify-errors":        { "run": "node scripts/verify-errors.js",                          "cwd": "." },
+    "verify-twins":       { "run": "node scripts/fettler-verify-twins.js",                           "cwd": "." },
+    "verify-permissions": { "run": "node scripts/fettler-verify-permissions.js",                     "cwd": "." },
+    "verify-docs":        { "run": "node scripts/fettler-verify-docs.js",                            "cwd": "." },
+    "verify-errors":      { "run": "node scripts/fettler-verify-errors.js",                          "cwd": "." },
 
-    "sitemap":              { "run": "pwsh -File scripts/make-sitemap.ps1",                    "cwd": "." },
+    "sitemap":            { "run": "pwsh -File scripts/fettler-make-sitemap.ps1",                    "cwd": "." },
 
-    "ship":                 { "run": "pwsh -File scripts/ship.ps1 {release-version} -Yes",     "cwd": "." }
+    "ship":               { "run": "pwsh -File scripts/fettler-ship.ps1 {release-version} -Yes",     "cwd": "." }
   }
 }

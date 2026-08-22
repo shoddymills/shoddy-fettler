@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # Put the fettle you just built where the machine will actually find it.
 #
-#   ./scripts/install.sh                  build, then install over the one on PATH
-#   ./scripts/install.sh -To DIR          install into DIR instead
-#   ./scripts/install.sh -Stop            end the servers still on the old build
-#   ./scripts/install.sh -DryRun          say what would happen and touch nothing
-#   ./scripts/install.sh -Program burler  the sidecar instead of fettle
+#   ./scripts/fettler-install.sh                  build, then install over the one on PATH
+#   ./scripts/fettler-install.sh -To DIR          install into DIR instead
+#   ./scripts/fettler-install.sh -Stop            end the servers still on the old build
+#   ./scripts/fettler-install.sh -DryRun          say what would happen and touch nothing
+#   ./scripts/fettler-install.sh -Program burler  the sidecar instead of fettle
 #
-# The twin of install.ps1 and equivalent to it, down to the spelling of the
+# The twin of fettler-install.ps1 and equivalent to it, down to the spelling of the
 # flags: -To, -Stop, -DryRun and -Program on both sides, deliberately. A
 # pair that took -Yes in PowerShell and -y in the shell, while the docs
 # said they "take the same arguments", is one of the two drifts
-# verify-twins.js was written for.
+# fettler-verify-twins.js was written for.
 #
 # WHERE IT INSTALLS IS DISCOVERED, NOT INVENTED: the directory holding the
 # `fettle` already on PATH, so this replaces the binary the machine is
@@ -203,7 +203,7 @@ staging="$root/artifacts/install/$rid"
 staged="$staging/$program"
 
 # burler carries native ONNX libraries, and a single file without them is a
-# single file that cannot start. build.sh says the same thing at its own
+# single file that cannot start. fettler-build.sh says the same thing at its own
 # publish step.
 native=""
 [ "$program" = "burler" ] && native="-p:IncludeNativeLibrariesForSelfExtract=true"
