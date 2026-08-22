@@ -1,13 +1,22 @@
 // MAINTAINER TOOL - read-only. Checks the site against the sources.
 //
-//   node scripts/verify-docs.js        (run from anywhere; finds the repo from its own path)
+//   node scripts/fettler-verify-docs.js        (run from anywhere; finds the repo from its own path)
 //
 // Rebuilds ground truth from the tree on every run rather than comparing the
-// pages against a list somebody has to remember to update. Five checks:
+// pages against a list somebody has to remember to update. Six checks:
 //
-//   navigation - every page carries the same nav bar. Adding a page means
+//   navigation - every page carries the same nav bar, AND no page's bar
+//                links to the page it is sitting on. Adding a page means
 //                adding it to every other page, and this is what says you
-//                missed one.
+//                missed one. A page that links to itself has lost the
+//                "here" marker saying where the reader is - which is
+//                exactly how a page made by copying another one arrives,
+//                and is invisible to a comparison that reads only the text.
+//   order      - the prev/next chain joins up: a page's own two nav bars
+//                agree with each other, and if A's next is B then B's
+//                previous is A. Every link still resolves when this rots,
+//                so the link check stays perfectly happy while a reader
+//                walks past a page or round in a circle.
 //   links      - every internal href AND src resolves: the file exists, and
 //                if a link carries a #fragment, something on that page has
 //                that id. A link to a section that was renamed is the
@@ -17,9 +26,12 @@
 //                shows a broken image and says nothing.
 //   orphans    - every page is reachable from another page. A page nothing
 //                links to is a page nobody will read.
-//   screen     - the disclosure screen's section on the overview page still
-//                names every category the code has, and the exit-code table
-//                gives `screened` as the number ExitCodes.cs declares.
+//   screen     - the disclosure screen's section names every category the
+//                code has, and some exit-code table on the site gives
+//                `screened` as the number ExitCodes.cs declares. Neither
+//                half names the page it looks on - it finds it, so moving a
+//                section between pages is a docs decision and not a gate
+//                failure.
 //   encoding   - no tracked text file carries UTF-8 that has been round-
 //                tripped through CP1252. The repository this came from
 //                shipped ~400 mangled characters past a gate that had no
@@ -77,6 +89,23 @@ const pages = fs.readdirSync(docs)
   }
 }
 
+// ---- navigation: no page's bar links to the page it is on ----
+// The comparison above reads only the TEXT of each item, because the current
+// page is a <span class="here"> rather than an <a> and every page would
+// otherwise differ from every other by exactly the item naming itself. That
+// blindness has a cost: a page whose "here" marker was left pointing at the
+// wrong item passes it. So say the rule directly - a page does not link to
+// itself - which is the shape that fault always takes.
+for (const p of pages) {
+  if (p === "404.html") continue;
+  for (const bar of read("docs/" + p)
+      .matchAll(/<nav class="docnav[^"]*"[^>]*>([\s\S]*?)<\/nav>/g))
+    if (bar[1].includes('href="' + p + '"')) {
+      fail("docs/" + p + ": its own nav bar links to it - the here marker is on the wrong item");
+      break;
+    }
+}
+
 // ---- links: every internal href resolves, fragment included ----
 {
   const ids = {};
@@ -116,24 +145,84 @@ const pages = fs.readdirSync(docs)
     if (!linkedTo.has(p)) fail("docs/" + p + ": nothing links to this page");
   }
 }
+// ---- order: the prev/next chain joins up ----
+// The pages carry a linear "Fettler, in order" chain in a pagenav bar at the
+// top and another at the foot. Two ways it rots, both silent, and both have
+// happened here: the two bars on one page saying different things, and A
+// pointing forward to B while B points back past A to somewhere else. Every
+// link still resolves either way, so nothing else notices.
+//
+// Pages with no pagenav at all - heritage, authorship, 404 - are not in the
+// chain and are skipped rather than reported.
+{
+  const endsOf = bar => {
+    const out = {};
+    for (const a of bar.matchAll(/<a\b([^>]*)>/g)) {
+      const dir = /class="(prev|next)"/.exec(a[1]);
+      const href = /href="([^"#]+)"/.exec(a[1]);
+      if (dir && href) out[dir[1]] = href[1];
+    }
+    return out;
+  };
 
-// ---- the disclosure screen: docs/index.html against the sources ----
+  const chain = {};
+  for (const p of pages) {
+    const bars = [...read("docs/" + p)
+      .matchAll(/<nav class="pagenav[^"]*"[^>]*>([\s\S]*?)<\/nav>/g)];
+    if (!bars.length) continue;
+
+    const shapes = bars.map(b => {
+      const e = endsOf(b[1]);
+      return (e.prev || "nothing") + "  <-  " + p + "  ->  " + (e.next || "nothing");
+    });
+
+    if (new Set(shapes).size > 1)
+      fail("docs/" + p + ": its nav bars disagree about the reading order:\n    " +
+           [...new Set(shapes)].join("\n    "));
+
+    chain[p] = endsOf(bars[0][1]);
+  }
+
+  for (const [p, e] of Object.entries(chain)) {
+    if (e.next && chain[e.next] && chain[e.next].prev !== p)
+      fail("docs/" + p + ": its next is " + e.next + ", whose previous is " +
+           (chain[e.next].prev || "nothing") + " - the chain does not join up");
+    if (e.prev && chain[e.prev] && chain[e.prev].next !== p)
+      fail("docs/" + p + ": its previous is " + e.prev + ", whose next is " +
+           (chain[e.prev].next || "nothing") + " - the chain does not join up");
+  }
+}
+
+// ---- the disclosure screen, against the sources ----
 // The screen is configuration a person writes and a refusal they meet, so
 // its documentation is part of the feature rather than a description of one.
+//
+// WHICH page carries the section is not pinned here. It has moved once
+// already, and a check naming a filename turns a docs reorganisation into a
+// build failure - which is how a gate ends up edited to suit the pages
+// instead of the pages being held to the gate. Find the page with
+// id="screen", and insist there is exactly one: two of them drift apart.
 {
-  const page = read("docs/index.html");
+  const carriers = pages.filter(p => read("docs/" + p).includes('id="screen"'));
 
-  // The SECTION, not the page: a category word turning up in some unrelated
-  // paragraph would satisfy a whole-page search while the section that has
-  // to list them stayed silent.
-  const start = page.indexOf('id="screen"');
-  const screen = start === -1 ? null
-    : page.slice(start, (i => i === -1 ? page.length : i)(page.indexOf("<h2", start + 1)));
-
-  if (screen === null) {
-    fail('docs/index.html: MISSING the screen section (id="screen")');
+  if (!carriers.length) {
+    fail('no page carries the screen section (id="screen")');
   } else {
-    // Every category the code can screen for, named in the page. One added
+    if (carriers.length > 1)
+      fail('the screen section (id="screen") is on more than one page (' +
+           carriers.map(p => "docs/" + p).join(", ") + ") - two copies drift apart");
+
+    const where = "docs/" + carriers[0];
+    const text = read(where);
+
+    // The SECTION, not the page: a category word turning up in some unrelated
+    // paragraph would satisfy a whole-page search while the section that has
+    // to list them stayed silent.
+    const start = text.indexOf('id="screen"');
+    const end = text.indexOf("<h2", start + 1);
+    const screen = text.slice(start, end === -1 ? text.length : end);
+
+    // Every category the code can screen for, named in the section. One added
     // in the code and documented nowhere is a category nobody can discover;
     // one removed leaves a page promising a screen that no longer exists.
     const words = [...read("Fettler/Core/Screen.cs")
@@ -143,21 +232,25 @@ const pages = fs.readdirSync(docs)
 
     for (const word of words)
       if (!screen.includes("<code>" + word + "</code>"))
-        fail("docs/index.html #screen: the '" + word + "' category is undocumented");
+        fail(where + ' #screen: the \'' + word + "' category is undocumented");
   }
 
   // The exit code the screen actually raises, in the table that promises to
-  // list every one. A number quoted in prose and changed in the code is the
-  // kind of fact that stops being true without anybody noticing.
+  // list every one - on whichever page keeps that table. fettler-verify-errors.js
+  // holds that table to the source row by row; this asks only that the
+  // screen's own number is in it, so a screen documented as a feature always
+  // has the code a caller branches on written down beside it.
   const declared = /public const int Screened = (\d+);/.exec(read("Fettler/Cli/ExitCodes.cs"));
 
   if (!declared) {
     fail("verify-docs: no Screened exit code in ExitCodes.cs");
-  } else if (!read("docs/install.html")
-      .includes("<td>" + declared[1] + "</td><td><code>screened</code></td>")) {
-    fail("docs/install.html: the exit-code table does not give screened as " + declared[1]);
+  } else {
+    const row = "<td>" + declared[1] + "</td><td><code>screened</code></td>";
+    if (!pages.some(p => read("docs/" + p).includes(row)))
+      fail("no exit-code table on the site gives screened as " + declared[1]);
   }
 }
+
 
 // ---- encoding: no UTF-8 round-tripped through CP1252 ----
 // The signature is a byte sequence that is valid UTF-8 but reads as the

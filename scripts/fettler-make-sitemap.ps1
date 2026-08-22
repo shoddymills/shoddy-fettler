@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 # Regenerate the docs sitemap.
 #
-#   ./scripts/make-sitemap.ps1 [DOCSDIR] [BASEURL]
+#   ./scripts/fettler-make-sitemap.ps1 [DOCSDIR] [BASEURL]
 #
 # Every *.html under DOCSDIR except 404.html gets a <url> entry; index.html
 # becomes the directory URL. <lastmod> is the file's last git commit date, so
@@ -13,7 +13,7 @@
 # Pages workflow passes no override. When the site's address is settled,
 # this is the line to change.
 #
-# The twin of make-sitemap.sh. The Pages runner is Linux and calls the .sh;
+# The twin of fettler-make-sitemap.sh. The Pages runner is Linux and calls the .sh;
 # this half exists so a sitemap can be regenerated and eyeballed on the
 # machine the site is actually written on, before anything is pushed.
 [CmdletBinding()]

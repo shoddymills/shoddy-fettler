@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # Build Fettler: restore, build, test, check and publish.
 #
-#   ./scripts/build.sh              restore + build (Debug)
-#   ./scripts/build.sh test         build + run Fettler.Tests and burler.Tests
-#   ./scripts/build.sh check        the verifiers - twins, permissions, docs, errors
-#   ./scripts/build.sh release      Release build - what a client should launch
-#   ./scripts/build.sh publish [V]  self-contained single-file binaries, one
+#   ./scripts/fettler-build.sh              restore + build (Debug)
+#   ./scripts/fettler-build.sh test         build + run Fettler.Tests and burler.Tests
+#   ./scripts/fettler-build.sh check        the verifiers - twins, permissions, docs, errors
+#   ./scripts/fettler-build.sh release      Release build - what a client should launch
+#   ./scripts/fettler-build.sh publish [V]  self-contained single-file binaries, one
 #                           archive per OS per program; V names them
 #                           (fettle-V-RID, burler-V-RID)
 #
-# The twin of build.ps1 and equivalent to it. This repository needs
+# The twin of fettler-build.ps1 and equivalent to it. This repository needs
 # NOTHING built first: Fettler references no project outside its own
 # tree, so there is no staged binary to publish and nothing to weave.
 # The scripts live in scripts/; everything they build lives one level up.
@@ -66,10 +66,10 @@ case "$command" in
         # how it found it. That is deliberate: reporting a wrong bit and
         # making the reader go and fix it by hand is how four of them once
         # shipped at once.
-        node_check verify-twins.js
-        node_check verify-permissions.js
-        node_check verify-docs.js
-        node_check verify-errors.js
+        node_check fettler-verify-twins.js
+        node_check fettler-verify-permissions.js
+        node_check fettler-verify-docs.js
+        node_check fettler-verify-errors.js
         ;;
     release) run build Fettler.slnx -c Release ;;
     publish)

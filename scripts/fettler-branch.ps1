@@ -2,14 +2,14 @@
 # MAINTAINER TOOL - creates branches, and deletes them locally and on origin.
 # Assumes write access. Run from anywhere inside the repo.
 #
-#   ./scripts/branch.ps1 feature NAME    cut feature/NAME off an up-to-date main
-#   ./scripts/branch.ps1 bug NAMENN      cut bug/NAMENN off an up-to-date main
-#   ./scripts/branch.ps1 sync            bring main's commits into the current branch
-#   ./scripts/branch.ps1 land [-Yes]     after the PR is merged: return to main and
+#   ./scripts/fettler-branch.ps1 feature NAME    cut feature/NAME off an up-to-date main
+#   ./scripts/fettler-branch.ps1 bug NAMENN      cut bug/NAMENN off an up-to-date main
+#   ./scripts/fettler-branch.ps1 sync            bring main's commits into the current branch
+#   ./scripts/fettler-branch.ps1 land [-Yes]     after the PR is merged: return to main and
 #                                delete the branch, local and origin
 #
 # WHAT THIS DOES NOT DO IS MERGE. The pull request is the gate, and it is a
-# human one: `./scripts/pr.ps1` opens it, a person reviews it and presses the button,
+# human one: `./scripts/fettler-pr.ps1` opens it, a person reviews it and presses the button,
 # and `land` only tidies up afterwards. `land` REFUSES on a branch whose pull
 # request is not merged, so it cannot be used to skip the review by another
 # name.
@@ -38,7 +38,7 @@ function Fail([string]$Msg, [string]$Remedy = '') {
 
 # git says perfectly ordinary things on stderr - "Already on 'main'",
 # "Switched to branch", the whole of a push's progress. Run plainly that is
-# harmless, but the moment a CALLER redirects (`./scripts/branch.ps1 land 2>&1 | tee
+# harmless, but the moment a CALLER redirects (`./scripts/fettler-branch.ps1 land 2>&1 | tee
 # log.txt`, or any runner that captures both streams) Windows PowerShell wraps
 # each stderr line in a NativeCommandError, and under $ErrorActionPreference =
 # 'Stop' that terminates the run halfway through. The exit code is the only
@@ -77,7 +77,7 @@ function Cut([string]$Branch) {
 
     Write-Host ''
     Write-Host "On $Branch, cut from an up-to-date main." -ForegroundColor Green
-    Write-Host "Work, then: ./scripts/commit.ps1 -Message ""what changed"""
+    Write-Host "Work, then: ./scripts/fettler-checkin.ps1 -Message ""what changed"""
 }
 
 function CurrentBranch() {
@@ -103,17 +103,17 @@ if ($LASTEXITCODE -eq 0) { Fail 'a merge is in progress - finish or abort it fir
 
 Gq diff --quiet
 if ($LASTEXITCODE -ne 0) {
-    Fail 'unstaged changes present.' 'Commit them with ./scripts/commit.ps1, or stash them. See git status.'
+    Fail 'unstaged changes present.' 'Commit them with ./scripts/fettler-checkin.ps1, or stash them. See git status.'
 }
 Gq diff --cached --quiet
 if ($LASTEXITCODE -ne 0) {
-    Fail 'staged-but-uncommitted changes present.' 'Commit them with ./scripts/commit.ps1, or unstage them.'
+    Fail 'staged-but-uncommitted changes present.' 'Commit them with ./scripts/fettler-checkin.ps1, or unstage them.'
 }
 
 switch ($Command) {
 
     'feature' {
-        if (-not $Name) { Fail 'usage: ./scripts/branch.ps1 feature NAME' }
+        if (-not $Name) { Fail 'usage: ./scripts/fettler-branch.ps1 feature NAME' }
         $Name = $Name -replace '^feature/', ''
         if ($Name -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') {
             Fail "a branch name may use letters, digits, . _ - only (got '$Name')."
@@ -122,7 +122,7 @@ switch ($Command) {
     }
 
     'bug' {
-        if (-not $Name) { Fail 'usage: ./scripts/branch.ps1 bug NAMENN   (bug/<origin-feature>NN, e.g. bug reinard01)' }
+        if (-not $Name) { Fail 'usage: ./scripts/fettler-branch.ps1 bug NAMENN   (bug/<origin-feature>NN, e.g. bug reinard01)' }
         $Name = $Name -replace '^bug/', ''
         if ($Name -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') {
             Fail "a branch name may use letters, digits, . _ - only (got '$Name')."
@@ -236,10 +236,10 @@ switch ($Command) {
     }
 
     default {
-        Write-Host 'usage: ./scripts/branch.ps1 feature NAME    cut feature/NAME off an up-to-date main'
-        Write-Host '       ./scripts/branch.ps1 bug NAMENN      cut bug/NAMENN off an up-to-date main'
-        Write-Host "       ./scripts/branch.ps1 sync            bring main's commits into the current branch"
-        Write-Host '       ./scripts/branch.ps1 land [-Yes]     after the PR is merged: return to main and delete the branch'
+        Write-Host 'usage: ./scripts/fettler-branch.ps1 feature NAME    cut feature/NAME off an up-to-date main'
+        Write-Host '       ./scripts/fettler-branch.ps1 bug NAMENN      cut bug/NAMENN off an up-to-date main'
+        Write-Host "       ./scripts/fettler-branch.ps1 sync            bring main's commits into the current branch"
+        Write-Host '       ./scripts/fettler-branch.ps1 land [-Yes]     after the PR is merged: return to main and delete the branch'
         exit 2
     }
 }

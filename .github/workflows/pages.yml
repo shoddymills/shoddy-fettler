@@ -6,7 +6,7 @@ name: Deploy docs to Pages
 # artifact and is never committed.
 #
 # The base URL is NOT passed here. It is defined once, in
-# scripts/make-sitemap.sh and its .ps1 twin, so that settling the site's
+# scripts/fettler-make-sitemap.sh and its .ps1 twin, so that settling the site's
 # address is a one-line change in one place rather than a hunt through a
 # workflow, a script and whatever else quoted it.
 on:
@@ -15,7 +15,7 @@ on:
     paths:
       - 'docs/**'
       - '.github/workflows/pages.yml'
-      - 'scripts/make-sitemap.sh'
+      - 'scripts/fettler-make-sitemap.sh'
   workflow_dispatch:
 
 permissions:
@@ -39,7 +39,7 @@ jobs:
           fetch-depth: 0   # full history - sitemap lastmod comes from git log
 
       - name: Regenerate the sitemap
-        run: sh scripts/make-sitemap.sh docs
+        run: sh scripts/fettler-make-sitemap.sh docs
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

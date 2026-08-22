@@ -457,6 +457,7 @@ public static class Command
                     w.WriteNumber("lines", s.TotalLines);
                     w.WriteBoolean("truncated", s.Truncated);
                     if (s.Truncated) w.WriteNumber("lines_remaining", s.Remaining);
+                    if (s.Budgeted) w.WriteBoolean("budgeted", true);
                     w.WriteString("encoding", s.EncodingName);
                     w.WriteString("line_ending", s.LineEnding);
                     w.WriteBoolean("line_ending_mixed", s.MixedEndings);
@@ -500,6 +501,17 @@ public static class Command
                 text.Append("... ").Append(s.Remaining)
                     .Append(" more line(s); pass --from ").Append(s.To + 1)
                     .AppendLine(" to go on, or --to for a range");
+            else if (s.Budgeted && s.From > 1)
+                text.Append("... ").Append(s.From - 1)
+                    .Append(" earlier line(s); pass --to ").Append(s.From - 1)
+                    .AppendLine(" to go back");
+
+            // Which cap stopped it, because "pass --to for more" is bad
+            // advice when the answer was bounded by size rather than by
+            // the range asked for.
+            if (s.Budgeted)
+                text.Append("      (stopped at the ").Append(Bench.DefaultCharCap)
+                    .AppendLine("-character answer budget)");
         }
 
         return Ok(text.ToString());
@@ -1455,10 +1467,36 @@ public static class Command
         body(w);
     });
 
+    /// <summary>
+    /// The writer options both front ends put their answers through.
+    ///
+    /// <para><b>The relaxed encoder is a SIZE decision, and a measured
+    /// one.</b> System.Text.Json defaults to escaping every character
+    /// that could matter inside an HTML document - <c>&lt;</c>,
+    /// <c>&gt;</c>, <c>&amp;</c>, <c>'</c>, <c>+</c>, the quote - to a
+    /// six-character <c>\uXXXX</c> sequence, and everything non-ASCII
+    /// besides. Answering with an HTML page through that put HALF AGAIN
+    /// as many characters on the wire as the file has bytes: a 33 KB page
+    /// arrived as 51 KB, which was past the caller's ceiling, so it was
+    /// rejected WHOLE and a one-call read cost three.</para>
+    ///
+    /// <para><b>"Unsafe" names one hazard, and it is not this one.</b> The
+    /// relaxed encoder is unsafe to splice into an HTML document without
+    /// encoding it again. Nothing here does that: this goes down a stdio
+    /// JSON-RPC pipe, or to a terminal. Everything JSON itself requires -
+    /// the quote, the backslash, the control characters - is escaped
+    /// either way, and the stream is UTF-8 either way.</para>
+    /// </summary>
+    public static readonly JsonWriterOptions Writing = new()
+    {
+        Indented = false,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+
     static string JsonBody(Action<Utf8JsonWriter> body)
     {
         var buffer = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = false }))
+        using (var writer = new Utf8JsonWriter(buffer, Writing))
         {
             writer.WriteStartObject();
             body(writer);
@@ -1535,8 +1573,11 @@ public static class Command
                  there being nothing in it.
           read PATH... [--from N] [--to N] [--tail N] [--member NAME]
                  Text, notebooks, PDFs, .xlsx/.xlsm workbooks, .docx/.docm
-                 documents, images and archives. Stops at 2000 lines
-                 and says how many are left; --to asks for more. --tail N is the
+                 documents, images and archives. Stops at 2000 lines and says
+                 how many are left; --to asks for more. It also stops at 40,000
+                 characters across the call, which --to does NOT lift: that is
+                 how much of your range survives the trip, and a range too big
+                 to send comes back short rather than not at all. --tail N is the
                  LAST n lines - for a log or a build transcript, so reaching the
                  end of one costs no arithmetic and no second call.
                  A .zip, .tar, .tar.gz or .tgz reads as its MANIFEST: every

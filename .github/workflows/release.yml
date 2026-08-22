@@ -1,11 +1,11 @@
 name: Release
 
-# Pushing a tag is what ships. scripts/ship.ps1 creates and pushes it; this builds
+# Pushing a tag is what ships. scripts/fettler-ship.ps1 creates and pushes it; this builds
 # from the tag on a clean runner and publishes the GitHub Release.
 #
 # THE TAG IS THE VERSION. Nothing in the repository records a release
 # number: Directory.Build.props carries a development default, and the step
-# below passes the tag's version to scripts/build.sh, which passes it to
+# below passes the tag's version to scripts/fettler-build.sh, which passes it to
 # `dotnet publish -p:Version=`. So there is no version-bump commit to make,
 # no release branch to cut, and nothing to merge back afterwards - the
 # sequence that used to need a documented recovery procedure for when it
@@ -61,18 +61,18 @@ jobs:
           dotnet-version: '10.0.x'
 
       # The suite runs again here, on the tagged commit, on a clean machine.
-      # CI already proved this commit on Windows and macOS and ship.ps1
+      # CI already proved this commit on Windows and macOS and fettler-ship.ps1
       # refuses to tag one CI has not passed - but a release is the one
       # thing that cannot be un-shipped, and this costs minutes.
       - name: Test
-        run: ./scripts/build.sh test
+        run: ./scripts/fettler-build.sh test
 
       # BOTH programs, 6 RIDs each, 12 archives. The upload below has to
       # name both: an archive that is built and not attached is
       # indistinguishable from one that was never built, except that
       # nothing fails.
       - name: Publish fettle and burler
-        run: ./scripts/build.sh publish ${{ steps.ver.outputs.version }}
+        run: ./scripts/fettler-build.sh publish ${{ steps.ver.outputs.version }}
 
       # R6.9, asserted rather than assumed, on both programs. burler is
       # launched by fettle as a child process; one that arrives without its
@@ -121,7 +121,7 @@ jobs:
 
       # Hand-written notes win. They must be committed BEFORE the tag is
       # pushed, because this job checks out the tag and sees only what that
-      # commit contains. ship.ps1 refuses to tag without them, so the
+      # commit contains. fettler-ship.ps1 refuses to tag without them, so the
       # fallback here is for a tag pushed by hand.
       - name: Compose the release body
         id: body

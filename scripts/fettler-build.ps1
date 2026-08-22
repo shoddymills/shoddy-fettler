@@ -1,11 +1,11 @@
 #!/usr/bin/env pwsh
 # Build Fettler: restore, build, test, check and publish.
 #
-#   ./scripts/build.ps1              restore + build (Debug)
-#   ./scripts/build.ps1 test         build + run Fettler.Tests and burler.Tests
-#   ./scripts/build.ps1 check        the verifiers - twins, permissions, docs, errors
-#   ./scripts/build.ps1 release      Release build - what a client should launch
-#   ./scripts/build.ps1 publish [V]  self-contained single-file binaries, one
+#   ./scripts/fettler-build.ps1              restore + build (Debug)
+#   ./scripts/fettler-build.ps1 test         build + run Fettler.Tests and burler.Tests
+#   ./scripts/fettler-build.ps1 check        the verifiers - twins, permissions, docs, errors
+#   ./scripts/fettler-build.ps1 release      Release build - what a client should launch
+#   ./scripts/fettler-build.ps1 publish [V]  self-contained single-file binaries, one
 #                            archive per OS per program; V names them
 #                            (fettle-V-RID, burler-V-RID)
 #
@@ -99,10 +99,10 @@ switch ($Command) {
         # how it found it. That is deliberate: reporting a wrong bit and
         # making the reader go and fix it by hand is how four of them once
         # shipped at once.
-        NodeCheck 'verify-twins.js'
-        NodeCheck 'verify-permissions.js'
-        NodeCheck 'verify-docs.js'
-        NodeCheck 'verify-errors.js'
+        NodeCheck 'fettler-verify-twins.js'
+        NodeCheck 'fettler-verify-permissions.js'
+        NodeCheck 'fettler-verify-docs.js'
+        NodeCheck 'fettler-verify-errors.js'
     }
     'release' { Run @('build', 'Fettler.slnx', '-c', 'Release') }
     'publish' {

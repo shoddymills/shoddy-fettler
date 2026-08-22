@@ -1,8 +1,8 @@
 #!/usr/bin/env pwsh
 # Cut a release: tag main and push the tag. CI does the rest.
 #
-#   ./scripts/ship.ps1 X.Y.Z         tag vX.Y.Z on main and push it
-#   ./scripts/ship.ps1 X.Y.Z -Yes    the same, without the confirmation prompt
+#   ./scripts/fettler-ship.ps1 X.Y.Z         tag vX.Y.Z on main and push it
+#   ./scripts/fettler-ship.ps1 X.Y.Z -Yes    the same, without the confirmation prompt
 #
 # THIS SCRIPT DOES EXACTLY TWO MUTATING THINGS: it creates a tag and it
 # pushes that tag. Everything else it does is refuse. There is no version

@@ -2,17 +2,17 @@
 # MAINTAINER TOOL - creates branches, and deletes them locally and on origin.
 # Assumes write access. Run from anywhere inside the repo.
 #
-#   ./scripts/branch.sh feature NAME    cut feature/NAME off an up-to-date main
-#   ./scripts/branch.sh bug NAMENN      cut bug/NAMENN off an up-to-date main
-#   ./scripts/branch.sh sync            bring main's commits into the current branch
-#   ./scripts/branch.sh land [-Yes]     after the PR is merged: return to main and
+#   ./scripts/fettler-branch.sh feature NAME    cut feature/NAME off an up-to-date main
+#   ./scripts/fettler-branch.sh bug NAMENN      cut bug/NAMENN off an up-to-date main
+#   ./scripts/fettler-branch.sh sync            bring main's commits into the current branch
+#   ./scripts/fettler-branch.sh land [-Yes]     after the PR is merged: return to main and
 #                               delete the branch, local and origin
 #
-# The twin of branch.ps1 and equivalent to it, down to the spelling of the
+# The twin of fettler-branch.ps1 and equivalent to it, down to the spelling of the
 # flag: -Yes on both sides, deliberately.
 #
 # WHAT THIS DOES NOT DO IS MERGE. The pull request is the gate, and it is a
-# human one: `./scripts/pr.sh` opens it, a person reviews it and presses the button,
+# human one: `./scripts/fettler-pr.sh` opens it, a person reviews it and presses the button,
 # and `land` only tidies up afterwards. `land` REFUSES on a branch whose pull
 # request is not merged, so it cannot be used to skip the review by another
 # name.
@@ -73,7 +73,7 @@ cut_branch() {
 
     echo
     echo "On $branch, cut from an up-to-date main."
-    echo "Work, then: ./scripts/commit.sh -Message \"what changed\""
+    echo "Work, then: ./scripts/fettler-checkin.sh -Message \"what changed\""
 }
 
 # ---- preconditions, before any verb ----
@@ -81,14 +81,14 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail "not inside a git re
 git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 \
     && fail "a merge is in progress - finish or abort it first."
 git diff --quiet \
-    || fail "unstaged changes present." "Commit them with ./scripts/commit.sh, or stash them. See git status."
+    || fail "unstaged changes present." "Commit them with ./scripts/fettler-checkin.sh, or stash them. See git status."
 git diff --cached --quiet \
-    || fail "staged-but-uncommitted changes present." "Commit them with ./scripts/commit.sh, or unstage them."
+    || fail "staged-but-uncommitted changes present." "Commit them with ./scripts/fettler-checkin.sh, or unstage them."
 
 case "$command" in
 
     feature)
-        [ -n "$name" ] || fail "usage: ./scripts/branch.sh feature NAME"
+        [ -n "$name" ] || fail "usage: ./scripts/fettler-branch.sh feature NAME"
         name=${name#feature/}
         printf '%s' "$name" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]*$' \
             || fail "a branch name may use letters, digits, . _ - only (got '$name')."
@@ -96,7 +96,7 @@ case "$command" in
         ;;
 
     bug)
-        [ -n "$name" ] || fail "usage: ./scripts/branch.sh bug NAMENN   (bug/<origin-feature>NN, e.g. bug reinard01)"
+        [ -n "$name" ] || fail "usage: ./scripts/fettler-branch.sh bug NAMENN   (bug/<origin-feature>NN, e.g. bug reinard01)"
         name=${name#bug/}
         printf '%s' "$name" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]*$' \
             || fail "a branch name may use letters, digits, . _ - only (got '$name')."
@@ -211,10 +211,10 @@ case "$command" in
         ;;
 
     *)
-        echo 'usage: ./scripts/branch.sh feature NAME    cut feature/NAME off an up-to-date main'
-        echo '       ./scripts/branch.sh bug NAMENN      cut bug/NAMENN off an up-to-date main'
-        echo "       ./scripts/branch.sh sync            bring main's commits into the current branch"
-        echo '       ./scripts/branch.sh land [-Yes]     after the PR is merged: return to main and delete the branch'
+        echo 'usage: ./scripts/fettler-branch.sh feature NAME    cut feature/NAME off an up-to-date main'
+        echo '       ./scripts/fettler-branch.sh bug NAMENN      cut bug/NAMENN off an up-to-date main'
+        echo "       ./scripts/fettler-branch.sh sync            bring main's commits into the current branch"
+        echo '       ./scripts/fettler-branch.sh land [-Yes]     after the PR is merged: return to main and delete the branch'
         exit 2
         ;;
 esac

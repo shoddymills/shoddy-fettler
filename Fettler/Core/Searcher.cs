@@ -122,7 +122,14 @@ public static class Searcher
         int context,
         int limit,
         int excluded,
-        bool documents = true)
+        bool documents = true,
+
+        // The same size budget `read` answers under, or 0 for none.
+        // `limit` bounds the COUNT of hits, and one hit can be a
+        // thousand-character line of markup - so a search well inside its
+        // hit limit could still be rejected whole for size, which returns
+        // the caller nothing at all.
+        int charCap = 0)
     {
         if (patterns.Count == 0)
             return Result<SearchAnswer>.Fail(Outcome.Invalid, "no pattern was given");
@@ -137,7 +144,7 @@ public static class Searcher
 
         var hits = new List<Hit>();
         var filesWithHits = new HashSet<string>(StringComparer.Ordinal);
-        int searched = 0, skipped = 0;
+        int searched = 0, skipped = 0, spent = 0;
         bool truncated = false;
 
         foreach (FoundFile file in files)
@@ -183,14 +190,26 @@ public static class Searcher
 
                 if (limit > 0 && hits.Count >= limit) { truncated = true; break; }
 
-                hits.Add(new Hit(
+                var hit = new Hit(
                     file.Path,
                     i + 1,                                  // sequences are 1-based here as they are in Shoddy
                     column + 1,
                     lines[i].Text,
                     ContextAround(lines, i, context),
-                    rendering?.Cite(i + 1)));
+                    rendering?.Cite(i + 1));
 
+                // At least one hit goes back whatever it costs, for the
+                // reason read serves at least one line: an answer with
+                // nothing in it is not a smaller answer, it is a dead end.
+                int cost = Cost(hit);
+                if (charCap > 0 && hits.Count > 0 && spent + cost > charCap)
+                {
+                    truncated = true;
+                    break;
+                }
+
+                spent += cost;
+                hits.Add(hit);
                 filesWithHits.Add(file.Path.Full);
             }
 
@@ -199,6 +218,16 @@ public static class Searcher
 
         return Result<SearchAnswer>.Ok(new SearchAnswer(
             hits, filesWithHits.Count, searched, truncated, kind, patterns, excluded, skipped));
+    }
+
+    /// <summary>What one hit will cost the answer: the matched line and
+    /// the context carried with it, which is the text that actually goes
+    /// on the wire.</summary>
+    static int Cost(Hit hit)
+    {
+        int n = hit.Text.Length;
+        foreach (ContextLine line in hit.Context) n += line.Text.Length;
+        return n;
     }
 
     static int EarliestMatch(List<Regex> patterns, string line)

@@ -69,7 +69,7 @@ body{margin:0; background:var(--paper); color:var(--ink);
 
 /* An in-page jump list (e.g. machines/index.html's categories). Visually a
    docnav row, but a different class on purpose: the nav-consistency check
-   in verify-docs.js matches any <nav class="docnav*">, and a per-page jump
+   in fettler-verify-docs.js matches any <nav class="docnav*">, and a per-page jump
    list must never be compared against the sitewide bar. */
 .catnav{display:flex; flex-wrap:wrap; gap:.2rem .85rem; font-size:.85rem; margin:1.1rem 0 0}
 .catnav a{color:var(--ink-soft); text-decoration:none; font-weight:500}

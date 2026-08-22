@@ -393,4 +393,177 @@ public sealed class TypedReadTests
         Assert.Equal(ExitCodes.Ok, read.ExitCode);
         Assert.Contains("wool,42", read.Stdout);
     }
+
+    // ---- the answer budget, and the escaping that made it necessary ----
+
+    /// <summary>
+    /// Markup on the wire, unescaped. System.Text.Json's default encoder
+    /// turns every angle bracket, ampersand, apostrophe and quote into a
+    /// six-character <c>\uXXXX</c> sequence, so an HTML page arrived HALF
+    /// AGAIN as large as it is on disk - enough to be rejected for size,
+    /// which made a one-call read cost three.
+    /// </summary>
+    [Fact]
+    public async Task MarkupIsNotInflatedIntoUnicodeEscapesOnTheWire()
+    {
+        using var box = new Sandbox();
+        box.Write("page.html", "<p class=\"a\">Bread & butter, 'tis</p>\n");
+
+        CliResult json = await Run(box, "read", "page.html", "--json");
+
+        // The characters themselves, not their escapes.
+        Assert.Contains("<p class=\\\"a\\\">", json.Stdout);
+        Assert.DoesNotContain("\\u003C", json.Stdout);
+        Assert.DoesNotContain("\\u003E", json.Stdout);
+        Assert.DoesNotContain("\\u0026", json.Stdout);
+        Assert.DoesNotContain("\\u0027", json.Stdout);
+        Assert.DoesNotContain("\\u0022", json.Stdout);
+
+        // And it is still JSON, which is the half a size test can lose.
+        JsonElement file = JsonDocument.Parse(json.Stdout).RootElement.GetProperty("files")[0];
+        Assert.Equal("<p class=\"a\">Bread & butter, 'tis</p>\n",
+                     file.GetProperty("text").GetString());
+    }
+
+    /// <summary>200 lines of 200 characters: the whole budget exactly, a
+    /// tenth of the line cap, and the file is twice that.</summary>
+    static string Wide(int lines) =>
+        string.Join("", Enumerable.Range(1, lines).Select(_ => new string('x', 199) + "\n"));
+
+    /// <summary>
+    /// The line cap was never the binding one. A file well inside 2000
+    /// lines is still large enough for a caller to reject the answer
+    /// whole - which costs a turn and returns nothing - so the size of
+    /// what is about to be sent is what gets measured.
+    /// </summary>
+    [Fact]
+    public async Task ReadStopsAtTheCharacterBudgetLongBeforeTheLineCap()
+    {
+        using var box = new Sandbox();
+        box.Write("wide.txt", Wide(400));
+
+        CliResult json = await Run(box, "read", "wide.txt", "--json");
+        JsonElement file = JsonDocument.Parse(json.Stdout).RootElement.GetProperty("files")[0];
+
+        Assert.Equal(400, file.GetProperty("lines").GetInt32());
+        Assert.Equal(200, file.GetProperty("to").GetInt32());
+        Assert.Equal(200, file.GetProperty("lines_remaining").GetInt32());
+        Assert.True(file.GetProperty("truncated").GetBoolean());
+        Assert.True(file.GetProperty("budgeted").GetBoolean());
+        Assert.Equal(Bench.DefaultCharCap, file.GetProperty("text").GetString()!.Length);
+
+        // And the human form says which cap stopped it, because "pass
+        // --to for more" is bad advice when the range was never the
+        // constraint.
+        CliResult human = await Run(box, "read", "wide.txt");
+        Assert.Contains("answer budget", human.Stdout);
+    }
+
+    /// <summary>
+    /// The line cap yields to an explicit range; this one does not.
+    /// <c>to</c> says which range the caller wants, and the budget says
+    /// how much of it survives the trip - so lifting it on request would
+    /// restore the exact failure it exists to remove: ask for a large
+    /// range, get nothing at all.
+    /// </summary>
+    [Fact]
+    public async Task AnExplicitRangeDoesNotLiftTheCharacterBudget()
+    {
+        using var box = new Sandbox();
+        box.Write("wide.txt", Wide(400));
+
+        CliResult json = await Run(box, "read", "wide.txt", "--from", "1", "--to", "400", "--json");
+        JsonElement file = JsonDocument.Parse(json.Stdout).RootElement.GetProperty("files")[0];
+
+        Assert.Equal(200, file.GetProperty("to").GetInt32());
+        Assert.True(file.GetProperty("budgeted").GetBoolean());
+    }
+
+    /// <summary>
+    /// One budget for the call, not one per path. Reading several paths
+    /// at once exists to save the caller turns, and per-file budgets
+    /// would multiply and overrun the very ceiling this stays under.
+    /// </summary>
+    [Fact]
+    public async Task TheBudgetIsSpentAcrossTheCallAndNotPerFile()
+    {
+        using var box = new Sandbox();
+        box.Write("first.txt", Wide(400));
+        box.Write("second.txt", Wide(400));
+
+        CliResult json = await Run(box, "read", "first.txt", "second.txt", "--json");
+        JsonElement files = JsonDocument.Parse(json.Stdout).RootElement.GetProperty("files");
+
+        Assert.Equal(200, files[0].GetProperty("to").GetInt32());
+
+        // The first path spent it all, so the second gets the one line
+        // that is always served, and says the rest is still there.
+        Assert.Equal(1, files[1].GetProperty("to").GetInt32());
+        Assert.Equal(399, files[1].GetProperty("lines_remaining").GetInt32());
+        Assert.True(files[1].GetProperty("budgeted").GetBoolean());
+    }
+
+    /// <summary>
+    /// A minified file is one enormous line. Serving nothing back would
+    /// be a new dead end rather than a fix for the old one, so the first
+    /// line goes whatever it costs.
+    /// </summary>
+    [Fact]
+    public async Task OneLineLongerThanTheWholeBudgetIsStillServed()
+    {
+        using var box = new Sandbox();
+        box.Write("minified.js", new string('z', Bench.DefaultCharCap * 2) + "\n");
+
+        CliResult json = await Run(box, "read", "minified.js", "--json");
+        JsonElement file = JsonDocument.Parse(json.Stdout).RootElement.GetProperty("files")[0];
+
+        Assert.Equal(1, file.GetProperty("to").GetInt32());
+        Assert.False(file.GetProperty("truncated").GetBoolean());
+        Assert.Equal((Bench.DefaultCharCap * 2) + 1, file.GetProperty("text").GetString()!.Length);
+    }
+
+    /// <summary>
+    /// The budget trims from the end the caller cares least about. A tail
+    /// asked for the END of the file, so a trimmed tail keeps its end and
+    /// gives up its beginning; trimming the other way would answer a
+    /// different question from the one asked.
+    /// </summary>
+    [Fact]
+    public async Task ABudgetedTailKeepsTheEndOfTheFile()
+    {
+        using var box = new Sandbox();
+        box.Write("log.txt", string.Join("", Enumerable.Range(1, 400)
+            .Select(i => new string('x', 193) + $"{i,6}" + "\n")));
+
+        CliResult json = await Run(box, "read", "log.txt", "--tail", "400", "--json");
+        JsonElement file = JsonDocument.Parse(json.Stdout).RootElement.GetProperty("files")[0];
+
+        Assert.Equal(400, file.GetProperty("to").GetInt32());
+        Assert.Equal(201, file.GetProperty("from").GetInt32());
+        Assert.True(file.GetProperty("budgeted").GetBoolean());
+        Assert.Contains("   400", file.GetProperty("text").GetString());
+    }
+
+    /// <summary>
+    /// <c>limit</c> bounds the COUNT of hits, and one hit can be a
+    /// thousand-character line of markup - so a search well inside its
+    /// hit limit could still be rejected whole for size, which returns
+    /// the caller nothing.
+    /// </summary>
+    [Fact]
+    public async Task SearchStopsOnSizeBeforeItReachesTheHitLimit()
+    {
+        using var box = new Sandbox();
+        box.Write("wide.txt", string.Join("", Enumerable.Range(1, 150)
+            .Select(_ => "needle " + new string('x', 993) + "\n")));
+
+        CliResult json = await Run(box, "search", "needle", "--json");
+        JsonElement root = JsonDocument.Parse(json.Stdout).RootElement;
+
+        // Forty thousand characters of hit text, at a thousand apiece -
+        // and nowhere near the two hundred hits `limit` would have
+        // allowed.
+        Assert.Equal(40, root.GetProperty("hits_count").GetInt32());
+        Assert.True(root.GetProperty("truncated").GetBoolean());
+    }
 }

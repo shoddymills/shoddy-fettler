@@ -2,16 +2,16 @@
 # MAINTAINER TOOL - pushes the current branch and opens a pull request.
 # Assumes write access and the GitHub CLI. Run from anywhere inside the repo.
 #
-#   ./scripts/pr.ps1                     push the branch and open a pull request
-#   ./scripts/pr.ps1 -Draft              open it as a draft
-#   ./scripts/pr.ps1 -Title "..."        set the title (default: the first commit's subject)
-#   ./scripts/pr.ps1 -Web                open the finished pull request in a browser
+#   ./scripts/fettler-pr.ps1                     push the branch and open a pull request
+#   ./scripts/fettler-pr.ps1 -Draft              open it as a draft
+#   ./scripts/fettler-pr.ps1 -Title "..."        set the title (default: the first commit's subject)
+#   ./scripts/fettler-pr.ps1 -Web                open the finished pull request in a browser
 #
 # THIS IS WHERE THE AUTOMATION STOPS, deliberately. Everything either side of
-# the pull request is a script - ./scripts/branch.ps1 cuts, ./scripts/commit.ps1 commits,
-# ./scripts/branch.ps1 land tidies up, ./scripts/ship.ps1 tags - but the merge itself is a
+# the pull request is a script - ./scripts/fettler-branch.ps1 cuts, ./scripts/fettler-checkin.ps1 commits,
+# ./scripts/fettler-branch.ps1 land tidies up, ./scripts/fettler-ship.ps1 tags - but the merge itself is a
 # person reading a diff and a green CI run and deciding. Nothing here merges,
-# and ./scripts/branch.ps1 land refuses on a branch whose pull request is not merged,
+# and ./scripts/fettler-branch.ps1 land refuses on a branch whose pull request is not merged,
 # so there is no back way round that decision.
 #
 # It is re-runnable. If a pull request for this branch already exists it
@@ -34,7 +34,7 @@ function Fail([string]$Msg, [string]$Remedy = '') {
     exit 1
 }
 
-# See branch.ps1 for why every call is judged on its exit code alone: git
+# See fettler-branch.ps1 for why every call is judged on its exit code alone: git
 # writes ordinary progress to stderr, and Windows PowerShell turns that into
 # a terminating error the moment a caller captures both streams.
 function Gq {
@@ -73,13 +73,13 @@ if ($LASTEXITCODE -eq 0) { Fail 'a merge is in progress - finish or abort it fir
 # what you meant: the reviewer sees the commits, not your working copy.
 if (Gq status --porcelain) {
     Fail 'the working tree is dirty.' `
-         'Commit with ./scripts/commit.ps1 - a pull request reviews commits, not your working copy.'
+         'Commit with ./scripts/fettler-checkin.ps1 - a pull request reviews commits, not your working copy.'
 }
 
 $branch = "$(Gq rev-parse --abbrev-ref HEAD)".Trim()
 if ($branch -notlike 'feature/*' -and $branch -notlike 'bug/*') {
     Fail "current branch is '$branch' - a pull request is opened from a feature/* or bug/* branch." `
-         'Cut one with ./scripts/branch.ps1 feature NAME.'
+         'Cut one with ./scripts/fettler-branch.ps1 feature NAME.'
 }
 
 G fetch origin --prune
@@ -94,7 +94,7 @@ $behind = [int](Gq rev-list --count "HEAD..origin/main")
 if ($behind -gt 0) {
     Write-Host ''
     Write-Host "NOTE: main has $behind commit(s) this branch does not have." -ForegroundColor Yellow
-    Write-Host "      ./scripts/branch.ps1 sync brings them in, and is worth doing first." -ForegroundColor Yellow
+    Write-Host "      ./scripts/fettler-branch.ps1 sync brings them in, and is worth doing first." -ForegroundColor Yellow
 }
 
 Write-Host ''
@@ -140,8 +140,8 @@ $( (Gq log --format='- %s' "origin/main..HEAD") -join "`n" )
 ---
 Checked before opening:
 
-- ``./scripts/build.ps1 test`` - Fettler.Tests and burler.Tests
-- ``./scripts/build.ps1 check`` - twins, permissions, docs, errors
+- ``./scripts/fettler-build.ps1 test`` - Fettler.Tests and burler.Tests
+- ``./scripts/fettler-build.ps1 check`` - twins, permissions, docs, errors
 
 CI runs both again on Windows and macOS.
 "@
@@ -167,6 +167,6 @@ Write-Host 'Pull request opened. Nothing is merged.' -ForegroundColor Green
 Write-Host "  $created"
 Write-Host ''
 Write-Host 'Next: review it, wait for CI, and merge it on GitHub.'
-Write-Host 'Then: ./scripts/branch.ps1 land'
+Write-Host 'Then: ./scripts/fettler-branch.ps1 land'
 
 if ($Web) { Ghq pr view $branch --web > $null }

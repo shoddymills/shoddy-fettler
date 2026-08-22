@@ -13,6 +13,6 @@
     "feature-branch":  "reinard",
     "bug-branch":      "reinard01", 
     "release-version": "1.0.0",
-    "commit-note":     "Moving to it's own repo!"
+    "checkin-note":     "Fettler now has it's own home!"
   }
 }

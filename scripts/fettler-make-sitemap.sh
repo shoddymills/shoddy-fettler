@@ -1,7 +1,7 @@
 #!/bin/sh
 # Regenerate the docs sitemap.
 #
-#   sh scripts/make-sitemap.sh [DOCSDIR] [BASEURL]
+#   sh scripts/fettler-make-sitemap.sh [DOCSDIR] [BASEURL]
 #
 # Every *.html under DOCSDIR except 404.html gets a <url> entry; index.html
 # becomes the directory URL. <lastmod> is the file's last git commit date, so

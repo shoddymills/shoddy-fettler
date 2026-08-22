@@ -105,7 +105,7 @@ jobs:
           grep -q 'PdfPig' NOTICE || { echo 'NOTICE does not mention PdfPig'; exit 1; }
           grep -q 'fettle alone' NOTICE || {
             echo 'NOTICE no longer scopes PdfPig to fettle alone'; exit 1; }
-          for f in scripts/build.ps1 scripts/build.sh; do
+          for f in scripts/fettler-build.ps1 scripts/fettler-build.sh; do
             grep -q 'NOTICE'  "$f" || { echo "$f does not put NOTICE in the archive";  exit 1; }
             grep -q 'LICENSE' "$f" || { echo "$f does not put LICENSE in the archive"; exit 1; }
           done
@@ -114,7 +114,7 @@ jobs:
       # nobody runs is the twin that rots, and it rots silently, because the
       # person who would notice is on the other operating system.
       - name: The script twins have not drifted apart
-        run: node scripts/verify-twins.js
+        run: node scripts/fettler-verify-twins.js
 
       # --check, NOT the fixing form. A runner's index is thrown away at the
       # end of the job, so a fixing run here would repair the bit, print a
@@ -122,13 +122,13 @@ jobs:
       # that honors it literally. A gate that repairs the evidence is not a
       # gate.
       - name: Every script carries its executable bit
-        run: node scripts/verify-permissions.js --check
+        run: node scripts/fettler-verify-permissions.js --check
 
       - name: The site matches the sources
-        run: node scripts/verify-docs.js
+        run: node scripts/fettler-verify-docs.js
 
       - name: Every outcome and exit code is documented
-        run: node scripts/verify-errors.js
+        run: node scripts/fettler-verify-errors.js
 
   # windows AND macos, both required, and NEITHER is the reference platform
   # (R9.1). Several tests cannot execute on one of them at all - a POSIX
@@ -160,7 +160,7 @@ jobs:
       # project so that its native ONNX dependency stays out of what fettle
       # ships, and a second project is exactly the kind of thing a workflow
       # naming one by hand goes on not running - silently, and for as long
-      # as nobody looks. scripts/build.* runs both under `test`; this
+      # as nobody looks. scripts/fettler-build.* runs both under `test`; this
       # is the same list, kept in step by being written down twice rather
       # than by being remembered once.
       - name: Test Fettler

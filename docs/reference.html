@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Fettler reference &mdash; the boundary in full, the seven permissions, every verb, every refusal, and what this defends against.">
+<title>Reference &middot; Fettler</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+</head>
+<body>
+<div class="topbar"><div class="inner">
+  <div class="row">
+    <a class="phase" href="index.html"><img class="mark" src="media/brand/shoddy-icon.svg" alt="" width="23" height="23">Shoddy &middot; Fettler</a>
+    <span class="spacer"></span>
+    <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
+  </div>
+  <nav class="docnav main" aria-label="Documentation"><a href="index.html">Overview</a><a href="diagram.html">The workstation</a><a href="quickstart.html">Quick start</a><a href="install.html">Install</a><a href="setup.html">In a project</a><a href="screening.html">Screening</a><span class="here">Reference</span></nav>
+</div></div>
+<div class="wrap">
+<header class="mast">
+<p class="eyebrow">Shoddy &middot; Fettler</p>
+<h1 id="reference">Reference</h1>
+<p class="kicker">The boundary in full, the seven permissions, every verb, every refusal, every rule a caller has to know, and what this defends against &mdash; for whoever has to be sure.</p>
+</header>
+
+<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="screening-models.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Screening: the models</span></span></a></nav>
+
+<p class="note"><span class="lab">Note</span> <b>Nothing here is needed to
+use Fettler.</b> The <a href="quickstart.html">quick start</a> gets it
+working; this page is the argument behind it, for anybody who has to
+satisfy themselves the boundary holds.</p>
+
+<div class="takeaway"><b>On this page.</b>
+<a href="#boundary">The boundary</a> &middot;
+<a href="#permissions">The seven permissions</a> &middot;
+<a href="#defaults">The defaults</a> &middot;
+<a href="#whence">Where a permission may come from</a> &middot;
+<a href="#rules">It never writes its own rules</a> &middot;
+<a href="#assistant">Why an assistant cannot override it</a> &middot;
+<a href="#verbs">The verbs</a> &middot;
+<a href="#types">What it can read</a> &middot;
+<a href="#tasks">Declared tasks</a> &middot;
+<a href="#refusals">When it refuses</a> &middot;
+<a href="#codes">Exit codes</a> &middot;
+<a href="#metadata">What it touches besides content</a> &middot;
+<a href="#arguments">Arguments it will not guess at</a> &middot;
+<a href="#callerrules">The rules a caller has to know</a> &middot;
+<a href="#grounding">Where to say it so it is read</a> &middot;
+<a href="#findings">Everything doctor can report</a> &middot;
+<a href="#threat">What this defends against</a></div>
+
+<h2 id="boundary">The boundary &mdash; what it can actually say</h2>
+
+<p><b>Nothing outside a declared tree exists.</b> Not writable, not
+readable, not listable, not knowable. A path outside every tree is
+refused with exit&nbsp;4 &mdash; and refused <em>identically whether or
+not something is actually there</em>, so the refusal itself cannot be
+used to probe a disk. There is no current directory to change, no path
+that climbs out, and no shell to reach past it with.</p>
+
+<p>Inside a tree, everything that may be done is stated, never assumed.
+The first question worth settling is not how this works. It is
+<b>whether it can express the rule you already have in your head.</b>
+Most people arrive with one of these.</p>
+
+<table>
+<tr><th>The rule you want</th><th>How it is said</th></tr>
+<tr><td><b>Look, don't touch.</b> Read my source; change nothing.</td><td><code>"can": ["list", "read"]</code> &mdash; and it is the default for every tree the configuration file does not sit in, so you get it by saying nothing.</td></tr>
+<tr><td><b>Work here, not there.</b> Change the code, leave the requirements alone.</td><td>Two trees. The code tree grants writes; the other keeps the read-only default.</td></tr>
+<tr><td><b>May add and revise, may never destroy.</b></td><td><code>create update rename</code> <em>without</em> <code>delete</code>. This is the rule people usually want, and the one most tooling cannot express at all.</td></tr>
+<tr><td><b>Not for you.</b> This folder does not exist as far as the assistant is concerned.</td><td><code>"can": []</code>. With no <code>list</code> it never appears in a search, and guessing the path does not help.</td></tr>
+<tr><td><b>Run the build; run nothing else.</b></td><td><code>execute</code>, plus tasks declared by name. There is no shell, so there is no <em>anything else</em> to reach for.</td></tr>
+<tr><td><b>All of that, but only under <code>src/</code>.</b></td><td>A <b>scope</b> &mdash; the same words, stated at a depth inside a tree.</td></tr>
+</table>
+
+<p>Every word in that table is one of seven, and
+<a href="#permissions">section 4</a> defines them all. They combine
+freely, per tree and per folder. That is what makes "may reorganise, may
+not destroy" a rule you can state, rather than a thing you hope
+for.</p>
+
+<div class="takeaway"><b>Where this pays.</b> A single read-only flag is
+the most that assistant tooling usually offers, and it forces one choice
+for the whole tree: either the assistant cannot help, or it can delete
+your requirements. Every row above is a rule that flag cannot
+state.</div>
+
+<h3 id="scopes">Saying it at a depth</h3>
+
+<p>A tree is a path and a set of permissions. A <b>scope</b> states
+permissions somewhere inside one. Here is a real configuration, shown to
+read rather than to copy &mdash; <a href="setup.html#declare">writing
+your own</a> is the first step of setting up a project:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "trees": {
+    "work": {
+      "path": ".",
+      "can": ["list", "read", "create", "update", "rename", "delete"]
+    },
+    "requirements": {
+      "path": "../shoddy-requirements",
+      "can": ["list", "read"],
+      "scopes": {
+        "backlog":           { "can": ["list", "read", "create", "update", "rename"] },
+        "backlog/cancelled": { "can": [] }
+      }
+    }
+  }
+}</code></pre></div>
+
+<p>That reads: <code>work</code> may be changed but nothing in it may be
+run. The requirements tree is readable throughout. Its
+<code>backlog</code> folder may be added to, changed, and reorganised,
+but never destroyed. And <code>backlog/cancelled</code> is not there at
+all, as far as anything can tell.</p>
+
+<p><b>Two rules decide what a given file gets</b>, and they are the two
+worth knowing before you write one of these:</p>
+
+<ul>
+<li><b>The most specific scope containing the path decides</b> &mdash;
+not the tree, and not the shallowest scope that matches.
+<code>cancelled</code> sits inside <code>backlog</code>, so
+<code>cancelled</code> wins there.</li>
+<li><b>A scope replaces what its tree grants. It does not add to
+it.</b> That is what lets a scope take a permission <em>away</em>, which
+is how a folder inside a readable tree ends up invisible. It is also the
+trap worth stating out loud: a scope naming <code>create</code> and
+nothing else grants <code>create</code> and nothing else &mdash; not
+even <code>read</code>.</li>
+</ul>
+
+<p><b>Paths resolve against the file, never against the caller.</b>
+Read against a current directory, a relative path names a different tree
+from every folder you run it in. Read against the file's own directory,
+it names one tree from everywhere. That is what lets the file be checked
+in.</p>
+
+<p><b>A tree, not a repository.</b> A folder with no version control in
+it is the ordinary case, not an exception. Nothing in the configuration,
+the default names, or this page assumes a checkout, a remote, or a
+<code>.git</code>.</p>
+
+<p><b>A malformed configuration is refused, never fallen back from.</b>
+A silent fallback usually <em>widens</em> the boundary.</p>
+
+<h2 id="permissions">The seven permissions</h2>
+
+<table>
+<tr><th>Verb</th><th>Grants</th></tr>
+<tr><td><code>list</code></td><td>appears in <code>find</code> and <code>search</code>. <b>Absent means hidden</b> &mdash; the path does not exist as far as anything can tell.</td></tr>
+<tr><td><code>read</code></td><td>content may be read</td></tr>
+<tr><td><code>create</code></td><td>a file or directory that is not there may be made</td></tr>
+<tr><td><code>update</code></td><td>an existing file's content may be changed</td></tr>
+<tr><td><code>rename</code></td><td>may be renamed, or moved <b>within this scope or into a descendant of it</b></td></tr>
+<tr><td><code>delete</code></td><td>may be removed &mdash; <em>and</em> moved <b>out</b> of this scope, which from here is the same thing</td></tr>
+<tr><td><code>execute</code></td><td>a declared task may run with this as its working directory</td></tr>
+</table>
+
+<p><b>Move is two permissions, not one.</b> Moving into a subfolder
+needs <code>rename</code> on the source and <code>create</code> at the
+destination. Moving <em>out</em> of a scope needs <code>delete</code> as
+well, because a file that leaves is gone from here either way. That is
+what makes "may reorganise, may not destroy" possible to say at all.</p>
+
+<p>A move that <em>replaces</em> something needs <code>delete</code> at
+the destination too, whatever the verb was called. Replacing a file
+destroys it.</p>
+
+<h3 id="recursive">Verbs that do not name what they touch</h3>
+
+<p>A recursive delete and a recursive copy reach paths nobody wrote
+down. That is how a protected scope gets taken anyway. So both are
+refused when any scope inside the target does not grant what the
+operation needs. The refusal names no path &mdash; saying
+<em>where</em> would tell a caller where a hidden scope is. That costs
+one bit of information. It buys a destructive operation refused out
+loud, instead of half-done in silence.</p>
+
+<h2 id="defaults">The defaults, which are the safe ones</h2>
+
+<table>
+<tr><th>Situation</th><th>Default</th></tr>
+<tr><td>The tree the configuration file sits in</td><td><code>list read create update rename delete</code></td></tr>
+<tr><td><b>Every other tree</b></td><td><code>list read</code> &mdash; strictly read-only, overridable only in a configuration file</td></tr>
+<tr><td><code>execute</code>, anywhere</td><td><b>never</b> granted by default, in any tree, including the one the file sits in</td></tr>
+<tr><td>No tree declared at all</td><td><b>refuse, and say how to declare one.</b> There is no implicit current directory &mdash; with the one exception below.</td></tr>
+</table>
+
+<p>The default is decided by <em>where</em> the tree is, not by how its
+path was spelled. <code>"."</code> and an absolute path to the same
+folder mean the same thing.</p>
+
+<p><b>The exception is <code>setup</code> and <code>doctor</code>, and
+it is exactly two verbs wide.</b> Both configure a <em>machine</em>
+rather than work in a tree. Neither resolves a path through the
+boundary, and both reach only a fixed, compiled-in list of well-known
+configuration paths. With nothing declared, they fall back to the
+current directory &mdash; <b>read-only</b>. That cannot widen anything:
+read-only is all it grants, and no verb that touches a tree is reachable
+that way. Without the exception there was no way in at all.
+<code>setup</code> carries the scaffolder for <code>.fettler.json</code>,
+so the file it writes was the file required to run it. And
+<code>doctor</code> refused to diagnose the commonest broken state there
+is. A configuration that is <em>present and malformed</em> still
+refuses, for both verbs, because falling back from a broken boundary is
+how a boundary silently widens.</p>
+
+<p><b>Why there is no implicit current directory otherwise.</b> The
+obvious convenience — with no flag and no configuration, the folder you
+happen to be in becomes a tree — is exactly the "searching around" this
+boundary exists to stop, and it fails in the one direction a containment
+mistake must never fail in. A current directory usually sits
+<em>above</em> the tree somebody meant, so that fallback would widen the
+boundary silently, at exactly the moment nobody had stated one.</p>
+
+<h2 id="whence">Where a permission may come from</h2>
+
+<p>This is the load-bearing rule, and it is the answer to
+<code>--root</code>.</p>
+
+<table>
+<tr><th>Source</th><th>May grant</th></tr>
+<tr><td>A <code>.fettler.json</code> in the tree</td><td><b>anything.</b> Writing one is a deliberate, reviewable act by a person, inside the tree it governs.</td></tr>
+<tr><td><code>--config PATH</code></td><td><b>anything</b>, because naming a file is the same deliberate act.</td></tr>
+<tr><td><code>--root PATH</code> on a command line</td><td><b><code>list read</code>, and nothing else, with no override.</b></td></tr>
+</table>
+
+<p><code>--root</code> stays because the MCP server has to be launched
+somehow, and because ad-hoc reading is genuinely useful. It can no
+longer hand anybody write access. <b>To write to a tree, you put a file
+in it.</b></p>
+
+<p>The single exception, and the only one: <b><code>setup</code> may
+write outside every tree</b> &mdash; to a fixed, compiled-in list of
+client-configuration paths, and nowhere else. It is the same closed list
+<code>doctor</code> reads. Nothing else in the tool may write outside a
+tree that granted it.</p>
+
+<h2 id="rules">Fettler never writes its own rules</h2>
+
+<div class="takeaway"><b>This is the rule that makes every other rule
+hold.</b> Without it, the permission model is decoration.</div>
+
+<p>The configuration file names the trees, what may be done in each, and
+the commands Fettler may run. Before this rule existed, Fettler could
+write that file and then act on what it had just written. Declaring a
+task and running it took two commands. Two things follow.</p>
+
+<p><b><code>execute</code> must not be a default, even on the tree the
+configuration sits in.</b> That tree is writable by definition, and the
+configuration lives inside it. Write-by-default plus execute-by-default
+is arbitrary code execution &mdash; the tool could be walked into
+running anything. And it defeats every other permission at once, because
+a scope protected from <code>delete</code> means nothing to a task that
+can run <code>del</code>.</p>
+
+<p><b>An explicit grant is not enough on its own, either.</b> If the
+declaration can be written by the thing the grant applies to, the grant
+has no bound. Whoever holds <code>execute</code> also chooses what
+executes.</p>
+
+<p>Therefore, compiled in and not configurable at any permission
+level:</p>
+
+<table>
+<tr><th>File</th><th>Rule</th></tr>
+<tr><td><code>.fettler.json</code></td><td>never created, written, edited, renamed, moved or deleted through Fettler</td></tr>
+<tr><td><code>.fettler.local.json</code></td><td>as above</td></tr>
+<tr><td><code>.mcp.json</code></td><td>as above &mdash; it names the servers a client launches</td></tr>
+<tr><td><code>.claude/settings.json</code></td><td>as above &mdash; it names the tools a model may call at all</td></tr>
+<tr><td><code>.claude/settings.local.json</code></td><td>as above</td></tr>
+<tr><td><code>.vscode/mcp.json</code></td><td>as above</td></tr>
+</table>
+
+<p><b>The second group is the same argument, arrived at later.</b>
+Fettler's own declaration was protected from the start. Meanwhile
+<code>.claude/settings.json</code> &mdash; the file naming which tools a
+model may use at all &mdash; stayed an ordinary writable file. No
+boundary had to be breached to reach it. A project's assistant
+configuration lives in the project, so <em>the file governing the
+assistant</em> and <em>a file the assistant may write</em> were the same
+file. A model that can edit its own deny list has no deny list. And
+being <em>asked</em> to edit it is no safeguard: an instruction can
+arrive from a prompt, from a file just read, or from a misreading of
+either.</p>
+
+<p><b>Matched on the last two path segments, not on the file name
+alone.</b> A rule refusing every <code>settings.json</code> would be
+unusable, and also wrong: <code>.vscode/settings.json</code> is a
+person's editor configuration and has no say in what an assistant may
+do. <code>CLAUDE.md</code> is deliberately not on the list either. It
+persuades rather than permits, and an assistant maintaining a project's
+instructions is ordinary work.</p>
+
+<p><b><code>setup</code> still writes all of them</b> &mdash; by
+construction, not by exemption. It uses plain file IO and resolves no
+path through the boundary, so a guard that lives on the path-resolving
+route every tool verb takes is simply not in its way.</p>
+
+<p>The six names cover the trees and the tasks alike, since a task is
+declared by the same file that declares the trees.</p>
+
+<p>The names are matched at any depth, so a configuration in a
+subdirectory is protected too. And they are matched by <em>name</em>, so
+<code>.fettler.json.bak</code> and <code>.fettler.json.md</code> are
+ordinary files. Reading them is fine and stays fine. A caller asking
+what the rules are is the opposite of the problem.</p>
+
+<p>The refusal has its own outcome and its own wording &mdash;
+<em>these are the rules this tool works under, and it does not edit
+them</em> &mdash; and its own exit code, <b>11</b>. It is deliberately
+not a permission denial, because nothing is missing. No grant would have
+allowed it, and a caller sent looking for one is being sent somewhere
+there is nothing to find. <code>setup</code> may <b>create</b> a
+configuration where none exists. Changing one is a person's job, with an
+ordinary editor.</p>
+
+<h2 id="assistant">Why an assistant cannot override any of this</h2>
+
+<p>Worth stating plainly, because it is the whole point.</p>
+
+<ul>
+<li><b>A model never supplies the boundary.</b> The MCP server learns
+its trees at launch, from a client configuration a person wrote, before
+the model has said anything. Every tool call then runs against a
+boundary fixed at that moment.</li>
+<li><b>No tool can name a tree it was not given.</b> No tool schema
+carries a root or a config flag, and a test asserts that none ever will.
+The only related field is <code>in</code>, which <em>selects among</em>
+trees already open.</li>
+<li><b><code>--root</code> cannot grant write at all</b>, so even a
+careless launch cannot hand write access to anybody.</li>
+<li><b>And the model cannot edit the files that would grant it more.</b>
+That was the actual hole &mdash; not the flag, but that the tool would
+happily rewrite the document governing it, and then act on the new
+version.</li>
+</ul>
+
+<p>So the answer to <em>why does an MCP server need a root</em> is that
+it does not need <code>--root</code>. It needs <b>a boundary, from a
+source the model cannot write</b>. A file in the tree is that
+source.</p>
+
+<h3 id="hidden">Hidden is not secret</h3>
+
+<p>A scope with no <code>list</code> is absent from <code>find</code>
+and <code>search</code>, and absent from their counts and totals. A
+direct path into it is refused <b>in the same words</b> as a path
+outside every tree &mdash; including a path to a file that was never
+there. The difference between hidden and absent cannot be probed.</p>
+
+<p>This is not encryption, and it does not pretend to be. Somebody at a
+terminal can open the folder. What it stops is an assistant finding
+cancelled requirements by searching, and reading them back as
+current.</p>
+
+<h2 id="verbs">The verbs</h2>
+
+<p><b>The CLI verb and the MCP tool name are the same word</b>, and both
+front ends reach the operations through one dispatcher. That makes "this
+capability is for a model but not a script" impossible to write, rather
+than merely forbidden.</p>
+
+<table>
+<tr><th>Verb</th><th>What it answers</th></tr>
+<tr><td><code>find</code></td><td>paths matching a glob, with size and modified time</td></tr>
+<tr><td><code>search</code></td><td>matching lines as records &mdash; path, line, column, text &mdash; for several patterns at once. A hit inside a <a href="#documents">document</a> also carries the page it sits on</td></tr>
+<tr><td><code>read</code></td><td>content, encoding, line ending, trailing-newline state and a hash, for several paths at once &mdash; and <a href="#types">notebooks, PDFs, images and archives</a>. <code>--tail N</code> for the end of a log; <code>--member NAME</code> for one entry inside an archive</td></tr>
+<tr><td><code>write</code></td><td>the file created or replaced</td></tr>
+<tr><td><code>edit</code></td><td>a batch applied, or the first edit that failed</td></tr>
+<tr><td><code>replace</code></td><td>one substitution everywhere it appears across a glob</td></tr>
+<tr><td><code>new</code> / <code>mkdir</code></td><td>an empty file; a directory</td></tr>
+<tr><td><code>move</code> / <code>copy</code> / <code>delete</code></td><td>the operation, and what guarantee it gave</td></tr>
+<tr><td><code>extract</code></td><td>an archive unpacked into a declared tree &mdash; or refused whole, with nothing written</td></tr>
+<tr><td><code>exec</code></td><td>the executable bit, set or cleared</td></tr>
+<tr><td><code>roots</code></td><td>the declared trees, their paths, <b>what may be done in each</b>, and which one an unqualified path lands in</td></tr>
+<tr><td><code>tasks</code> / <code>run</code></td><td>the declared tasks; one of them, with its streams and exit code</td></tr>
+<tr><td><code>batch</code></td><td>several operations sent as one</td></tr>
+<tr><td><code>doctor</code></td><td>whether this tool is wired into each client, and what goes round it</td></tr>
+<tr><td><code>setup</code></td><td>the wiring, written &mdash; the one verb an assistant is not offered</td></tr>
+<tr><td><code>serve</code></td><td>nothing &mdash; it becomes the MCP front end on stdio</td></tr>
+</table>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle find "src/**/*.cs" --sort mtime --limit 3
+src/Fettler/Glob.cs           4812  2026-08-14T09:22:07Z
+src/Fettler/PathRoot.cs       6104  2026-08-13T17:40:11Z
+src/Fettler/Edits.cs         11233  2026-08-12T08:05:52Z
+3 files (77 excluded: bin, obj, .git - pass --include-generated)</code></pre></div>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle roots
+work          /work/shoddy  (default)
+              can: list read create update rename delete
+requirements  /work/shoddy-requirements
+              can: list read
+              backlog  can: list read create update rename
+              backlog/cancelled  can: nothing
+
+declared by /work/shoddy/.fettler.json</code></pre></div>
+
+<h3 id="twins">Worked twins</h3>
+
+<div class="fixpair">
+<div class="promptbox"><button class="copy">Copy</button><pre><code># scripts/list-types.ps1
+$out = fettle search "^public sealed" --glob "src/**/*.cs" --json
+if ($LASTEXITCODE -ne 0) { throw "search failed: $out" }
+$out</code></pre></div>
+<div class="promptbox"><button class="copy">Copy</button><pre><code># scripts/list-types.sh
+out=$(fettle search '^public sealed' --glob 'src/**/*.cs' --json) || {
+  printf '%s\n' "$out" &gt;&amp;2; exit 1;
+}
+printf '%s\n' "$out"</code></pre></div>
+</div>
+
+<p>In machine-readable mode the complete result &mdash; <b>failures
+included</b> &mdash; is on stdout, the normal output stream. That
+matters on Windows. PowerShell 5.1 turns a native program's redirected
+error output into <code>NativeCommandError</code> records, and sets
+<code>$?</code> false even on exit code 0. Any design that needs
+<code>2&gt;&amp;1</code> to retrieve an answer is broken on the primary
+development platform.</p>
+
+<h2 id="types">What it can read</h2>
+
+<p>On a machine where the assistant's own reader has been denied,
+Fettler is the <em>only</em> reader. A type it cannot open is a file
+nobody can open.</p>
+
+<table>
+<tr><th>Type</th><th>How it comes back</th></tr>
+<tr><td>Text, in any encoding a byte-order mark names, plus UTF-8</td><td>lines, with the encoding, the line ending, whether the endings are <em>mixed</em>, and a hash</td></tr>
+<tr><td>CSV</td><td>as text &mdash; so a spreadsheet exported as CSV needs nothing special</td></tr>
+<tr><td>Notebooks (<code>.ipynb</code>)</td><td>cells, sources and outputs, rendered &mdash; not the JSON they are stored in</td></tr>
+<tr><td>PDF</td><td>text, page by page, each page announced so a citation can name one</td></tr>
+<tr><td>Excel (<code>.xlsx</code>, <code>.xlsm</code>)</td><td>a row to a line, tab separated, one landmark per sheet; a cell holding a formula shows the formula with its last computed value beside it; dates come back as dates</td></tr>
+<tr><td>Word (<code>.docx</code>, <code>.docm</code>)</td><td>paragraphs and tables under their headings, and the <b>headings are the landmarks</b> &mdash; Word does not store where the pages break</td></tr>
+<tr><td>Images (png, jpg, gif, webp)</td><td>mime type and dimensions from the header, without decoding a pixel; over MCP the bytes go as a native image part</td></tr>
+<tr><td>Archives (<code>.zip</code>, <code>.tar</code>, <code>.tar.gz</code>, <code>.tgz</code>)</td><td>the <b>manifest</b> &mdash; every member, its size, its date, and whether it carries the execute bit. <code>--member NAME</code> reads one entry out, decoded like any other file, <b>without unpacking anything</b></td></tr>
+<tr><td>A lone <code>.gz</code></td><td>whatever is underneath it &mdash; one file wearing a coat</td></tr>
+<tr><td>Anything else binary</td><td>refused, saying so</td></tr>
+</table>
+
+<ul>
+<li><b><code>read</code> stops at 2000 lines</b> unless
+<code>--to</code> says otherwise, and says how many are left.
+<code>find</code> stops at a thousand, <code>search</code> at two
+hundred.</li>
+<li><b>And <code>read</code> stops at 40,000 characters, which
+<code>--to</code> does <em>not</em> lift.</b> Those two caps are in
+different units on purpose. A line cap bounds how much of a file you
+asked for; a character cap bounds how much of it survives the trip, and
+lines vary in length by two orders of magnitude &mdash; so a 593-line
+page, well under the line cap, was still large enough for a caller to
+reject the answer whole. <b>A rejected answer costs a turn and returns
+nothing</b>, which is worse than a short one, so the size is measured
+here and the answer comes back short and says what is left. The budget
+is spent across the whole call rather than per path, and at least one
+line is always served &mdash; a minified file is a single enormous
+line, and an empty answer is a dead end rather than a smaller
+answer.</li>
+<li><b><code>--tail N</code> is the end of the file</b>, counted
+backwards. Reaching the end of a log or a build transcript needs neither
+its length nor any arithmetic. It cannot be combined with
+<code>--from</code>/<code>--to</code>. The end of a file and a named
+range are two different questions, and answering one of them by
+precedence would be a confident wrong answer rather than an error.</li>
+<li><b>A notebook's non-text output is measured rather than pasted.</b>
+One output cell routinely holds a megabyte of encoded image data that
+nobody can see.</li>
+<li><b>A document is searched, not only read.</b> A PDF in the path of a
+<code>search</code> is rendered and matched along with everything else,
+and a hit inside one cites its page.
+<a href="#documents">Searching inside one</a> says what that costs.</li>
+<li><b>Word and Excel are read here rather than exported first.</b>
+Telling a person to save as PDF or CSV describes a chore rather than a
+workflow: it makes somebody convert a file before the assistant may read
+it, which is the hindrance and not the remedy. The obvious objection
+&mdash; that parsers for those formats are a maintenance liability &mdash;
+is answered by what the formats actually are: a zip full of XML, opened
+with the archive support already here, and so with no new dependency at
+all.</li>
+<li><b>A workbook comes back as rows, not as cells.</b> A cell to a line
+would make every hit a single value with nothing around it, and what a
+person wants from a search of a workbook is the record the value sits
+in. <b>Formulas are rendered as well as values</b>, because the two
+answer different questions and only one of them is in the file twice: a
+search for <code>VLOOKUP</code> is a search for how a sheet works and
+would find nothing in the cached results, while a search for a customer
+name would find nothing in the formulas. And <b>dates are rendered as
+dates</b> &mdash; Excel stores the cell you see as <code>2026-03-15</code>
+as the number <code>46096</code>, so rendering the number would leave a
+workbook full of dates nobody can search for. That is the same
+readable-but-unfindable fault that had <code>search</code> skipping
+PDFs.</li>
+<li><b>A Word document is located by its headings.</b> Word does not
+store where the pages break &mdash; that is worked out at layout time by
+whatever is displaying the file, and it moves with the font and the
+paper. A heading is <em>in</em> the file, is stable, and is what a person
+would say if you asked them where in the document something was.</li>
+<li><b>The macro-bearing twins are in; the older formats are not.</b>
+<code>.xlsm</code> and <code>.docm</code> are the same formats carrying
+macros, read the same way, and nothing here executes anything.
+<code>.xlsb</code> and <code>.doc</code> are <em>not</em> here: both are
+binary formats wearing a familiar coat, and a reader that claimed them
+would fail on every file.</li>
+<li><b>Neither reader trusts the file.</b> A document arrives from
+wherever documents arrive from, and these run inside a server whose whole
+job is to be a boundary. So no DTD and no resolver, which closes the
+external entity that reads a file off the machine and the internal one
+that expands to gigabytes; and no part is read past a cap however
+comfortable a number its own header claims. A rendering stops at 200,000
+lines and <b>says</b> that the rest was left unread.</li>
+<li><b>A rendering does not go back.</b> <code>write</code>,
+<code>edit</code> and <code>replace</code> refuse a PDF, a workbook and a
+Word document outright: what comes back for one is text pulled out of
+it, with the sheets, the formulas, the tables and every piece of
+structure left behind, so writing that text back would not edit the file
+&mdash; it would replace it with a fraction of itself, still wearing the
+name that says it is a document. An image, an archive and a lone
+<code>.gz</code> are refused for the plainer reason that they are not
+text at all. <code>move</code>, <code>copy</code> and
+<code>delete</code> do not inspect content and are the way to shift one
+of these; <code>extract</code> writes an archive member's own bytes and
+is deliberately not caught.</li>
+<li><b>Still no plugins.</b> A declared command needs an explicit
+<code>execute</code> grant, so a loader running unnamed code in process
+at full trust would be a hole straight through the boundary. A reader is
+a class in this tree with tests beside it, never a file found at startup.
+For a format Fettler does not ship, a declared converter task is the
+honest form, and it already exists.</li>
+</ul>
+
+<h3 id="documents">Searching inside one</h3>
+
+<p><b>Readable and unfindable is the trap this closes.</b> A tool can
+render a PDF for <code>read</code> and still let <code>search</code> try
+to decode it as text, fail, and move on without counting it — leaving a
+tree full of documents answering every search with a confident nothing.
+That is the failure this whole tool exists to prevent, and it would be
+sitting inside the tool.</p>
+
+<ul>
+<li><b>The rendering happens on the way into the search</b>, and a hit
+cites the page rather than a line number into a rendering nobody can
+see. A line number that cannot be checked against the document is not a
+citation, and it moves the moment the renderer changes.</li>
+<li><b>Renderings are cached</b> on the file's length and modification
+time, so a second search over the same tree does not pay for the same
+parse again. A file that has changed is rendered again.</li>
+<li><b>A document over 32&nbsp;MB is not opened</b>, and neither is one
+that will not render. Neither fails the sweep; both are counted.</li>
+<li><b>What was not looked inside is said out loud.</b> A search that
+never opened a file has not established that there is nothing in it, so
+the count travels with the answer rather than being left to be inferred
+from a total that looks complete.</li>
+<li><b><code>--no-documents</code> leaves them shut</b> where the cost is
+not worth paying. The count is still reported.</li>
+</ul>
+
+<h3 id="archives">Unpacking one</h3>
+
+<p><code>extract ARCHIVE --into DIR</code> writes; everything above only
+reads. <b>An archive is a list of paths somebody else chose.</b> That is
+exactly why the tool that already refuses a path outside a tree is the
+right one to unpack with.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle read fettle-1.0.0-win-x64.zip
+79605839  2026-08-16 16:08  - fettle.exe
+    2545  2026-08-16 14:09  - NOTICE
+    1133  2026-07-30 04:52  - LICENSE
+3 members, 79609517 bytes uncompressed
+
+$ fettle extract fettle-1.0.0-win-x64.zip --into tools
+extracted 3 members (79609517 bytes) from work:fettle-1.0.0-win-x64.zip into work:tools</code></pre></div>
+
+<ul>
+<li><b>Refused whole, or not at all.</b> Every member is resolved
+through the boundary before a byte is written. An archive that would
+escape, or that lands anywhere it may not, leaves <em>nothing</em>
+behind. A half-unpacked archive is the state nobody can see the shape of
+&mdash; the same reason <code>edit</code> is all-or-nothing.</li>
+<li><b>Zip slip is refused by construction</b>, not by a bolted-on
+check. Zip slip is the classic attack where an archive member is named
+something like <code>../../etc/passwd</code> so it lands outside the
+unpack folder. Here that member resolves outside every tree and comes
+back exit&nbsp;4, exactly like a path somebody typed.</li>
+<li><b>A member that escapes only the destination is refused too.</b>
+<code>out/../elsewhere.txt</code> normalises to somewhere the boundary
+is perfectly happy with. The tree check passes, and the file still lands
+nowhere near where you said. Nothing is wrong with the path. What is
+wrong is that it is not where you put it.</li>
+<li><b>A link member is refused rather than skipped.</b> Creating links
+is out of scope anyway. And a symbolic link inside a tar is the one
+member that can point out of the tree <em>after</em> every path check
+has passed. Skipping it silently would produce an extraction that looks
+complete and is not.</li>
+<li><b>The executable bit is carried.</b> R6.9 is this project's own
+requirement clause about that bit, and its release depends on a
+<code>fettle</code> arriving out of a tar still able to run.</li>
+<li><b>Bounded, not endured.</b> There is a cap on member count and on
+total unpacked bytes, refused with a reason &mdash; the same posture as
+the bound on a runaway pattern. A compressed archive can name far more
+content than it occupies, and finding that out by running out of disk is
+finding out too late.</li>
+<li><b>Nothing is overwritten without <code>--overwrite</code>.</b> An
+existing file is a refusal before anything is written, not a surprise
+halfway through.</li>
+</ul>
+
+<div class="takeaway"><b>It reads archives and does not write them.</b>
+Producing one is a <em>build output</em>, and building is what a
+declared task and <code>run</code> are for. <code>find</code> and
+<code>search</code> deliberately do not reach inside an archive either.
+That would make members into paths, and then the boundary would have to
+answer what a scope means inside a container. Read the manifest,
+extract, search the tree &mdash; three honest steps beat one murky
+one.</div>
+
+<h2 id="tasks">Declared tasks</h2>
+
+<p><code>run</code> executes only what the configuration declares, and
+never composes a shell command. <a href="setup.html#tasks">Declaring
+one</a> is a step of setting up a project. What a declaration
+<em>means</em> is here.</p>
+
+<h3 id="grammar">The command grammar, in full</h3>
+
+<ul>
+<li><b>Whitespace separates arguments.</b> Runs of spaces and tabs are
+one separator.</li>
+<li><b>A double-quoted span is one argument</b>, or part of one; the
+quotes are removed. <code>"one two"</code> is a single argument.</li>
+<li><b>Two double quotes inside a quoted span are one literal
+quote.</b></li>
+<li><b>A backslash is never an escape.</b> It is an ordinary character,
+so a Windows path is written once rather than doubled.</li>
+<li><b>Nothing else is special.</b> No single quotes, no variables, no
+globbing, no redirection, no <code>&amp;&amp;</code>. The string is
+split once, and the program is launched with the resulting list.</li>
+<li><b>An unclosed quote is refused</b>, not guessed at.</li>
+</ul>
+
+<div class="takeaway"><b>A task takes no arguments from its caller.</b>
+<code>run</code> accepts a name and a timeout, and nothing else. An
+extra word is <em>refused</em>, on the command line and over MCP alike,
+rather than dropped. What runs is therefore exactly what the file says,
+every time. A variant is a second declared task, or a value the file
+declares &mdash; never something composed at the call.
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle run build --release
+refused: no such flag: --release - try: fettle help
+$ fettle run build release
+refused: run takes a task name and nothing else; 'release' is extra. A task is
+declared whole and takes no arguments - declare a second task for the second
+thing you want run.</code></pre></div></div>
+
+<p><code>cwd</code> &mdash; the folder the task runs in &mdash; is
+optional, defaults to the top of the default tree, and is checked for
+containment like any other path.</p>
+
+<h3 id="replacements">Values the file supplies</h3>
+
+<p>Declaring a second task answers <code>test</code> versus
+<code>machines</code>. It cannot answer <em>the branch to cut</em> or
+<em>the note to commit under</em>, which are strings invented fresh each
+time. A command line may name a value the configuration declares:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>"replacements": {
+  "feature-branch": "hebdenbridge"
+},
+"tasks": {
+  "feature": { "run": "pwsh -File scripts/shoddy-branch.ps1 feature {feature-branch}" }
+}</code></pre></div>
+
+<ul>
+<li><b>Filling happens after the split, into a word.</b> A value is one
+argument whatever is in it &mdash; a space does not make two arguments,
+a quote does not change the parse. Filling the LINE and splitting
+afterwards would hand the grammar a value, which is the entire failure
+class the split-once rule exists to remove.</li>
+<li><b>A placeholder may be part of a word.</b>
+<code>--message={note}</code> and <code>v{release-tag}</code> are each
+one argument.</li>
+<li><b>Only an identifier between braces is a name</b> &mdash; a letter,
+then letters, digits, dots, underscores or hyphens. Everything else is
+ordinary text, so <code>{ $_.Name }</code>, <code>{a:.b}</code> and
+<code>{0}</code> go on meaning what they meant. Write <code>{{</code>
+for a literal brace where a name would otherwise be read.</li>
+<li><b>One pass.</b> A value carrying braces is inserted literally and
+never looked up again, so a replacement cannot build another.</li>
+<li><b>An undeclared name is refused</b> and the configuration does not
+load. It is never passed through &mdash; passed through,
+<code>new {feature-branch}</code> does not fail, it creates a branch
+called <code>{feature-branch}</code>.</li>
+<li><b>The overlay is where a value belongs.</b>
+<code>.fettler.local.json</code> is gitignored and its replacements
+merge over the checked-in ones name by name, so the project declares the
+task while today's branch name stays out of the diff.</li>
+<li><b>They are not for secrets.</b> <code>tasks</code> shows every
+value, deliberately, so that what is listed is what runs. A token
+belongs in the environment of the process a task launches.</li>
+</ul>
+
+<div class="takeaway"><b>The value in the file is the authorization.</b>
+Fettler will not write its own configuration, so a branch name or a
+commit message in it is there because a person typed it. A task whose
+placeholder nobody declared refuses to run at all &mdash; the resting
+state is inert, and arming it is a deliberate edit by somebody who can
+edit that file.</div>
+
+<div class="takeaway"><b>That configuration is trusted input.</b>
+Containment guards paths. It does not and cannot guard a command list,
+which is read from a file inside the very tree Fettler was pointed at.
+Whoever can write that file chooses what a caller &mdash; a model
+included &mdash; can execute. Point Fettler at a tree you trust.</div>
+
+<h2 id="refusals">When it refuses</h2>
+
+<p>Real transcripts. Each prints its whole answer on <b>stdout</b>, the
+normal output stream, so no redirection is needed to read a failure. The
+full code table is <a href="#codes">below</a>.</p>
+
+<h3>A path outside every declared tree</h3>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle read ../secrets.txt
+refused: the path is outside every declared tree; ask for the roots to see the boundary
+$ echo $LASTEXITCODE
+4</code></pre></div>
+
+<p>Climbing out with <code>..</code>, an absolute path elsewhere, and a
+link leaving the tree all land here. All of them answer the same whether
+or not the file exists.</p>
+
+<h3>Writing a file that says what the tool may do</h3>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle write .fettler.json --text "{}" --overwrite
+refused: .fettler.json is one of the files that tell this tool what it may do,
+and it does not edit those. Change it with an editor.
+The files are: .fettler.json, .fettler.local.json (.fettler.json)
+$ echo $LASTEXITCODE
+11</code></pre></div>
+
+<p>This has its own outcome rather than a permission denial, because
+nothing is missing: no grant would have allowed it. Without the rule,
+the escape is two commands &mdash; write a task declaration, then run
+what you just wrote.</p>
+
+<h3>A write that would put a secret on disk</h3>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle write config.json --text-file staged.json --overwrite
+refused: this write would add a credential to the file: line 14 (aws-access-key-id).
+The secret itself is deliberately not quoted back, because a refusal that named it
+would put it in the log and the transcript. Use a reference such as ${ENV_VAR}
+instead, or pass the override if this is not a credential.
+$ echo $LASTEXITCODE
+12</code></pre></div>
+
+<p><b>It judges what the write ADDS, not what the file contains.</b> A
+configuration that already holds a key stays editable. That is the whole
+difference between a rule people keep and a rule people switch off. Only
+a secret absent from the previous content stops anything, so
+reformatting, reordering, and editing the lines around one all still
+work.</p>
+
+<p><b>The refusal never repeats what it found.</b> A line number and a
+detector name, and nothing else. A message naming the secret would write
+it into the log, the transcript, and whatever ships those onward &mdash;
+a worse outcome than the write it was refusing.</p>
+
+<p><b><code>--allow-credential</code> is offered by the command line and
+by nothing else.</b> No MCP tool carries it, and a test asserts none
+ever will. Deciding that a random-looking string is not a secret is a
+judgement about your own file, and a person makes it &mdash; the same
+reasoning that keeps <code>setup</code> out of a model's hands.</p>
+
+<div class="takeaway"><b>This is a safety net, not a boundary, and the
+difference is not a quibble.</b> Encode the value, split the string in
+two, or build it from parts, and every rule here is defeated &mdash; by
+accident as easily as on purpose. What it stops is the ordinary
+accident: pasting a real key into a config and writing it to disk.
+Anyone who believes their content has been <em>scanned for secrets</em>
+has been misled. The two detection tiers are deliberately narrow, so the
+refusals people do get are ones they believe: issued credentials whose
+shape their issuer fixed, and a secret-shaped name assigned a long,
+random-looking, whitespace-free value that is not a
+<code>${REFERENCE}</code>.</div>
+
+<h3>A read that would disclose regulated data</h3>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle read ward-round.docx
+refused: this response would disclose regulated data: 2 in identifiers. What was found is
+deliberately not quoted back, because a refusal that named it would put it in the
+log and the transcript, which is the disclosure being refused. Read a narrower
+range, or take the screen off this scope if the content is not what it looks like.
+$ echo $LASTEXITCODE
+13</code></pre></div>
+
+<p>The mirror of the credential refusal above &mdash; that one is a
+write going in, this one a payload coming out. It only happens in a
+scope whose configuration asks for it. <a href="#screen">Section 14</a>
+is the whole of it.</p>
+
+<h3>Running a task in a tree that does not grant <code>execute</code></h3>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle run hello
+refused: 'hello' would run in a tree that does not grant execute.
+Add "execute" to that tree's or scope's "can" in .fettler.json.
+It is never granted by default.
+$ echo $LASTEXITCODE
+8</code></pre></div>
+
+<p>The tree holding the configuration is writable by definition. So
+write-by-default plus execute-by-default would be arbitrary code
+execution &mdash; and a scope protected from <code>delete</code> means
+nothing to a task that can run <code>del</code>.</p>
+
+<h3>A task nobody declared</h3>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle run deploy
+refused: no task called 'deploy'; .fettler.json declares: hello
+$ echo $LASTEXITCODE
+3</code></pre></div>
+
+<h3>A flag with no value, and a flag no verb knows</h3>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle edit f.txt --insert-after 1 --text
+refused: --text needs a value, and nothing followed it - write --NAME= for a deliberately empty one
+$ fettle find --gob
+refused: no such flag: --gob - try: fettle help</code></pre></div>
+
+<p>Both answer <code>2</code>. Ignoring either would produce a
+<em>wrong answer</em> rather than a failure. A flag with no value would
+swallow the next word as its value and write the word <code>true</code>
+into the file.</p>
+
+<h2 id="codes">Exit codes</h2>
+
+<p>An exit code is the number a program hands back when it finishes; 0
+means success. Callers chain on exit codes because PowerShell 5.1 has no
+<code>&amp;&amp;</code>. The machine-readable answer carries the same
+word as an <code>outcome</code> field.</p>
+
+<table>
+<tr><th>Code</th><th>Outcome</th><th>Meaning</th></tr>
+<tr><td>0</td><td><code>ok</code></td><td>it worked</td></tr>
+<tr><td>1</td><td>&mdash;</td><td>an unexpected internal fault</td></tr>
+<tr><td>2</td><td><code>invalid</code></td><td>the request did not make sense &mdash; an unknown flag, a missing value, a malformed configuration</td></tr>
+<tr><td>3</td><td><code>not-found</code></td><td>the path, or the task, is not there</td></tr>
+<tr><td>4</td><td><code>outside-root</code></td><td>the path is outside every declared tree</td></tr>
+<tr><td>5</td><td><code>target-exists</code></td><td>the destination is occupied and no overwrite was asked for</td></tr>
+<tr><td>6</td><td><code>stale</code></td><td>the file changed since it was read &mdash; the hash passed as <code>--expect</code> no longer matches</td></tr>
+<tr><td>7</td><td><code>conflict</code></td><td>ambiguous or overlapping edits</td></tr>
+<tr><td>8</td><td><code>refused</code></td><td><b>Fettler declined</b>, for a stated reason</td></tr>
+<tr><td>9</td><td><code>denied</code></td><td><b>the operating system declined</b> &mdash; a sandbox, a restricted account, a read-only attribute, a file another process holds open</td></tr>
+<tr><td>10</td><td><code>timed-out</code></td><td>a task outran its timeout and was killed</td></tr>
+<tr><td>11</td><td><code>governed</code></td><td>the path names a file that says what this tool may do</td></tr>
+<tr><td>12</td><td><code>credential</code></td><td>the write would have <b>added</b> a secret the file did not already carry</td></tr>
+<tr><td>13</td><td><code>screened</code></td><td>the response would have <b>disclosed</b> regulated data out of a screened scope &mdash; or the screen that would have judged it could not run. See <a href="screening.html">the disclosure screen</a></td></tr>
+</table>
+
+<div class="takeaway"><b>8 and 9 are deliberately different.</b>
+Refused means Fettler declined. Denied means the platform did, for an
+operation Fettler was perfectly willing to perform. Collapsing them
+sends a caller off to debug a boundary that is working.</div>
+
+<p><code>doctor</code> is the exception, because it reports rather than
+operates: <b>0</b> healthy or not applicable, <b>1</b> warnings only,
+<b>2</b> anything broken. <code>--hook</code> always exits 0.</p>
+
+<h2 id="metadata">What it touches besides content</h2>
+
+<table>
+<tr><th>Thing</th><th>What Fettler does</th></tr>
+<tr><td><b>The executable bit</b></td><td>preserved by copy and move, reported by read and find, settable by <code>exec</code>. It is the one permission git tracks, because it is the only one that means the same thing on both platforms.</td></tr>
+<tr><td><b>Attributes, alternate data streams, extended attributes</b></td><td>carried across a staged write, or the answer names what could not be.</td></tr>
+<tr><td><b>The Windows read-only attribute</b></td><td>read and named in the refusal, never met as an obscure OS error. <code>delete --force</code> clears it explicitly.</td></tr>
+<tr><td><b>Links and junctions</b></td><td>reported with their targets, never created &mdash; creating one on Windows needs Developer Mode or elevation.</td></tr>
+<tr><td><b>Modified time</b></td><td>reported; preserved on copy only when asked. Both branches are explicit, because Windows carries the time across where POSIX <code>cp</code> gives a new one.</td></tr>
+<tr><td><b>Everything else about permissions</b></td><td>nothing. POSIX modes and Windows ACLs do not map onto one another, and an abstraction over them would be a falsehood told in a table.</td></tr>
+</table>
+
+<h2 id="arguments">Arguments it will not guess at</h2>
+
+<ul>
+<li><b>A flag no verb knows is refused, never ignored &mdash; one dash
+or two.</b> A flag that takes a value swallows the argument after it. So
+a misspelt <code>--gob "*.cs"</code> would eat the pattern, and the
+search would then run against the whole tree with complete confidence. A
+single dash is the same trap wearing one fewer character.
+<code>search PATTERN -i</code> &mdash; the spelling every grep in the
+world uses &mdash; would otherwise be read as a <em>second pattern</em>
+and answer the union of two questions. <code>-e</code> is the only
+short flag there is. A pattern or path that genuinely starts with a
+hyphen goes after a bare <code>--</code>, or through
+<code>--pattern-file</code> or <code>--pattern-stdin</code>.</li>
+<li><b>A known flag with no value is refused too.</b> The name was
+right; the value was missing. Write <code>--NAME=</code> for a
+deliberately empty one.</li>
+<li><b>A pattern may arrive as file content instead of an argument.</b>
+<code>--pattern-file</code> and <code>--pattern-stdin</code> take one
+pattern per line; likewise <code>--replace-file</code>,
+<code>--with-file</code> and <code>--text-file</code>. Text with quotes
+and newlines never has to be escaped onto a command line.</li>
+<li><b>A leading byte-order mark on a stream is taken off.</b> A
+byte-order mark is an invisible marker character some tools put at the
+start of text. Windows PowerShell emits one whether asked to or not.
+Keeping it made a pattern match nothing, and spliced an invisible
+character into the middle of a source file. This applies to the command
+line's streams and the MCP front end's alike. A mark further along is
+left alone.</li>
+<li><b>Text an edit brings in is rewritten into the file's own line
+endings; text already there is untouched.</b> A PowerShell here-string
+is CRLF whatever the file is. Splicing that in verbatim leaves a file
+disagreeing with itself by one line &mdash; which nothing notices until
+a version control system does.</li>
+<li><b>A file that disagrees with itself says so.</b> <code>read</code>
+marks it <code>(MIXED)</code> beside the dominant ending. Nothing is
+silently regularised.</li>
+</ul>
+
+<h2 id="callerrules">The rules a caller has to know</h2>
+
+<table>
+<tr><th>Rule</th><th>What it is</th></tr>
+<tr><td><b>Glob</b></td><td>a filename pattern: <code>*</code> stays within one path segment; <code>**</code> matches any number of whole segments, including none; <code>?</code> is one character and does not cross a separator. <b>Case-insensitive on every platform</b>, so a pattern behaves identically everywhere.</td></tr>
+<tr><td><b>Exclusions</b></td><td><code>.git</code>, <code>bin</code>, <code>obj</code>, <code>artifacts</code> and <code>node_modules</code>, by name, with the count reported; <code>--include-generated</code> turns it off. <code>.gitignore</code> is not honoured &mdash; implementing its rules subtly wrong hides files while appearing to work.</td></tr>
+<tr><td><b>Attributes never decide matching</b></td><td>a dotfile and a Windows hidden file are ordinary files, matched normally and reported.</td></tr>
+<tr><td><b>Regular expressions</b></td><td>.NET's dialect, which is neither PCRE nor ripgrep's, under a bound &mdash; non-backtracking where the pattern allows, an explicit timeout where it does not.</td></tr>
+<tr><td><b>Encoding</b></td><td>a byte-order mark decides and is preserved; absent one, content that decodes as UTF-8 is UTF-8; anything else is binary and refused. No statistical guess, because a wrong guess corrupts a file on the way out.</td></tr>
+<tr><td><b>Ordering</b></td><td>results are ordered before any limit, so a truncated result is the same truncation twice, and says it was truncated.</td></tr>
+<tr><td><b>Bounds</b></td><td>every answer is bounded twice: by count &mdash; 2000 lines for <code>read</code>, 1000 files for <code>find</code>, 200 hits for <code>search</code> &mdash; and by <b>40,000 characters of text</b>, because one line or one hit can be a thousand characters and a count is a poor proxy for a size. Naming an explicit range lifts the first and never the second. Either way the answer says it was cut, and <code>read</code> says which of the two did it.</td></tr>
+<tr><td><b>What runs at once</b></td><td>reads run concurrently; changes are serialized against each other; <code>run</code> holds neither lock.</td></tr>
+</table>
+
+<h3 id="paths">How a declared path is written</h3>
+
+<p><b>Relative, forward-slashed, no drive letter.</b> There is no formal
+standard for this. There is a convention, and it is git's. It is what
+<code>.gitignore</code>, Docker, npm and VS Code's own task files use,
+and it is the only spelling that means one thing on all three
+platforms.</p>
+
+<table>
+<tr><th>Written as</th><th>What happens</th></tr>
+<tr><td><code>"path": "../shoddy-requirements"</code></td><td>correct, and means the same on every platform</td></tr>
+<tr><td><code>"path": "..\\shoddy-requirements"</code></td><td><b>refused.</b> Windows accepts <code>/</code> in every API. But on macOS and Linux a backslash is an ordinary character in a name, not a separator &mdash; so this names a file with a backslash in it, and finds nothing</td></tr>
+<tr><td><code>"path": "C:/work/tree"</code></td><td>allowed; absolute, so it names one machine either way</td></tr>
+<tr><td><code>"path": "C:\\work\\tree"</code></td><td>allowed. An absolute path cannot travel whatever its separators are, so a Windows path in a gitignored <code>.fettler.local.json</code> is a person describing their own machine</td></tr>
+</table>
+
+<p><b>Refused rather than converted</b>, because converting would make a
+file legitimately called <code>a\b</code> unreachable on the platforms
+where that is a legal name. The same rule applies to a scope key and to
+a task's <code>cwd</code>.</p>
+
+<h2 id="grounding">Where to say it so it is read</h2>
+
+<p>Ranked by how much each actually changes behaviour.</p>
+
+<table>
+<tr><th>Rank</th><th>Where</th><th>Why</th></tr>
+<tr><td>1</td><td>The MCP <code>instructions</code> string and the per-verb tool descriptions</td><td>Read at the moment a tool is chosen, ships with the tool, needs setup by nobody, reaches every client at once. Ours to write.</td></tr>
+<tr><td>2</td><td>The <code>SessionStart</code> hook</td><td>Automatic, and costs one line.</td></tr>
+<tr><td>3</td><td>Global <code>CLAUDE.md</code></td><td>Where standing rules already live and demonstrably work.</td></tr>
+<tr><td>4</td><td>Repo <code>CLAUDE.md</code> and <a href="https://shoddymills.github.io/shoddy/assistants.html">the grounding page</a></td><td>Project scope, and the canonical long form.</td></tr>
+<tr><td>5</td><td><code>permissions.deny</code></td><td>Enforcement rather than instruction &mdash; the only one that does not rely on anything being read.</td></tr>
+</table>
+
+<div class="takeaway"><b>Instruction is the weak lever.</b> Ranks
+1&ndash;4 are worth doing, and none is sufficient. Rank 5 is the only
+one that does not depend on anything being read. <b>What works best is
+removing the need.</b> Fettler wants no working directory now that
+trees are declared. And everything else that wanted one &mdash; a
+build, <code>git</code>, a script &mdash; has a form that names its
+location instead (<code>git -C</code>, an absolute path,
+<code>fettle run</code>).</div>
+
+<h2 id="findings">Everything doctor can report, and how to clear it</h2>
+
+<p><code>fettle doctor</code>'s report is two halves. <b>The wiring</b>
+is one row per client per level, ending in a verdict. <b>The findings</b>
+are numbered, and each one is a way round the boundary. A finding marked
+<code>!</code> is serious; one marked <code>-</code> is worth knowing.
+Running it is <a href="setup.html#doctor">step 5 of setting up a
+project</a>.</p>
+
+<p class="note"><span class="lab">Note</span> <code>setup</code> adds
+and never deletes. So anything below whose fix is "remove" is a
+person's edit, in an editor. That is deliberate: a tool that quietly
+removed your configuration would be doing the very thing this design
+objects to.</p>
+
+<h3>The wiring</h3>
+
+<table>
+<tr><th>What it says</th><th>What it means</th><th>How to clear it</th></tr>
+<tr><td><code>on PATH: no</code></td><td>Nothing on <code>PATH</code> resolves <code>fettle</code>, so every registration naming a bare <code>fettle</code> will fail to launch.</td><td><a href="install.html#path">Put it on <code>PATH</code></a> and open a new terminal &mdash; or register an absolute path with <code>fettle setup CLIENT --local --command "C:\tools\fettle\fettle.exe"</code>.</td></tr>
+<tr><td><code>absent</code></td><td>No server called <code>fettler</code> is registered in that file.</td><td><code>fettle setup CLIENT --local</code> (or <code>--global</code>). Run it with <code>--dry-run</code> first.</td></tr>
+<tr><td><code>broken</code> (2.12)</td><td>A registration is there, but its command does not resolve &mdash; checked the way the client would check it, through <code>PATH</code> and <code>PATHEXT</code>.</td><td>Fix <code>PATH</code>, or re-run <code>setup</code> with <code>--command</code> naming the binary; add <code>--force</code> to overwrite the existing entry.</td></tr>
+<tr><td><code>healthy</code></td><td>Registered, and the command launches.</td><td>Nothing.</td></tr>
+<tr><td><code>n/a</code></td><td>The client is not installed, or has nothing at this level &mdash; Claude Desktop has no project scope, so its repo row is always this.</td><td>Nothing. Never a failure.</td></tr>
+</table>
+
+<h3>The findings</h3>
+
+<table>
+<tr><th>Check</th><th>What it found</th><th>How to clear it</th></tr>
+
+<tr><td><b>2.6</b> <code>!</code></td><td>An <code>allow</code> entry pre-approving a shell command that writes files &mdash; <code>sed&nbsp;-i</code>, <code>cp</code>, <code>rm</code>, <code>Set-Content</code>, a redirect. Each runs without a prompt, and each is a complete route round the boundary.</td><td><b>Remove those allow entries.</b> No tool can do this for you, and no blocklist can replace it &mdash; <a href="install.html#shell">the shell section</a> explains why <code>echo x &gt; file</code> defeats any list that could be written. The rule worth adopting: stop pre-approving shell commands that write.</td></tr>
+
+<tr><td><b>2.7</b> <code>!</code></td><td>An <code>allow</code> on a built-in tool Fettler replaces. <code>Read</code> in particular defeats containment, the read permission, and hidden scopes at once.</td><td><b>Remove the allow</b>, then <code>fettle setup CLIENT --local</code> to add the matching deny. Leaving both is finding B.17.</td></tr>
+
+<tr><td><b>2.8</b> <code>-</code></td><td>Nothing <em>denies</em> one of the eleven &mdash; the six built-in editors and readers; the shells <code>Bash</code>, <code>PowerShell</code> and <code>Monitor</code>; and <code>BashOutput</code> and <code>TaskOutput</code>. Each undenied name is a route round the boundary. A shell is the widest of them: <code>node x.js</code> writes anywhere, and it is not a writing command. <b><code>Monitor</code> is a shell</b> &mdash; it runs the command it is handed in the same environment <code>Bash</code> does, so denying <code>Bash</code> and leaving it open denies the word and not the thing. <b><code>BashOutput</code> and <code>TaskOutput</code> are readers</b>: they start nothing and write nothing, but they hand back the output of work already done, and those bytes reached the model without passing the tree boundary, the secret scan or the <a href="screening.html">disclosure screen</a>.</td><td><code>fettle setup claude-code --local</code> writes all eleven denies at the repo level by default. Then <a href="install.html#shell">allow back</a> the commands this project needs. For every project at once, <code>--global --deny</code> &mdash; said out loud, because changing how the assistant works everywhere is not a side effect.</td></tr>
+
+<tr><td><b>2.9</b> <code>-</code></td><td>An <code>additionalDirectories</code> entry naming somewhere outside every declared tree. When two boundaries disagree, the wider one is what applies, and the narrower one is decoration.</td><td><b>Pick one.</b> Either drop the entry from the client's settings, or add that directory to <code>.fettler.json</code> as a tree with the permissions you actually mean.</td></tr>
+
+<tr><td><b>2.10</b> <code>-</code></td><td>An instructions file &mdash; <code>CLAUDE.md</code>, <code>copilot-instructions.md</code> &mdash; that never mentions Fettler. Nothing tells the assistant to prefer it over what it already reaches for.</td><td><b>Add a line to it.</b> Guidance is the weak lever and the deny list is the strong one &mdash; but its absence guarantees habit wins. <a href="#grounding">Where to say it</a> has wording.</td></tr>
+
+<tr><td><b>2.11</b> <code>!</code></td><td>Two project entries naming one directory in different spellings &mdash; <code>c:/work/tree</code> and <code>C:/work/tree</code>. Permissions and approvals attach to whichever spelling was resolved that day, and silently do not apply to the other.</td><td><b>Merge them by hand</b> in <code>~/.claude.json</code>, keeping the settings you want and deleting the duplicate key. Nothing can guess which of the two you meant.</td></tr>
+
+<tr><td><b>2.16</b> <code>-</code></td><td>A task fills a <a href="#replacements">declared value</a> into a string it hands to a shell to interpret &mdash; <code>pwsh&nbsp;-Command</code>, <code>bash&nbsp;-c</code>. Filling a value into a word makes it one argument whatever is in it, and that guarantee stops at the process boundary: here the argument is itself a script the shell parses, so a quote or a semicolon in the value changes what runs.</td><td><b>Take the shell out of it.</b> Declare the steps as separate tasks &mdash; <code>"stage": {"run": "git add -A"}</code> and <code>"commit": {"run": "git commit -m {commit-note}"}</code> &mdash; or call a script with the value as a parameter. Either way the value stays an argument the whole way down and never meets a parser. Warned rather than refused: which flags of which programs mean "interpret this" is an allowlist of shells this tool does not keep.</td></tr>
+
+<tr><td><b>2.13</b> <code>-</code></td><td>A <code>settings.local.json</code> is present. It is personal and uncommitted, so anything granted there never appears in a review.</td><td><b>Read it, and move anything that should apply to the project</b> into the committed <code>settings.json</code>. <code>setup</code> never writes a personal settings file.</td></tr>
+
+<tr><td><b>2.14</b> <code>!</code></td><td><code>chat.tools.autoApprove</code> is on. It approves arbitrary tools without asking, and reinstates every route the boundary removes.</td><td><b>Turn it off</b> in the client's settings. Nothing else survives it being on.</td></tr>
+
+<tr><td><b>2.15</b> <code>-</code></td><td>An assistant scratch directory outside every declared tree. Nothing here granted it &mdash; the harness did &mdash; so work staged there is invisible to this boundary. <b>And once the built-in <code>Write</code> is denied, nothing can write there at all.</b></td><td><b>Declare the per-project folder inside it</b> as a tree in <code>.fettler.local.json</code>, which is gitignored. Declare the project folder, not its parent &mdash; the parent holds every project's scratch. See <a href="setup.html#scratch">step 2</a>.</td></tr>
+
+<tr><td><b>2.17</b> <code>-</code></td><td>Another MCP server is registered beside Fettler. The deny list closes <em>names</em>, and that server's tools are not called <code>Read</code> &mdash; so nothing <code>setup</code> writes says anything about what it may reach, and it reaches whatever its own process reaches.</td><td><b>Decide, one server at a time.</b> Most of them are wanted, and this is reported as a fact rather than a fault. For any that should not be a route, deny <code>mcp__&lt;name&gt;__*</code>. Unlike 2.8 this reads the servers actually registered on the machine in front of it, so a server installed tomorrow is reported tomorrow.</td></tr>
+
+<tr><td><b>2.18</b> <code>-</code></td><td>The configuration names a tool that is not in the inventory this <code>fettle</code> was built with. <b>Check 2.8 therefore said nothing about it either way &mdash; not that it is safe.</b> The client keeps growing new tools, and a closed list that has fallen behind reports exactly as clean as one that has not, which is why the inventory's date is printed with every report.</td><td><b>Decide by hand whether it reads files, writes them, or runs a shell</b> &mdash; and deny it if it does. A newer <code>fettle</code> may already know it, so <a href="install.html">upgrading</a> is the other half of the fix. Rules naming another server's tools (<code>mcp__&hellip;</code>) are 2.17's business and are never reported here.</td></tr>
+
+<tr><td><b>B.17</b> <code>!</code></td><td>A rule in <b>both</b> <code>allow</code> and <code>deny</code>. Which wins is the client's to decide, and cannot be determined from here. <b>A narrowed shell allow beside the shell deny is exempt</b> &mdash; <code>allow: Bash(git status:*)</code> with <code>deny: Bash</code> is the shape this tool asks for, not a conflict.</td><td><b>Remove it from one of the two lists</b> &mdash; whichever you meant. Do not rely on precedence; see <a href="install.html#precedence">deny versus allow</a>.</td></tr>
+
+<tr><td><b>2.x</b> <code>!</code></td><td>A configuration file that is there and could not be read &mdash; malformed JSON, or a permission error. The message is the parser's own.</td><td><b>Fix the file.</b> A configuration that cannot be read is not treated as absent, because "absent" and "broken" want different answers.</td></tr>
+</table>
+
+<h2 id="threat">What this defends against, and what it does not</h2>
+
+<div class="takeaway"><b>The threat is inadvertent assistant action. It
+is not a determined person.</b> Whoever runs Fettler can open a terminal
+and do anything they like. Nothing here tries to stop them, and a design
+that did would be both impossible and insulting. The measure of success
+is that a careless assistant cannot widen its own boundary &mdash; not
+that the boundary cannot be widened.</div>
+
+<p>That bound is load-bearing, because it says how far each rule has to
+go.</p>
+
+<ul>
+<li><b>The rule-file refusal has to be reliable, not tamper-proof.</b>
+It must never be reached by a tool call in normal use. It does not have
+to survive somebody editing <code>.fettler.json</code> in a text editor.
+That person is the author of the rules, not a threat to them.</li>
+<li><b>No integrity checking, no signing, no lockfiles.</b> All of that
+defends against an adversary who is not in the model.</li>
+<li><b>Path comparison is what containment is.</b> It does not defend
+against another process replacing a path component between the check and
+the operation. Closing that gap needs operating-system support this does
+not have. A synced folder &mdash; Dropbox, OneDrive, a network share
+&mdash; is where it is likeliest to matter. Those are ordinary trees and
+get no special handling, because none exists and none is wanted.</li>
+</ul>
+
+<p>This is stated because the alternative is scope creep. Every rule
+here could be hardened indefinitely against an attacker nobody is
+worried about.</p>
+
+<div class="takeaway"><b>That is the whole of what Fettler is.</b> Three
+commands put it on a machine and turn it on in a project:
+<a href="quickstart.html">the quick start</a>. The reference
+behind them is <a href="install.html">installing it</a> for the
+per-machine wiring and the exit codes, and
+<a href="setup.html">Fettler in a project</a> for declaring
+trees, scopes and tasks.</div>
+
+<nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
+  <a href="screening-models.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Screening: the models</span></span></a>
+</nav>
+<footer>Named for the shoddy mills of the West Riding: Useless Things Made
+Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>
+&copy; 2026 Stephen Vincent Foster</footer>
+</div>
+<script src="copy.js"></script>
+</body>
+</html>

@@ -66,7 +66,13 @@ public sealed record ReadSlice(
     long Bytes,
     FileFacts Facts,
     FileKind Kind = FileKind.Text,
-    ImageFacts? Image = null)
+    ImageFacts? Image = null,
+
+    /// <summary>Whether the size budget, rather than the range the caller
+    /// asked for, is what stopped this answer. Worth its own flag because
+    /// the two want different advice: "pass --to for more" is useless
+    /// when the range was never the constraint.</summary>
+    bool Budgeted = false)
 {
     /// <summary>Whether the answer stops short of the end of the file.
     /// Named rather than left to be worked out from three numbers,
@@ -218,7 +224,7 @@ public sealed class Bench : IDisposable
 
         Result<SearchAnswer> answer = Searcher.Search(files.Items, request.Patterns, request.Kind,
             request.CaseSensitive, request.Context, request.Limit, files.Excluded,
-            request.Documents);
+            request.Documents, DefaultCharCap);
 
         if (!answer.IsOk) return answer;
 
@@ -299,18 +305,53 @@ public sealed class Bench : IDisposable
     /// </summary>
     public const int DefaultLineCap = 2000;
 
+    /// <summary>
+    /// How many characters of file text <c>read</c> answers with, spent
+    /// across the whole call.
+    ///
+    /// <para><b>The line cap was in the wrong unit, so it never fired.</b>
+    /// A caller's ceiling is on the SIZE of an answer, and lines vary in
+    /// length by two orders of magnitude. A 593-line HTML page - under a
+    /// third of <see cref="DefaultLineCap"/>, and nowhere near it - was
+    /// still big enough for the caller to reject the answer whole, which
+    /// costs a turn and returns NOTHING. Measuring what is about to be
+    /// sent, and stopping on that, turns a rejection into a short answer
+    /// that says what is left.</para>
+    ///
+    /// <para><b>An explicit <c>to</c> does not lift this one</b>, which is
+    /// where it parts company with the line cap. <c>to</c> says which
+    /// range the caller wants; this says how much of it survives the trip.
+    /// Lifting it on request would restore the exact failure it exists to
+    /// remove - asking for a large range and getting nothing at all.</para>
+    ///
+    /// <para><b>Spent across the call, not per file.</b> Reading several
+    /// paths at once exists to save the caller turns, and per-file budgets
+    /// would multiply and overrun the ceiling anyway. Earlier paths are
+    /// served first, and every path reports how much of it came back.</para>
+    ///
+    /// <para>At least one line is always served, even one longer than the
+    /// whole budget. A minified file is a single enormous line, and an
+    /// answer with nothing in it leaves a caller no way forward.</para>
+    /// </summary>
+    public const int DefaultCharCap = 40_000;
+
     public Result<IReadOnlyList<ReadSlice>> Read(ReadRequest request)
     {
         if (request.Paths.Count == 0)
             return Result<IReadOnlyList<ReadSlice>>.Fail(Outcome.Invalid, "no path was given to read");
 
         var slices = new List<ReadSlice>(request.Paths.Count);
+
+        // One budget for the call, spent in the order the caller named the
+        // paths. See <see cref="DefaultCharCap"/>.
+        int budget = DefaultCharCap;
+
         foreach (string given in request.Paths)
         {
             Result<ContainedPath> path = Roots.Resolve(given, Permission.Read);
             if (!path.IsOk) return path.Carry<IReadOnlyList<ReadSlice>>();
 
-            Result<ReadSlice> one = ReadOne(path.Value, request);
+            Result<ReadSlice> one = ReadOne(path.Value, request, ref budget);
             if (!one.IsOk) return one.Carry<IReadOnlyList<ReadSlice>>();
 
             if (Judge(one.Value, path.Value) is { } refused)
@@ -371,7 +412,7 @@ public sealed class Bench : IDisposable
             TextIo.HashOf(raw.Value), raw.Value.Length));
     }
 
-    Result<ReadSlice> ReadOne(ContainedPath path, ReadRequest request)
+    Result<ReadSlice> ReadOne(ContainedPath path, ReadRequest request, ref int budget)
     {
         FileKind kind = Typed.KindOf(path.Full);
 
@@ -449,6 +490,11 @@ public sealed class Bench : IDisposable
         int from;
         int to;
 
+        // Which end of the range the caller cares about, so the budget
+        // trims from the other one: a forward read keeps its beginning, a
+        // tail keeps its end - which is the whole of what tail means.
+        bool tailward = request.Tail is not null;
+
         if (request.Tail is { } tail)
         {
             // The end of the file, named from the end, so the caller needs
@@ -467,6 +513,34 @@ public sealed class Bench : IDisposable
 
         if (to < from) to = from - 1;
 
+        bool budgeted = false;
+
+        if (to >= from)
+        {
+            int spent = 0;
+            int kept = 0;
+
+            for (int i = 0; i <= to - from; i++)
+            {
+                Line line = file.Lines[(tailward ? to - i : from + i) - 1];
+                int cost = line.Text.Length + line.Ending.Length;
+
+                // The first line goes whatever it costs. A single line
+                // past the whole budget is a minified file, and returning
+                // an empty answer for one would be a new dead end rather
+                // than a fix for the old one.
+                if (kept > 0 && spent + cost > budget) { budgeted = true; break; }
+
+                spent += cost;
+                kept++;
+            }
+
+            if (tailward) from = to - kept + 1;
+            else to = from + kept - 1;
+
+            budget = Math.Max(0, budget - spent);
+        }
+
         string text = to < from
             ? string.Empty
             : TextIo.Join(file.Lines.Skip(from - 1).Take(to - from + 1));
@@ -475,7 +549,7 @@ public sealed class Bench : IDisposable
             path, text, from, to, file.LineCount, file.EncodingName,
             TextIo.EndingName(file.LineEnding), file.MixedEndings, file.FinalNewline,
             file.Hash, file.Bytes,
-            Tree.Facts(path.Full, isDirectory: false), kind));
+            Tree.Facts(path.Full, isDirectory: false), kind, null, budgeted));
     }
 
     static Result<string> Manifest(ContainedPath path)

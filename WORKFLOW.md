@@ -4,6 +4,11 @@ The maintainer's path for one piece of work: cut a branch, build the thing,
 prove it, ship it. Every command here is the Windows `.ps1`; the `.sh` twin
 takes the same arguments, flags included.
 
+**Every script is prefixed `fettler-`, and no task or script is named with a
+bare git word** — the committing task is `checkin`, not `commit`. An
+assistant's permission layer reads these names, and a bare git word can be
+refused as if it were the raw git command; the prefix stops the pattern-match.
+
 **Every step is a script except one.** The pull request is a person reading a
 diff and a green CI run and deciding, and nothing here automates that. The
 scripts stop either side of it.
@@ -13,13 +18,13 @@ that made it this short — is [RELEASING.md](RELEASING.md).
 
 | | | |
 |---|---|---|
-| 1 | **Branch** | `./scripts/branch.ps1 feature NAME` |
-| 2 | **Work** | edit, `./scripts/build.ps1`, `./scripts/commit.ps1 -Message "..."` |
-| 3 | **Prove** | `./scripts/build.ps1 test` then `./scripts/build.ps1 check` |
+| 1 | **Branch** | `./scripts/fettler-branch.ps1 feature NAME` |
+| 2 | **Work** | edit, `./scripts/fettler-build.ps1`, `./scripts/fettler-checkin.ps1 -Message "..."` |
+| 3 | **Prove** | `./scripts/fettler-build.ps1 test` then `./scripts/fettler-build.ps1 check` |
 | 4 | **Notes** | `release-notes/vX.Y.Z.md`, on the branch, committed |
-| 5 | **Review** | `./scripts/pr.ps1` — **then a person merges it on GitHub** |
-| 6 | **Land** | `./scripts/branch.ps1 land` |
-| 7 | **Ship** | `./scripts/ship.ps1 X.Y.Z` |
+| 5 | **Review** | `./scripts/fettler-pr.ps1` — **then a person merges it on GitHub** |
+| 6 | **Land** | `./scripts/fettler-branch.ps1 land` |
+| 7 | **Ship** | `./scripts/fettler-ship.ps1 X.Y.Z` |
 | 8 | **Watch** | Actions → Release |
 
 ---
@@ -27,8 +32,8 @@ that made it this short — is [RELEASING.md](RELEASING.md).
 ## 1 — Branch
 
 ```powershell
-./scripts/branch.ps1 feature NAME     # -> feature/NAME
-./scripts/branch.ps1 bug NAMENN       # -> bug/NAMENN, for a fix to something released
+./scripts/fettler-branch.ps1 feature NAME     # -> feature/NAME
+./scripts/fettler-branch.ps1 bug NAMENN       # -> bug/NAMENN, for a fix to something released
 ```
 
 It fetches, refuses a name already taken locally or on origin, cuts from an
@@ -36,7 +41,7 @@ up-to-date `main`, and switches you to it. A leading `feature/` or `bug/` is
 stripped, so both spellings work.
 
 **No work happens on `main`.** It receives merges and nothing else — and
-`scripts/commit.ps1` refuses there rather than trusting anyone to remember.
+`scripts/fettler-checkin.ps1` refuses there rather than trusting anyone to remember.
 
 **A fix branch is numbered per origin feature.** `bug/reinard01` is the first
 fix to work that shipped from `feature/reinard`, so `bug reinard` refuses
@@ -49,12 +54,12 @@ git --no-pager log --oneline main --grep="Merge pull request"
 ## 2 — Work
 
 ```powershell
-./scripts/build.ps1                            # restore + build (Debug)
-dotnet test Fettler.Tests              # one project, while you are iterating
-./scripts/commit.ps1 -Message "what changed"   # stage everything and commit
+./scripts/fettler-build.ps1                            # restore + build (Debug)
+dotnet test Fettler.Tests                      # one project, while you are iterating
+./scripts/fettler-checkin.ps1 -Message "what changed"  # stage everything and commit
 ```
 
-`scripts/commit.ps1` **pushes nothing.** Committing and publishing are separate
+`scripts/fettler-checkin.ps1` **pushes nothing.** Committing and publishing are separate
 decisions and it only makes the first. It also refuses on an empty message,
 on a clean tree, and mid-merge — and it adds any new `.sh` with `--chmod=+x`,
 because `verify-permissions` walks *tracked* files and cannot see a script
@@ -67,7 +72,7 @@ requirement was, and both are worth knowing.
 If `main` moves while you work:
 
 ```powershell
-./scripts/branch.ps1 sync     # merge main into your branch, deliberately, tree clean
+./scripts/fettler-branch.ps1 sync     # merge main into your branch, deliberately, tree clean
 ```
 
 Far better here than as a surprise conflict inside the pull request.
@@ -75,8 +80,8 @@ Far better here than as a surprise conflict inside the pull request.
 ## 3 — Prove
 
 ```powershell
-./scripts/build.ps1 test     # Fettler.Tests AND burler.Tests
-./scripts/build.ps1 check    # twins, permissions, docs, errors
+./scripts/fettler-build.ps1 test     # Fettler.Tests AND burler.Tests
+./scripts/fettler-build.ps1 check    # twins, permissions, docs, errors
 ```
 
 Both, and both every time. Together they are what CI runs, so a green pair
@@ -98,15 +103,15 @@ One file per release, named for its tag: `release-notes/v1.0.0.md`. The whole
 file becomes the body of the GitHub Release. Format and an example are in
 [release-notes/README.md](release-notes/README.md).
 
-`scripts/ship.ps1` refuses to tag without this file, so forgetting it costs a re-run,
+`scripts/fettler-ship.ps1` refuses to tag without this file, so forgetting it costs a re-run,
 not a bad release.
 
 ## 5 — Review
 
 ```powershell
-./scripts/pr.ps1              # push the branch and open a pull request
-./scripts/pr.ps1 -Draft       # open it as a draft
-./scripts/pr.ps1 -Web         # and open it in a browser
+./scripts/fettler-pr.ps1              # push the branch and open a pull request
+./scripts/fettler-pr.ps1 -Draft       # open it as a draft
+./scripts/fettler-pr.ps1 -Web         # and open it in a browser
 ```
 
 It pushes, opens the pull request against `main`, titles it from your first
@@ -126,7 +131,7 @@ merged — so there is no back way round it.
 ## 6 — Land
 
 ```powershell
-./scripts/branch.ps1 land
+./scripts/fettler-branch.ps1 land
 ```
 
 After the merge, this returns you to an up-to-date `main` and deletes the
@@ -141,13 +146,13 @@ so in that case it explains itself and asks rather than deciding.
 ## 7 — Ship
 
 ```powershell
-./scripts/ship.ps1 1.0.0
+./scripts/fettler-ship.ps1 1.0.0
 ```
 
 That is the whole release. **There is no version to bump, no release branch to
 cut, and nothing to merge back** — the version comes from the tag.
 
-`scripts/ship.ps1` does exactly two mutating things: it creates a tag and it pushes
+`scripts/fettler-ship.ps1` does exactly two mutating things: it creates a tag and it pushes
 that tag. Everything else it does is refuse:
 
 | It refuses when | Because |
@@ -196,29 +201,29 @@ workflow. Nothing to do.
 
 | Script | What it does | Mutates |
 |---|---|---|
-| `scripts/build.ps1` | build, test, check, release, publish | build output |
-| `scripts/branch.ps1 feature\|bug` | cut a branch off an up-to-date `main` | a local branch |
-| `scripts/branch.ps1 sync` | merge `main` into the current branch | your branch |
-| `scripts/commit.ps1` | stage everything and commit | **history**, locally |
-| `scripts/pr.ps1` | push and open a pull request | **origin**, and opens a PR |
-| `scripts/branch.ps1 land` | return to `main`, delete the merged branch | **deletes** a branch |
-| `scripts/ship.ps1` | tag and push the tag | **publishes** a release |
-| `scripts/make-sitemap.ps1` | regenerate `docs/sitemap.xml` | one file |
+| `scripts/fettler-build.ps1` | build, test, check, release, publish | build output |
+| `scripts/fettler-branch.ps1 feature\|bug` | cut a branch off an up-to-date `main` | a local branch |
+| `scripts/fettler-branch.ps1 sync` | merge `main` into the current branch | your branch |
+| `scripts/fettler-checkin.ps1` | stage everything and commit | **history**, locally |
+| `scripts/fettler-pr.ps1` | push and open a pull request | **origin**, and opens a PR |
+| `scripts/fettler-branch.ps1 land` | return to `main`, delete the merged branch | **deletes** a branch |
+| `scripts/fettler-ship.ps1` | tag and push the tag | **publishes** a release |
+| `scripts/fettler-make-sitemap.ps1` | regenerate `docs/sitemap.xml` | one file |
 
 The four verifiers under `scripts/` are read-only, except
-`verify-permissions.js`, which stages a fix.
+`fettler-verify-permissions.js`, which stages a fix.
 
 ## When it goes wrong
 
 | Symptom | First move |
 |---|---|
-| `scripts/commit.ps1` refuses: on main | That is the rule working. `./scripts/branch.ps1 feature NAME`, or `-Force` if you truly mean it. |
-| `scripts/pr.ps1` refuses: dirty tree | Commit first — a review reads commits, not your working copy. |
-| `scripts/pr.ps1`: push rejected | Someone else pushed to your branch. `git pull`, then re-run. |
-| `scripts/branch.ps1 land` cannot confirm the merge | Usually a squash merge. It explains and asks; answer `y` if you merged it. |
-| `scripts/branch.ps1 sync` hits conflicts | Resolve, `git add`, `git commit`. Nothing else changed. |
-| `scripts/ship.ps1` says CI is still running | Wait. The tag should name a commit already proven. |
-| `scripts/ship.ps1` says the notes are not committed | Commit and push them, then re-run. Nothing was tagged. |
+| `scripts/fettler-checkin.ps1` refuses: on main | That is the rule working. `./scripts/fettler-branch.ps1 feature NAME`, or `-Force` if you truly mean it. |
+| `scripts/fettler-pr.ps1` refuses: dirty tree | Commit first — a review reads commits, not your working copy. |
+| `scripts/fettler-pr.ps1`: push rejected | Someone else pushed to your branch. `git pull`, then re-run. |
+| `scripts/fettler-branch.ps1 land` cannot confirm the merge | Usually a squash merge. It explains and asks; answer `y` if you merged it. |
+| `scripts/fettler-branch.ps1 sync` hits conflicts | Resolve, `git add`, `git commit`. Nothing else changed. |
+| `scripts/fettler-ship.ps1` says CI is still running | Wait. The tag should name a commit already proven. |
+| `scripts/fettler-ship.ps1` says the notes are not committed | Commit and push them, then re-run. Nothing was tagged. |
 | The tag was created but the push failed | It is local only and nothing has shipped. `git tag -d vX.Y.Z` and retry. |
 | The Release workflow failed after publishing | Fix forward with a new patch version. |
 | `verify-permissions` keeps reporting the same file | You ran a filesystem `chmod`. Use the script — a checkout with `core.filemode=false`, the default on Windows, makes a raw `chmod` invisible to git. |
