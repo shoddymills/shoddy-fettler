@@ -12,7 +12,7 @@
   "replacements": {
     "feature-branch":  "reinard",
     "bug-branch":      "reinard01", 
-    "release-version": "1.0.0",
+    "release-version": "1.1.0",
     "checkin-note":     "Fettler now has it's own home!"
   }
 }
