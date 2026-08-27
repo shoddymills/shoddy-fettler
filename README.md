@@ -6,6 +6,7 @@ shell between them and the data.**
 
 | `fettle` — the files | `pick` — the SQL Server |
 |---|---|
+| <a href="https://shoddymills.github.io/shoddy-fettler/fettle-reference.html#boundary"><img src="docs/media/fettler.svg" width="320" alt="A terminal showing two declared trees with their permissions, and a path from outside the boundary refused"></a> | <a href="https://shoddymills.github.io/shoddy-fettler/pick-reference.html#gate"><img src="docs/media/picker.svg" width="320" alt="A terminal showing one declared database with its grants and scoped objects, and a query naming an undeclared database refused"></a> |
 | **Find, search, read and edit inside *declared trees*, and nothing else.** No current directory, no path that climbs out, no shell to sneak past it. Batches land all or not at all; refused edits stop happening. | **SELECT and DESCRIBE inside *declared databases*, and nothing else.** No default database, no `USE`, no linked servers, no system catalog. Tables, views and columns scoped one by one; one statement through a fail-closed parser gate. |
 | A disclosure screen can refuse regulated data leaving a tree you name. | The same screen, over the rows coming out — same categories, same models, same `burler`. |
 | [Docs](https://shoddymills.github.io/shoddy-fettler/) · [Quick start](https://shoddymills.github.io/shoddy-fettler/fettle-quickstart.html) | [Docs](https://shoddymills.github.io/shoddy-fettler/pick.html) · [Quick start](https://shoddymills.github.io/shoddy-fettler/pick-quickstart.html) · [Reference](https://shoddymills.github.io/shoddy-fettler/pick-reference.html) |
@@ -88,6 +89,52 @@ reached the model without passing the tree boundary, the secret scan or the
 disclosure screen.
 
 **[Both diagrams full size, with the reasoning behind every line](https://shoddymills.github.io/shoddy-fettler/fettle-workstation.html)**
+
+## The picked workstation
+
+Where `fettle`'s map is a whole disk, `pick`'s world is one server, one
+declared database, and one way in. There is less to draw than on the
+fettled workstation, because SQL needs less — one database, one
+statement, no shell.
+
+<p align="center">
+  <a href="https://shoddymills.github.io/shoddy-fettler/pick-workstation.html">
+    <img src="docs/media/pick-map.svg" width="900"
+         alt="A map of a SQL Server as pick sees it. The whole server is one hatched area meaning out of bounds by default. Inside it, one database, Sales, is lit: dbo.Orders may be selected and described, dbo.Customers may be selected without its ssn and dob columns which do not exist here, dbo.TopCustomers is a view whose columns answer and whose stored text never does, and the audit schema is sealed and never even listed. The rest of the server is dark: the system databases, an adjacent undeclared database, the system catalog, and linked servers. A strip across the bottom of the server names the login pick connects as, granted only SELECT and VIEW DEFINITION. Below the server is the one way in: pick, carrying one SELECT at a time, parsed whole, rewritten three-part and screened on the way back; beside it, everything else - there is no shell, no EXEC, no second statement, and no write verb exists to try.">
+  </a>
+  <br>
+  <a href="https://shoddymills.github.io/shoddy-fettler/media/pick-map.svg">⛶ Full screen</a>
+</p>
+
+**The server, and the one way onto it.** The hatched ground is the whole
+server, and it is the default; the lit database is the entire list, not a
+summary of it. Inside the one lit database the scopes go on deciding — a
+schema sealed, two columns that do not exist here, a view that answers its
+columns and never its text. The system databases, the neighbours, the
+catalog and the linked servers are not locked doors on the map: they are
+simply not on the map, and asking for any of them answers in the same
+words as asking for a table that never existed. And the one way in carries
+statements, never commands — one `SELECT` at a time, parsed whole,
+rewritten, and screened on the way back.
+
+<p align="center">
+  <a href="https://shoddymills.github.io/shoddy-fettler/pick-workstation.html">
+    <img src="docs/media/pick-workstation.svg" width="900"
+         alt="Component diagram of three boundaries. First, the model, Claude in VS Code - the same client that runs fettle, with no built-in SQL tool to deny, so the one route is the five picker tools. Second, the Picker MCP server, pick, whose boundary comes from .picker.json and is re-read before every call, offering only catalogs, objects, select, describe and doctor, with no write verb to deny. Third, the SQL Server, visible only as the declared databases: one database Sales with a hidden audit schema and excluded columns, a least-privilege login granted only SELECT and VIEW DEFINITION, and everything undeclared, including the system catalog and linked servers, refused in the same words as a table that was never there.">
+  </a>
+  <br>
+  <a href="https://shoddymills.github.io/shoddy-fettler/media/pick-workstation.svg">⛶ Full screen</a>
+</p>
+
+**A workstation, picked.** The same three-boundary shape the fettled
+workstation draws, with less in it because there is less to hold: the
+model needs nothing new denied — there is no built-in SQL tool — so wiring
+`pick` adds one bounded route and closes nothing; the tool takes its
+boundary from a governed file it re-reads before every call and refuses to
+write; and the server exists only as the declared databases, behind a
+login that could not do more even if the gate failed.
+
+**[Both diagrams full size, with the reasoning behind every line](https://shoddymills.github.io/shoddy-fettler/pick-workstation.html)**
 
 ## What is here
 
