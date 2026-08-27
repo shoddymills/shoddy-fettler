@@ -48,7 +48,7 @@ figure.wsdiag figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <nav class="docnav main" aria-label="Documentation"><a href="index.html">Overview</a><span class="here">The workstation</span><a href="quickstart.html">Quick start</a><a href="install.html">Install</a><a href="setup.html">In a project</a><a href="screening.html">Screening</a><a href="reference.html">Reference</a></nav>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick-workstation.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><span class="here">Workstation</span><a href="fettle-quickstart.html">Quick start</a><a href="fettle-install.html">Install</a><a href="fettle-setup.html">In a project</a><a href="fettle-screening.html">Screening</a><a href="fettle-models.html">Models</a><a href="fettle-reference.html">Reference</a></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
@@ -57,7 +57,7 @@ figure.wsdiag figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .
 <p class="kicker">Two pictures &mdash; the disk a developer actually has, and the three boundaries that make it look that way.</p>
 </header>
 
-<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="index.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Fettler</span></span></a><a class="next" href="quickstart.html"><span class="pnwrap"><span class="ttl">Quick Start</span><span class="dir">Next &rarr;</span></span></a></nav>
+<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="fettle.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Fettle, for the files</span></span></a><a class="next" href="fettle-quickstart.html"><span class="pnwrap"><span class="ttl">Quick Start</span><span class="dir">Next &rarr;</span></span></a></nav>
 
 <p>This page states no rule of its own. It draws the whole arrangement
 twice. <b>The first picture is the disk</b> &mdash; the directories a
@@ -69,7 +69,7 @@ machinery.</p>
 
 <p><b>No command produced this arrangement.</b> Every line of it was
 written by hand into two short files at the top of the project &mdash; a
-checked-in <code>.fettler.json</code> and a gitignored
+checked-in <code>.fettler.json</code> and an uncommitted
 <code>.fettler.local.json</code> beside it. Both are printed in full
 directly under the map, so every block can be read back to the line that
 put it there. <code>fettle setup claude-code --local</code> writes the
@@ -78,11 +78,11 @@ declares a tree, a scope or a task, and it could not have drawn any of
 this.</p>
 
 <p>The pages after this one build it piece by piece:
-<a href="quickstart.html">the quick start</a> turns it on,
-<a href="install.html">installing it</a> is the machine-level
-reference, <a href="setup.html#declare">in a project</a> is
+<a href="fettle-quickstart.html">the quick start</a> turns it on,
+<a href="fettle-install.html">installing it</a> is the machine-level
+reference, <a href="fettle-setup.html#declare">in a project</a> is
 the reference behind the two files below, and
-<a href="screening.html">screening</a> is the one feature with a
+<a href="fettle-screening.html">screening</a> is the one feature with a
 page of its own.</p>
 
 <figure class="wsdiag">
@@ -123,7 +123,7 @@ line below, and every dark one is dark because no line mentions it.</p>
   }
 }</code></pre></div>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>// .fettler.local.json - gitignored, this machine's own trees
+<div class="promptbox"><button class="copy">Copy</button><pre><code>// .fettler.local.json - not checked in; this machine's own trees
 {
   "trees": {
     "scratch": {
@@ -155,7 +155,7 @@ no line in either file could have put there:</p>
 <tr><td><code>backlog</code> and <code>inprogress</code> writable, yet <b>nothing there can be deleted</b></td><td>those two scopes&#8217; <code>can</code>, which omits <code>delete</code></td></tr>
 <tr><td><code>completed</code> and <code>cancelled</code> sealed, and not even listed</td><td><code>"can": []</code> on each &mdash; a scope <em>replaces</em> what its tree grants rather than adding to it, so an empty one grants nothing at all</td></tr>
 <tr><td><code>shoddy-devilsdust</code>, <code>Documents</code>, <code>.ssh</code>, <code>AppData\Roaming</code>, the whole of <code>C:\</code></td><td><b>no line at all.</b> Out of bounds is the default; these two files are the list of exceptions to it, and whatever is absent stays dark</td></tr>
-<tr><td>The sealed pocket inside <code>shoddy</code></td><td><b>no line, and no line could.</b> The six governed names are refused by every write path at every permission level &mdash; <a href="#tool">the tool boundary</a> lists them</td></tr>
+<tr><td>The sealed pocket inside <code>shoddy</code></td><td><b>no line, and no line could.</b> The eight governed names are refused by every write path at every permission level &mdash; <a href="#tool">the tool boundary</a> lists them</td></tr>
 <tr><td>Dropbox syncing out to <code>dropbox.com</code></td><td><b>neither file&#8217;s doing.</b> That door belongs to another program, which is precisely why the folder it watches is one of the ones left dark</td></tr>
 </table>
 
@@ -193,16 +193,16 @@ The instruction files persuade; <code>permissions.deny</code> enforces.
 The eleven built-in tools are denied by name, and the Fettler tools have
 different names &mdash; denying <code>Read</code> does not deny
 <code>mcp__fettler__read</code>. That routes the assistant rather than
-disarming it. <a href="install.html#exclusions">The exclusion
+disarming it. <a href="fettle-install.html#exclusions">The exclusion
 list</a> is the reference.</li>
 <li><b>The tool boundary is fixed before the model says anything.</b>
 <code>serve</code> learns its trees from <code>.fettler.json</code> at
 launch. No tool schema carries a root or config flag. And the six files
 that govern the tool and the model alike are refused by every write
-path &mdash; <a href="reference.html#rules">the rule that makes every
+path &mdash; <a href="fettle-reference.html#rules">the rule that makes every
 other rule hold</a>.</li>
 <li><b>The filesystem boundary is what remains.</b> The trees are
-<a href="setup.html#declare">the worked example</a>: one
+<a href="fettle-setup.html#declare">the worked example</a>: one
 writable tree with a declared task, one read-only tree whose
 <code>backlog</code> may be reorganised but never destroyed, a hidden
 scope no search can surface, and the scratch overlay. Outside them
@@ -222,7 +222,7 @@ each level.</p>
 the global <code>CLAUDE.md</code> carries the standing instruction, and
 <code>~/.claude.json</code> registers the server for every project. The
 machine-wide deny list is written only when asked for out loud
-(<a href="install.html#global"><code>--global --deny</code></a>).</li>
+(<a href="fettle-install.html#global"><code>--global --deny</code></a>).</li>
 <li><b>Repo level</b> &mdash; <code>.mcp.json</code> launches the
 server, and <code>.claude/settings.json</code> holds the deny list.
 Both are <b>governed</b>: Fettler refuses to write them at every
@@ -231,7 +231,7 @@ permission level.</li>
 different names. The shell is denied by name too, because no blocklist
 of writing commands can close it &mdash; <code>echo x &gt; file</code>
 turns any command into a writer.
-<a href="install.html#shell">The shell section</a> has the
+<a href="fettle-install.html#shell">The shell section</a> has the
 argument in full.</li>
 </ul>
 
@@ -253,7 +253,7 @@ argument in full.</li>
   }
 }</code></pre></div>
 
-<p>And the opt-in <a href="install.html#hooks">session hook</a>
+<p>And the opt-in <a href="fettle-install.html#hooks">session hook</a>
 (<code>--hooks</code>), which runs <code>doctor</code> at the start of
 each session &mdash; the moment a diagnostic will actually be read:</p>
 
@@ -276,28 +276,31 @@ write.</b></p>
 <li><b>No tool schema carries a root or config flag.</b> The model
 cannot point the boundary anywhere, and <code>--root</code> on a
 command line can only ever grant <code>list read</code>.</li>
-<li><b>Six governed names</b>, refused by every write path at every
+<li><b>Eight governed names</b>, refused by every write path at every
 permission level (exit&nbsp;11): <code>.fettler.json</code>,
 <code>.fettler.local.json</code>, <code>.mcp.json</code>,
+<code>.picker.json</code>, <code>.picker.local.json</code>,
 <code>.claude/settings.json</code>,
 <code>.claude/settings.local.json</code>,
-<code>.vscode/mcp.json</code>.</li>
+<code>.vscode/mcp.json</code>. The <code>.picker</code> pair is the
+boundary of the assistant&#8217;s SQL tool &mdash; a fettle that could
+write it would hand that boundary over through the side door.</li>
 <li><b><code>setup</code> is the one verb a model is never offered.</b>
 <code>doctor</code> is offered, because a model diagnosing its own
 wiring beats asking somebody to open a terminal for it.</li>
 <li><b>The threat is inadvertent assistant action, not a determined
 person.</b> Whoever owns the machine edits <code>.fettler.json</code>
 in an ordinary editor. That is the design, not a hole.
-<a href="reference.html#threat">What this defends against</a> draws the
+<a href="fettle-reference.html#threat">What this defends against</a> draws the
 bound.</li>
 </ul>
 
 <p>The two files that say all of this are
 <a href="#config">printed under the map</a> at the top of the page: the
 checked-in <code>.fettler.json</code> naming the project tree and its
-tasks, and the gitignored overlay adding this machine&#8217;s
-<a href="setup.html#scratch">scratch tree</a> and its
-<a href="setup.html#declare">scoped</a> planning tree. Neither can
+tasks, and the uncommitted overlay adding this machine&#8217;s
+<a href="fettle-setup.html#scratch">scratch tree</a> and its
+<a href="fettle-setup.html#declare">scoped</a> planning tree. Neither can
 be written by the thing it governs &mdash; which is what a refusal looks
 like when the boundary is asked to cross itself:</p>
 
@@ -316,7 +319,7 @@ $ echo $LASTEXITCODE
 <h2 id="filesystem">4. The filesystem boundary</h2>
 
 <p><b>Seven permission words, combined per tree and per folder, say everything
-the diagram colours.</b> <a href="reference.html#permissions">The seven
+the diagram colours.</b> <a href="fettle-reference.html#permissions">The seven
 permissions</a> defines each in full.</p>
 
 <table>
@@ -334,7 +337,7 @@ permissions</a> defines each in full.</p>
 correctly and the boundary holding are two different claims, and only
 the second one matters. Ask the assistant to try each of these, and
 watch what comes back.
-<a href="setup.html#verify">Verifying the guardrails</a> is the
+<a href="fettle-setup.html#verify">Verifying the guardrails</a> is the
 same checklist where the setup steps live:</p>
 
 <table>
@@ -349,8 +352,8 @@ same checklist where the setup steps live:</p>
 </table>
 
 <nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
-  <a href="index.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Fettler</span></span></a>
-  <a class="next" href="quickstart.html"><span class="pnwrap"><span class="ttl">Quick Start</span><span class="dir">Next &rarr;</span></span></a>
+  <a href="fettle.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Fettle, for the files</span></span></a>
+  <a class="next" href="fettle-quickstart.html"><span class="pnwrap"><span class="ttl">Quick Start</span><span class="dir">Next &rarr;</span></span></a>
 </nav>
 <footer>Named for the shoddy mills of the West Riding: Useless Things Made
 Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>

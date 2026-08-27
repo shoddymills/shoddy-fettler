@@ -174,6 +174,75 @@ for (const file of scripts) {
   }
 }
 
+// ---- the screen twins: two programs, one set of detectors ----
+// Picker carries a copy of Fettler's tier-one screen, because no assembly
+// is ever shared between the programs - the same reasoning that gives the
+// burler wire a copy of its shapes on each side. A copy is the honest
+// design, and this is its price: the copies can drift, and a pattern that
+// drifts is a leak on one side that the other side's tests still pass.
+// So the twin rule the scripts live under applies to them too, and this
+// is where it is enforced, because this file is where twins are held equal.
+//
+// Compared: the category words (the NameOf switch), and each detector's
+// name, pattern text and Luhn flag out of the Structural array. The prose
+// around them is deliberately NOT compared - each program explains the
+// screen in its own domain's words, and that is drift nobody is hurt by.
+function screenSurface(file) {
+  const text = fs.readFileSync(path.join(root, file), "utf8");
+
+  const categories = [...text.matchAll(/Screened\.\w+ => "([a-z]+)"/g)].map(m => m[1]);
+
+  // The Structural array, entry by entry: each starts at a lowercase
+  // new( - the New(@"...") helper calls inside an entry are capitalised,
+  // so they stay inside their entry rather than splitting it.
+  const block = /static readonly Detector\[\] Structural[\s\S]*?\n    \];/.exec(text);
+  const detectors = {};
+  if (block)
+    for (const entry of block[0].split(/\bnew\(/).slice(1)) {
+      const name = /^"([a-z-]+)"/.exec(entry);
+      if (!name) continue;
+      const pattern = [...entry.matchAll(/@"((?:[^"]|"")*)"/g)].map(m => m[1]).join("");
+      detectors[name[1]] = pattern + (/Luhn:\s*true/.test(entry) ? "  [luhn]" : "");
+    }
+
+  return { categories, detectors };
+}
+
+{
+  const A = "Fettler/Core/Screen.cs";
+  const B = "Picker/Core/Screen.cs";
+
+  if (!fs.existsSync(path.join(root, B))) {
+    problems.push(`${A} has no twin: ${B} is missing`);
+  } else {
+    const a = screenSurface(A);
+    const b = screenSurface(B);
+
+    // An extractor that silently found nothing would hold two empty
+    // surfaces equal forever, which is worse than no check at all.
+    if (!a.categories.length || !Object.keys(a.detectors).length)
+      problems.push(`${A}: found no screen surface - the extractor is broken, not the code`);
+    if (!b.categories.length || !Object.keys(b.detectors).length)
+      problems.push(`${B}: found no screen surface - the extractor is broken, not the code`);
+
+    if (a.categories.join(" ") !== b.categories.join(" "))
+      problems.push(`the screen twins disagree about the categories: ${A} has [` +
+        a.categories.join(", ") + `], ${B} has [` + b.categories.join(", ") + `]`);
+
+    for (const name of Object.keys(a.detectors))
+      if (!(name in b.detectors))
+        problems.push(`${B} has no '${name}' detector, which ${A} carries`);
+      else if (a.detectors[name] !== b.detectors[name])
+        problems.push(`the '${name}' detector has drifted between ${A} and ${B}:\n` +
+          `    ${A}: ${a.detectors[name]}\n    ${B}: ${b.detectors[name]}`);
+    for (const name of Object.keys(b.detectors))
+      if (!(name in a.detectors))
+        problems.push(`${A} has no '${name}' detector, which ${B} carries`);
+
+    seen.add("Fettler/Core/Screen.cs + Picker/Core/Screen.cs");
+  }
+}
+
 if (problems.length === 0) {
   console.log(`ALL TWINS AGREE (${seen.size} pair(s))`);
   process.exit(0);

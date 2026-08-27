@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Picker: SELECT and DESCRIBE inside declared databases, the two
+       front ends over them, and nothing else.
+
+       The R1.2 discipline of Fettler.csproj applies here whole, restated
+       rather than referenced because this file has to stand alone:
+
+       NO ProjectReference, EVER - not to Fettler, not to burler, not to
+       anything. Picker shares this repository, its release and its
+       version number with what else lives here, and shares nothing else.
+       Where behaviour must match across programs - the tier-one screening
+       patterns, the burler wire - each side carries its own copy, proven
+       equivalent by test rather than by a shared assembly.
+
+       A PackageReference only from the allowlist below, each entry
+       meeting ALL of: a permissive licence (MIT, Apache-2.0, BSD) and
+       never copyleft; managed code that publishes clean as a
+       self-contained single file per OS; a minimal transitive closure;
+       and actively maintained. Picker.Tests asserts the resulting
+       reference set from outside, because a constraint that is not
+       tested lasts until somebody is in a hurry.
+
+       The allowlist, in full:
+
+         Microsoft.SqlServer.TransactSql.ScriptDom - MIT, pure managed,
+         Microsoft's own T-SQL parser. It is here because the query gate
+         PARSES rather than pattern-matches: one statement, a SELECT,
+         every object and column reference resolved inside the grant,
+         and any construct the walker does not recognise refused rather
+         than passed unchecked.
+
+         Microsoft.Data.SqlClient - MIT, the connection to the server.
+         It carries a native SNI asset on Windows BY DEFAULT, and this
+         project pins the MANAGED network path instead (D2 of the
+         requirements): macOS and Linux only have the managed
+         implementation, macOS is a required target, so pick ships one
+         network stack on three OSes and the publish stays single-file
+         with nothing extracted beside it. The pin is the
+         UseManagedNetworkingOnWindows switch, set both here as a
+         runtime host option and in pick's Main before any connection
+         opens. If a real connection scenario ever fails on the managed
+         path, re-admitting the native asset on Windows alone is the
+         recorded fallback - and it is an allowlist decision, made in
+         this comment, not a quiet csproj edit.
+
+       Inside this one assembly the layering is Fettler's R3.1, kept by
+       namespace and asserted by test: Picker.Core's public surface may
+       not take or return a System.Text.Json type, name System.Console,
+       or know an exit code. A core that speaks a protocol has stopped
+       being one; the two front ends live beside it in Picker.Cli and
+       Picker.Mcp and are ordinary classes, so the tests drive both
+       without a process. -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Picker</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="180.59.2" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="Switch.Microsoft.Data.SqlClient.UseManagedNetworkingOnWindows"
+                                    Value="true" />
+  </ItemGroup>
+
+</Project>

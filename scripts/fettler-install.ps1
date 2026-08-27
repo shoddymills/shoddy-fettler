@@ -5,6 +5,7 @@
 #   ./scripts/fettler-install.ps1 -To DIR         install into DIR instead
 #   ./scripts/fettler-install.ps1 -Stop           end the servers still on the old build
 #   ./scripts/fettler-install.ps1 -DryRun         say what would happen and touch nothing
+#   ./scripts/fettler-install.ps1 -Program pick   the SQL tool instead of fettle
 #   ./scripts/fettler-install.ps1 -Program burler the sidecar instead of fettle
 #
 # WHERE IT INSTALLS IS DISCOVERED, NOT INVENTED: the directory holding the
@@ -58,7 +59,7 @@
 [CmdletBinding()]
 param(
     [string]$To = '',
-    [ValidateSet('fettle', 'burler')][string]$Program = 'fettle',
+    [ValidateSet('fettle', 'burler', 'pick')][string]$Program = 'fettle',
     [switch]$Stop,
     [switch]$DryRun
 )
@@ -143,7 +144,10 @@ else {
         Announce "found $Program on PATH at $($already.Source)"
     }
     elseif ($IsWindows) {
-        $dir = FullName (Join-Path $env:LOCALAPPDATA 'Programs/fettle')
+        # Per program, matching the install pages - except burler, whose
+        # home is beside fettle. Installing burler beside pick is -To.
+        $fallback = if ($Program -eq 'pick') { 'Programs/pick' } else { 'Programs/fettle' }
+        $dir = FullName (Join-Path $env:LOCALAPPDATA $fallback)
         Announce "nothing called $Program is on PATH; falling back to $dir"
     }
     else {

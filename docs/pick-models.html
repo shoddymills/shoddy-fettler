@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="The disclosure screen's second tier &mdash; installing burler, choosing model checkpoints and their licences, exporting and quantising them, and naming the directory that makes them load-bearing.">
-<title>Screening: the models | Fettler</title>
+<meta name="description" content="The second tier of pick's disclosure screen &mdash; installing burler beside pick, choosing model checkpoints and their licences, exporting and quantising them, and naming the directory that makes them load-bearing.">
+<title>The Models | Picker</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="favicon.ico" sizes="48x48">
@@ -17,53 +17,51 @@
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <nav class="docnav main" aria-label="Documentation"><a href="index.html">Overview</a><a href="diagram.html">The workstation</a><a href="quickstart.html">Quick start</a><a href="install.html">Install</a><a href="setup.html">In a project</a><span class="here">Screening</span><a href="reference.html">Reference</a></nav>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle-models.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><a href="pick.html">Overview</a><a href="pick-workstation.html">Workstation</a><a href="pick-quickstart.html">Quick start</a><a href="pick-install.html">Install</a><a href="pick-setup.html">In a project</a><a href="pick-screening.html">Screening</a><span class="here">Models</span><a href="pick-reference.html">Reference</a></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
-<p class="eyebrow">Shoddy &middot; Fettler</p>
-<h1 id="screening-models">Screening: the models</h1>
+<p class="eyebrow">Shoddy &middot; Picker</p>
+<h1 id="models">The Models</h1>
 <p class="kicker">The second tier. A second program, model checkpoints you choose and fetch yourself, and the licences that come with them.</p>
 </header>
 
-<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="screening.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Screening</span></span></a><a class="next" href="reference.html"><span class="pnwrap"><span class="ttl">Reference</span><span class="dir">Next &rarr;</span></span></a></nav>
+<nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a href="pick-screening.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Screening</span></span></a><a class="next" href="pick-reference.html"><span class="pnwrap"><span class="ttl">Reference</span><span class="dir">Next &rarr;</span></span></a></nav>
 
 <p class="note"><span class="lab">Note</span> <b>None of this is needed
 for the first tier.</b> <code>identifiers</code> runs inside
-<code>fettle</code> with nothing installed &mdash;
-<a href="screening.html">switching it on</a> is one line. This page is
-the other three categories: <code>clinical</code>, <code>legal</code> and
-<code>scientific</code>, each of which needs a model.
-
-</p>
+<code>pick</code> with nothing installed &mdash;
+<a href="pick-screening.html">switching it on</a> is one line. This page
+is the other three categories: <code>clinical</code>, <code>legal</code>
+and <code>scientific</code>, each of which needs a model.</p>
 
 <h2 id="install">Install burler, the model host</h2>
 
 <p><b>burler is a second program, in its own archive.</b> It is the
 trade's word for the person who picks the faults out of finished cloth
 before it leaves the mill, which is this job exactly. It hosts the
-named-entity models; <code>fettle</code> talks to it over a pipe and
-they share no code.</p>
+named-entity models; <code>pick</code> talks to it over a pipe and they
+share no code.</p>
 
 <p><b>It is separate because of what the models need.</b> Running them
 needs ONNX Runtime, which ships native binaries for each operating
-system. <code>fettle</code> is built from a short list of packages that
+system. <code>pick</code> is built from a short list of packages that
 admits none of those, so that it can stay a single file you copy onto a
 machine. Folding the models in would make every download pay for a
-feature most trees never use.</p>
+feature most boundaries never use.</p>
 
 <div class="takeaway"><b>Unpack it into the same directory as
-<code>fettle</code>.</b> That is the only place it is looked for.
+<code>pick</code>.</b> That is the only place it is looked for.
 It is deliberately <em>not</em> searched for on <code>PATH</code>: a
-program that decides what may leave your tree should not be one an
+program that decides what may leave your database should not be one an
 environment variable can substitute.</div>
 
 <div class="plat win"><span class="os">Windows &middot; PowerShell</span><div class="body">
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>$dir = "$env:LOCALAPPDATA\Programs\fettle"   # wherever fettle.exe already is
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$dir = "$env:LOCALAPPDATA\Programs\pick"      # wherever pick.exe already is
 Expand-Archive burler-X.Y.Z-win-x64.zip -DestinationPath $dir -Force
 Get-ChildItem $dir -Recurse | Unblock-File
-Get-ChildItem $dir\burler.exe                # it should be beside fettle.exe</code></pre></div>
+Get-ChildItem $dir\burler.exe                 # it should be beside pick.exe</code></pre></div>
 
 </div></div>
 
@@ -71,36 +69,47 @@ Get-ChildItem $dir\burler.exe                # it should be beside fettle.exe</c
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>tar -xzf burler-X.Y.Z-osx-arm64.tar.gz -C ~/.local/bin
 xattr -d com.apple.quarantine ~/.local/bin/burler   # macOS only
-ls -l ~/.local/bin/burler                           # beside fettle</code></pre></div>
+ls -l ~/.local/bin/burler                           # beside pick</code></pre></div>
 
 </div></div>
 
 <p>Archives are published per platform, the same four as
-<code>fettle</code>: <code>win-x64</code>, <code>linux-x64</code>,
+<code>pick</code>: <code>win-x64</code>, <code>linux-x64</code>,
 <code>osx-x64</code> and <code>osx-arm64</code>. Take the one matching
-the <code>fettle</code> you already installed &mdash; the two are
-started as one process pair and must be built for the same machine.</p>
+the <code>pick</code> you already installed &mdash; the two are started
+as one process pair and must be built for the same machine.</p>
 
 <p><b>Nothing happens yet.</b> burler with no models does nothing at
-all, and Fettler will not even start it until a models directory is
-named in <a href="#name">step 6</a>. Installing it early is harmless.</p>
+all, and pick will not even start it until a models directory is named
+in <a href="#name">the last step</a>. Installing it early is
+harmless.</p>
 
-<h2 id="models">Choose the models</h2>
+<p class="note"><span class="lab">Note</span> <b>Already running
+<code>fettle</code> with models on this machine?</b> Then burler is
+already installed beside it and the models directory already exists.
+Put a copy of burler beside <code>pick</code> too &mdash; each program
+looks only beside itself &mdash; and skip straight to
+<a href="#name">naming the directory</a>: one models installation
+serves both programs.</p>
+
+<h2 id="choose">Choose the models</h2>
 
 <div class="takeaway"><b>Nothing here ships a model, and nothing here
 downloads one for you.</b> Quantised, they come to a few hundred
-megabytes against a <code>fettle</code> download measured in
-single-digit ones &mdash; and there are three of them at most, because
-<code>identifiers</code> never takes a model. More to the point, several of the useful checkpoints carry
-terms that would forbid this project redistributing them. So you fetch
-them, you read their licence, and you decide.</div>
+megabytes against a <code>pick</code> download measured in single-digit
+ones &mdash; and there are three of them at most, because
+<code>identifiers</code> never takes a model. More to the point, several
+of the useful checkpoints carry terms that would forbid this project
+redistributing them. So you fetch them, you read their licence, and you
+decide.</div>
 
 <h3 id="kind">What kind of model this wants</h3>
 
-<p><b>A named-entity model: one that labels each word of a sentence.</b>
-It is handed a piece of text and answers which words are a person, a
-date, an identifier, and so on. burler reads those labels, works out
-where each entity starts and stops, and reports how many it found.</p>
+<p><b>A named-entity model: one that labels each word of a piece of
+text.</b> It is handed the serialized rows and answers which words are
+a person, a date, an identifier, and so on. burler reads those labels,
+works out where each entity starts and stops, and reports how many it
+found.</p>
 
 <p><b>A base checkpoint is not one of these.</b> This is the trap worth
 knowing before you start downloading. BioBERT and SciBERT are
@@ -200,11 +209,11 @@ parent:</p>
     labels.json
     manifest.json</code></pre></div>
 
-<p><b>Only the categories you screen need a directory.</b> A category you
-never name in any tree is never looked for. Models load one at a time,
-when first wanted, so a tree screening only <code>clinical</code> loads
-one model rather than three. <code>identifiers</code> never needs a
-directory at all.</p>
+<p><b>Only the categories you screen need a directory.</b> A category
+you never name on any database is never looked for. Models load one at
+a time, when first wanted, so a boundary screening only
+<code>clinical</code> loads one model rather than three.
+<code>identifiers</code> never needs a directory at all.</p>
 
 <table>
 <tr><th>File</th><th>What it is</th></tr>
@@ -248,54 +257,73 @@ that did the judging has changed.</li>
 
 <p><b>Put it in the personal overlay, not the checked-in file.</b> Where
 several hundred megabytes of models sit is a fact about a disk, not
-about a project, and
-<code>.fettler.local.json</code> is gitignored:</p>
+about a project, and <code>.picker.local.json</code> is kept out of source control:</p>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>// .fettler.local.json  - beside .fettler.json, gitignored
+<div class="promptbox"><button class="copy">Copy</button><pre><code>// .picker.local.json  - beside .picker.json, kept out of source control
 {
   "models": "C:/models/screening"
 }</code></pre></div>
 
-<p>It is spelled like every other declared path: forward slashes, and
-relative paths resolve against the file they are written in. If the
-check-in file also names one, the overlay wins.</p>
+<p>It is spelled like every other declared path: forward slashes, and a
+relative path resolves against the file it is written in. If the
+checked-in file also names one, the overlay wins. <b>No restart</b>
+&mdash; pick re-reads both files before every call, so the edit binds
+on the next request.</p>
 
-<p>With the directory named and a model in it, <code>roots</code> stops
-reporting the tier as inactive and names what is doing the judging
-instead:</p>
+<p>With the directory named, the boundary reports it &mdash;
+<code>pick catalogs</code> gains a <code>models:</code> line, and
+<code>pick doctor</code> checks the two facts the tier stands on:</p>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle roots
-records       /work/records
-              can: list read
-              screen: identifiers clinical
-                clinical: obi/deid_roberta_i2b2 @ a1b2c3d
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ pick catalogs
+warehouse  (connect: Server=db.internal;Database=Sales;...)
+  Sales: list select describe  [screen: identifiers clinical]
+models: C:/models/screening
+source: /work/shoddy/.picker.json
 
-declared by /work/shoddy/.fettler.json</code></pre></div>
-
-<p><b>The checkpoint and the revision, read from the manifest.</b> A
-category whose directory holds no model says <code>no model installed -
-reads here will refuse</code> instead, which is the state worth catching
-before a read does. The model is never hidden behind the category word:
-wherever the tiers are listed, the thing doing the judging is named.</p>
+$ pick doctor
+pick X.Y.Z
+  ok configuration: /work/shoddy/.picker.json
+  ok server warehouse: connects (1 database(s) declared)
+  ok models: C:/models/screening
+  ok burler: C:/Users/you/AppData/Local/Programs/pick/burler.exe</code></pre></div>
 
 <div class="takeaway"><b>Naming this directory is the act that makes the
 models load-bearing, and it changes what a failure means.</b>
-<b>Before</b>, the patterns are the whole screen and a clean payload is
-served &mdash; nobody has claimed a model is installed, so there is no
-second tier to have failed. <b>After</b>, a screened category with no
-model <em>refuses</em>, because somebody has now said they expect it to
-be there.</div>
+<b>Before</b>, the patterns are the whole screen and a clean result set
+is served &mdash; nobody has claimed a model is installed, so there is
+no second tier to have failed. <b>After</b>, a screened model-backed
+category with no model <em>refuses</em>, because somebody has now said
+they expect it to be there.</div>
 
 <p>That is why the directory's absence is not checked when the
 configuration is read. A configuration opened on a machine without the
 models is not malformed, and refusing the whole boundary over it would
-take the tree away rather than the screen. The refusal arrives at the
-disclosure instead, where it can name the category that wanted the
-model.</p>
+take every database away rather than the screen. The refusal arrives at
+the disclosure instead, where it can name what could not run.</p>
 
-<p><b>Restart the assistant.</b> Then read something. The first screened
-read starts burler and loads a model, which takes seconds; every read
-after that is tens of milliseconds.</p>
+<h2 id="byhand">Driving burler by hand</h2>
+
+<p>When the model tier is the part in doubt, run burler yourself. It
+reads one request per line and answers one line:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ burler --models C:/models/screening
+{"op":"screen","categories":["clinical"],"payload":"the weather was fine"}
+{"ok":true,"findings":[]}</code></pre></div>
+
+<p>Type the request line, press return, and read the answer.</p>
+
+<table>
+<tr><th>What comes back</th><th>What it tells you</th></tr>
+<tr><td><code>{"ok":true,"findings":[]}</code></td><td>Everything works. It loaded the model, ran it, and found nothing in that sentence.</td></tr>
+<tr><td><code>{"ok":true,"findings":[{"category":"clinical","count":1,&hellip;</code></td><td>It found something. Try a payload with a name or a date in it to see this.</td></tr>
+<tr><td><code>{"ok":false,"error":"'clinical' is screened and there is no model for it&hellip;"}</code></td><td>The models directory has no <code>clinical</code> folder. The message names the path it looked at.</td></tr>
+<tr><td><code>{"ok":false,"error":"the model at &hellip; would not load&hellip;"}</code></td><td>The file is there and is not a model burler can run. Usually a bad export, or a file that did not finish downloading.</td></tr>
+<tr><td>Nothing at all, and it exits</td><td>Check the message on the error stream. Started with no <code>--models</code>, it says <code>burler needs --models DIRECTORY, naming where the screening models are.</code> and exits <code>2</code>.</td></tr>
+</table>
+
+<p><b>An empty <code>findings</code> array means it checked and found
+nothing. A missing one is a fault.</b> The two are never spelled the
+same way, on either side of the pipe.</p>
 
 <h2 id="optional">Optional extras</h2>
 
@@ -319,26 +347,29 @@ model. Not found, every subdirectory holding one is loaded.</p>
 
 <h3 id="shared">A shared models directory</h3>
 
-<p>Nothing stops <code>"models"</code> naming a network share, and for a
-team it saves everyone the download. Know what you are trusting
-when you do:</p>
+<p>Nothing stops <code>"models"</code> naming a directory another
+program or another machine already uses &mdash; the same installation
+can serve a whole team, or serve <code>fettle</code> and
+<code>pick</code> side by side. Know what you are trusting when the
+directory is not yours alone:</p>
 
 <ul>
-<li><b>Whoever can write that share chooses what judges your
+<li><b>Whoever can write that directory chooses what judges your
 disclosures.</b> A model swapped for one that finds nothing turns the
 second tier off silently, and nothing here would report that as a
 failure &mdash; a model that finds nothing looks exactly like a clean
-payload.</li>
+result set.</li>
 <li><b>A share that goes away is a refusal, not a fallback.</b> Once the
-directory is named, an unreachable one refuses every screened read. That
-is the fail-closed rule working, and it will look like an outage.</li>
+directory is named, an unreachable one refuses every model-screened
+response. That is the fail-closed rule working, and it will look like an
+outage.</li>
 <li><b>Read the manifests you did not write.</b> They are the only
 record of what those weights are and under what terms.</li>
 </ul>
 
-<nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
-  <a href="screening.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Screening</span></span></a>
-  <a class="next" href="reference.html"><span class="pnwrap"><span class="ttl">Reference</span><span class="dir">Next &rarr;</span></span></a>
+<nav class="pagenav pagenav-bottom" aria-label="Picker, in order">
+  <a href="pick-screening.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Screening</span></span></a>
+  <a class="next" href="pick-reference.html"><span class="pnwrap"><span class="ttl">Reference</span><span class="dir">Next &rarr;</span></span></a>
 </nav>
 <footer>Named for the shoddy mills of the West Riding: Useless Things Made
 Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>

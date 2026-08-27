@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Fettler reference &mdash; the boundary in full, the seven permissions, every verb, every refusal, and what this defends against.">
-<title>Reference &middot; Fettler</title>
+<title>Reference | Fettler</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="favicon.ico" sizes="48x48">
@@ -17,7 +17,7 @@
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <nav class="docnav main" aria-label="Documentation"><a href="index.html">Overview</a><a href="diagram.html">The workstation</a><a href="quickstart.html">Quick start</a><a href="install.html">Install</a><a href="setup.html">In a project</a><a href="screening.html">Screening</a><span class="here">Reference</span></nav>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick-reference.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-workstation.html">Workstation</a><a href="fettle-quickstart.html">Quick start</a><a href="fettle-install.html">Install</a><a href="fettle-setup.html">In a project</a><a href="fettle-screening.html">Screening</a><a href="fettle-models.html">Models</a><span class="here">Reference</span></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
@@ -26,10 +26,10 @@
 <p class="kicker">The boundary in full, the seven permissions, every verb, every refusal, every rule a caller has to know, and what this defends against &mdash; for whoever has to be sure.</p>
 </header>
 
-<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="screening-models.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Screening: the models</span></span></a></nav>
+<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="fettle-models.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">The models</span></span></a></nav>
 
 <p class="note"><span class="lab">Note</span> <b>Nothing here is needed to
-use Fettler.</b> The <a href="quickstart.html">quick start</a> gets it
+use Fettler.</b> The <a href="fettle-quickstart.html">quick start</a> gets it
 working; this page is the argument behind it, for anybody who has to
 satisfy themselves the boundary holds.</p>
 
@@ -92,7 +92,7 @@ state.</div>
 
 <p>A tree is a path and a set of permissions. A <b>scope</b> states
 permissions somewhere inside one. Here is a real configuration, shown to
-read rather than to copy &mdash; <a href="setup.html#declare">writing
+read rather than to copy &mdash; <a href="fettle-setup.html#declare">writing
 your own</a> is the first step of setting up a project:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>{
@@ -272,6 +272,8 @@ level:</p>
 <tr><td><code>.fettler.json</code></td><td>never created, written, edited, renamed, moved or deleted through Fettler</td></tr>
 <tr><td><code>.fettler.local.json</code></td><td>as above</td></tr>
 <tr><td><code>.mcp.json</code></td><td>as above &mdash; it names the servers a client launches</td></tr>
+<tr><td><code>.picker.json</code></td><td>as above &mdash; it is the whole boundary of pick, the assistant's SQL tool, which has no write path of its own</td></tr>
+<tr><td><code>.picker.local.json</code></td><td>as above</td></tr>
 <tr><td><code>.claude/settings.json</code></td><td>as above &mdash; it names the tools a model may call at all</td></tr>
 <tr><td><code>.claude/settings.local.json</code></td><td>as above</td></tr>
 <tr><td><code>.vscode/mcp.json</code></td><td>as above</td></tr>
@@ -288,6 +290,13 @@ file. A model that can edit its own deny list has no deny list. And
 being <em>asked</em> to edit it is no safeguard: an instruction can
 arrive from a prompt, from a file just read, or from a misreading of
 either.</p>
+
+<p><b>pick's files are the same argument once more.</b> The
+<code>.picker</code> pair is the whole boundary of the assistant's SQL
+tool. pick itself has no write path at all and re-reads the pair before
+every call &mdash; so a fettle that could write them would hand the
+assistant that boundary through the side door, and the very next pick
+call would obey the edit.</p>
 
 <p><b>Matched on the last two path segments, not on the file name
 alone.</b> A rule refusing every <code>settings.json</code> would be
@@ -623,7 +632,7 @@ one.</div>
 <h2 id="tasks">Declared tasks</h2>
 
 <p><code>run</code> executes only what the configuration declares, and
-never composes a shell command. <a href="setup.html#tasks">Declaring
+never composes a shell command. <a href="fettle-setup.html#tasks">Declaring
 one</a> is a step of setting up a project. What a declaration
 <em>means</em> is here.</p>
 
@@ -697,9 +706,9 @@ load. It is never passed through &mdash; passed through,
 <code>new {feature-branch}</code> does not fail, it creates a branch
 called <code>{feature-branch}</code>.</li>
 <li><b>The overlay is where a value belongs.</b>
-<code>.fettler.local.json</code> is gitignored and its replacements
+<code>.fettler.local.json</code> is kept out of source control and its replacements
 merge over the checked-in ones name by name, so the project declares the
-task while today's branch name stays out of the diff.</li>
+task while today's branch name stays out of source control.</li>
 <li><b>They are not for secrets.</b> <code>tasks</code> shows every
 value, deliberately, so that what is listed is what runs. A token
 belongs in the environment of the process a task launches.</li>
@@ -738,9 +747,11 @@ or not the file exists.</p>
 <h3>Writing a file that says what the tool may do</h3>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle write .fettler.json --text "{}" --overwrite
-refused: .fettler.json is one of the files that tell this tool what it may do,
-and it does not edit those. Change it with an editor.
-The files are: .fettler.json, .fettler.local.json (.fettler.json)
+refused: .fettler.json is one of the files that say what this tool and the assistant
+driving it may do, and it does not edit those. Change it with an editor.
+The files are: .fettler.json, .fettler.local.json, .mcp.json, .picker.json,
+.picker.local.json, .claude/settings.json, .claude/settings.local.json,
+.vscode/mcp.json (.fettler.json)
 $ echo $LASTEXITCODE
 11</code></pre></div>
 
@@ -801,8 +812,9 @@ $ echo $LASTEXITCODE
 
 <p>The mirror of the credential refusal above &mdash; that one is a
 write going in, this one a payload coming out. It only happens in a
-scope whose configuration asks for it. <a href="#screen">Section 14</a>
-is the whole of it.</p>
+scope whose configuration asks for it.
+<a href="fettle-screening.html">The screening page</a> is the whole of
+it.</p>
 
 <h3>Running a task in a tree that does not grant <code>execute</code></h3>
 
@@ -859,7 +871,7 @@ word as an <code>outcome</code> field.</p>
 <tr><td>10</td><td><code>timed-out</code></td><td>a task outran its timeout and was killed</td></tr>
 <tr><td>11</td><td><code>governed</code></td><td>the path names a file that says what this tool may do</td></tr>
 <tr><td>12</td><td><code>credential</code></td><td>the write would have <b>added</b> a secret the file did not already carry</td></tr>
-<tr><td>13</td><td><code>screened</code></td><td>the response would have <b>disclosed</b> regulated data out of a screened scope &mdash; or the screen that would have judged it could not run. See <a href="screening.html">the disclosure screen</a></td></tr>
+<tr><td>13</td><td><code>screened</code></td><td>the response would have <b>disclosed</b> regulated data out of a screened scope &mdash; or the screen that would have judged it could not run. See <a href="fettle-screening.html">the disclosure screen</a></td></tr>
 </table>
 
 <div class="takeaway"><b>8 and 9 are deliberately different.</b>
@@ -949,7 +961,7 @@ platforms.</p>
 <tr><td><code>"path": "../shoddy-requirements"</code></td><td>correct, and means the same on every platform</td></tr>
 <tr><td><code>"path": "..\\shoddy-requirements"</code></td><td><b>refused.</b> Windows accepts <code>/</code> in every API. But on macOS and Linux a backslash is an ordinary character in a name, not a separator &mdash; so this names a file with a backslash in it, and finds nothing</td></tr>
 <tr><td><code>"path": "C:/work/tree"</code></td><td>allowed; absolute, so it names one machine either way</td></tr>
-<tr><td><code>"path": "C:\\work\\tree"</code></td><td>allowed. An absolute path cannot travel whatever its separators are, so a Windows path in a gitignored <code>.fettler.local.json</code> is a person describing their own machine</td></tr>
+<tr><td><code>"path": "C:\\work\\tree"</code></td><td>allowed. An absolute path cannot travel whatever its separators are, so a Windows path in an uncommitted <code>.fettler.local.json</code> is a person describing their own machine</td></tr>
 </table>
 
 <p><b>Refused rather than converted</b>, because converting would make a
@@ -985,7 +997,7 @@ location instead (<code>git -C</code>, an absolute path,
 is one row per client per level, ending in a verdict. <b>The findings</b>
 are numbered, and each one is a way round the boundary. A finding marked
 <code>!</code> is serious; one marked <code>-</code> is worth knowing.
-Running it is <a href="setup.html#doctor">step 5 of setting up a
+Running it is <a href="fettle-setup.html#doctor">step 5 of setting up a
 project</a>.</p>
 
 <p class="note"><span class="lab">Note</span> <code>setup</code> adds
@@ -998,7 +1010,7 @@ objects to.</p>
 
 <table>
 <tr><th>What it says</th><th>What it means</th><th>How to clear it</th></tr>
-<tr><td><code>on PATH: no</code></td><td>Nothing on <code>PATH</code> resolves <code>fettle</code>, so every registration naming a bare <code>fettle</code> will fail to launch.</td><td><a href="install.html#path">Put it on <code>PATH</code></a> and open a new terminal &mdash; or register an absolute path with <code>fettle setup CLIENT --local --command "C:\tools\fettle\fettle.exe"</code>.</td></tr>
+<tr><td><code>on PATH: no</code></td><td>Nothing on <code>PATH</code> resolves <code>fettle</code>, so every registration naming a bare <code>fettle</code> will fail to launch.</td><td><a href="fettle-install.html#path">Put it on <code>PATH</code></a> and open a new terminal &mdash; or register an absolute path with <code>fettle setup CLIENT --local --command "C:\tools\fettle\fettle.exe"</code>.</td></tr>
 <tr><td><code>absent</code></td><td>No server called <code>fettler</code> is registered in that file.</td><td><code>fettle setup CLIENT --local</code> (or <code>--global</code>). Run it with <code>--dry-run</code> first.</td></tr>
 <tr><td><code>broken</code> (2.12)</td><td>A registration is there, but its command does not resolve &mdash; checked the way the client would check it, through <code>PATH</code> and <code>PATHEXT</code>.</td><td>Fix <code>PATH</code>, or re-run <code>setup</code> with <code>--command</code> naming the binary; add <code>--force</code> to overwrite the existing entry.</td></tr>
 <tr><td><code>healthy</code></td><td>Registered, and the command launches.</td><td>Nothing.</td></tr>
@@ -1010,11 +1022,11 @@ objects to.</p>
 <table>
 <tr><th>Check</th><th>What it found</th><th>How to clear it</th></tr>
 
-<tr><td><b>2.6</b> <code>!</code></td><td>An <code>allow</code> entry pre-approving a shell command that writes files &mdash; <code>sed&nbsp;-i</code>, <code>cp</code>, <code>rm</code>, <code>Set-Content</code>, a redirect. Each runs without a prompt, and each is a complete route round the boundary.</td><td><b>Remove those allow entries.</b> No tool can do this for you, and no blocklist can replace it &mdash; <a href="install.html#shell">the shell section</a> explains why <code>echo x &gt; file</code> defeats any list that could be written. The rule worth adopting: stop pre-approving shell commands that write.</td></tr>
+<tr><td><b>2.6</b> <code>!</code></td><td>An <code>allow</code> entry pre-approving a shell command that writes files &mdash; <code>sed&nbsp;-i</code>, <code>cp</code>, <code>rm</code>, <code>Set-Content</code>, a redirect. Each runs without a prompt, and each is a complete route round the boundary.</td><td><b>Remove those allow entries.</b> No tool can do this for you, and no blocklist can replace it &mdash; <a href="fettle-install.html#shell">the shell section</a> explains why <code>echo x &gt; file</code> defeats any list that could be written. The rule worth adopting: stop pre-approving shell commands that write.</td></tr>
 
 <tr><td><b>2.7</b> <code>!</code></td><td>An <code>allow</code> on a built-in tool Fettler replaces. <code>Read</code> in particular defeats containment, the read permission, and hidden scopes at once.</td><td><b>Remove the allow</b>, then <code>fettle setup CLIENT --local</code> to add the matching deny. Leaving both is finding B.17.</td></tr>
 
-<tr><td><b>2.8</b> <code>-</code></td><td>Nothing <em>denies</em> one of the eleven &mdash; the six built-in editors and readers; the shells <code>Bash</code>, <code>PowerShell</code> and <code>Monitor</code>; and <code>BashOutput</code> and <code>TaskOutput</code>. Each undenied name is a route round the boundary. A shell is the widest of them: <code>node x.js</code> writes anywhere, and it is not a writing command. <b><code>Monitor</code> is a shell</b> &mdash; it runs the command it is handed in the same environment <code>Bash</code> does, so denying <code>Bash</code> and leaving it open denies the word and not the thing. <b><code>BashOutput</code> and <code>TaskOutput</code> are readers</b>: they start nothing and write nothing, but they hand back the output of work already done, and those bytes reached the model without passing the tree boundary, the secret scan or the <a href="screening.html">disclosure screen</a>.</td><td><code>fettle setup claude-code --local</code> writes all eleven denies at the repo level by default. Then <a href="install.html#shell">allow back</a> the commands this project needs. For every project at once, <code>--global --deny</code> &mdash; said out loud, because changing how the assistant works everywhere is not a side effect.</td></tr>
+<tr><td><b>2.8</b> <code>-</code></td><td>Nothing <em>denies</em> one of the eleven &mdash; the six built-in editors and readers; the shells <code>Bash</code>, <code>PowerShell</code> and <code>Monitor</code>; and <code>BashOutput</code> and <code>TaskOutput</code>. Each undenied name is a route round the boundary. A shell is the widest of them: <code>node x.js</code> writes anywhere, and it is not a writing command. <b><code>Monitor</code> is a shell</b> &mdash; it runs the command it is handed in the same environment <code>Bash</code> does, so denying <code>Bash</code> and leaving it open denies the word and not the thing. <b><code>BashOutput</code> and <code>TaskOutput</code> are readers</b>: they start nothing and write nothing, but they hand back the output of work already done, and those bytes reached the model without passing the tree boundary, the secret scan or the <a href="fettle-screening.html">disclosure screen</a>.</td><td><code>fettle setup claude-code --local</code> writes all eleven denies at the repo level by default. Then <a href="fettle-install.html#shell">allow back</a> the commands this project needs. For every project at once, <code>--global --deny</code> &mdash; said out loud, because changing how the assistant works everywhere is not a side effect.</td></tr>
 
 <tr><td><b>2.9</b> <code>-</code></td><td>An <code>additionalDirectories</code> entry naming somewhere outside every declared tree. When two boundaries disagree, the wider one is what applies, and the narrower one is decoration.</td><td><b>Pick one.</b> Either drop the entry from the client's settings, or add that directory to <code>.fettler.json</code> as a tree with the permissions you actually mean.</td></tr>
 
@@ -1028,13 +1040,13 @@ objects to.</p>
 
 <tr><td><b>2.14</b> <code>!</code></td><td><code>chat.tools.autoApprove</code> is on. It approves arbitrary tools without asking, and reinstates every route the boundary removes.</td><td><b>Turn it off</b> in the client's settings. Nothing else survives it being on.</td></tr>
 
-<tr><td><b>2.15</b> <code>-</code></td><td>An assistant scratch directory outside every declared tree. Nothing here granted it &mdash; the harness did &mdash; so work staged there is invisible to this boundary. <b>And once the built-in <code>Write</code> is denied, nothing can write there at all.</b></td><td><b>Declare the per-project folder inside it</b> as a tree in <code>.fettler.local.json</code>, which is gitignored. Declare the project folder, not its parent &mdash; the parent holds every project's scratch. See <a href="setup.html#scratch">step 2</a>.</td></tr>
+<tr><td><b>2.15</b> <code>-</code></td><td>An assistant scratch directory outside every declared tree. Nothing here granted it &mdash; the harness did &mdash; so work staged there is invisible to this boundary. <b>And once the built-in <code>Write</code> is denied, nothing can write there at all.</b></td><td><b>Declare the per-project folder inside it</b> as a tree in <code>.fettler.local.json</code>, which is kept out of source control. Declare the project folder, not its parent &mdash; the parent holds every project's scratch. See <a href="fettle-setup.html#scratch">step 2</a>.</td></tr>
 
 <tr><td><b>2.17</b> <code>-</code></td><td>Another MCP server is registered beside Fettler. The deny list closes <em>names</em>, and that server's tools are not called <code>Read</code> &mdash; so nothing <code>setup</code> writes says anything about what it may reach, and it reaches whatever its own process reaches.</td><td><b>Decide, one server at a time.</b> Most of them are wanted, and this is reported as a fact rather than a fault. For any that should not be a route, deny <code>mcp__&lt;name&gt;__*</code>. Unlike 2.8 this reads the servers actually registered on the machine in front of it, so a server installed tomorrow is reported tomorrow.</td></tr>
 
-<tr><td><b>2.18</b> <code>-</code></td><td>The configuration names a tool that is not in the inventory this <code>fettle</code> was built with. <b>Check 2.8 therefore said nothing about it either way &mdash; not that it is safe.</b> The client keeps growing new tools, and a closed list that has fallen behind reports exactly as clean as one that has not, which is why the inventory's date is printed with every report.</td><td><b>Decide by hand whether it reads files, writes them, or runs a shell</b> &mdash; and deny it if it does. A newer <code>fettle</code> may already know it, so <a href="install.html">upgrading</a> is the other half of the fix. Rules naming another server's tools (<code>mcp__&hellip;</code>) are 2.17's business and are never reported here.</td></tr>
+<tr><td><b>2.18</b> <code>-</code></td><td>The configuration names a tool that is not in the inventory this <code>fettle</code> was built with. <b>Check 2.8 therefore said nothing about it either way &mdash; not that it is safe.</b> The client keeps growing new tools, and a closed list that has fallen behind reports exactly as clean as one that has not, which is why the inventory's date is printed with every report.</td><td><b>Decide by hand whether it reads files, writes them, or runs a shell</b> &mdash; and deny it if it does. A newer <code>fettle</code> may already know it, so <a href="fettle-install.html">upgrading</a> is the other half of the fix. Rules naming another server's tools (<code>mcp__&hellip;</code>) are 2.17's business and are never reported here.</td></tr>
 
-<tr><td><b>B.17</b> <code>!</code></td><td>A rule in <b>both</b> <code>allow</code> and <code>deny</code>. Which wins is the client's to decide, and cannot be determined from here. <b>A narrowed shell allow beside the shell deny is exempt</b> &mdash; <code>allow: Bash(git status:*)</code> with <code>deny: Bash</code> is the shape this tool asks for, not a conflict.</td><td><b>Remove it from one of the two lists</b> &mdash; whichever you meant. Do not rely on precedence; see <a href="install.html#precedence">deny versus allow</a>.</td></tr>
+<tr><td><b>B.17</b> <code>!</code></td><td>A rule in <b>both</b> <code>allow</code> and <code>deny</code>. Which wins is the client's to decide, and cannot be determined from here. <b>A narrowed shell allow beside the shell deny is exempt</b> &mdash; <code>allow: Bash(git status:*)</code> with <code>deny: Bash</code> is the shape this tool asks for, not a conflict.</td><td><b>Remove it from one of the two lists</b> &mdash; whichever you meant. Do not rely on precedence; see <a href="fettle-install.html#precedence">deny versus allow</a>.</td></tr>
 
 <tr><td><b>2.x</b> <code>!</code></td><td>A configuration file that is there and could not be read &mdash; malformed JSON, or a permission error. The message is the parser's own.</td><td><b>Fix the file.</b> A configuration that cannot be read is not treated as absent, because "absent" and "broken" want different answers.</td></tr>
 </table>
@@ -1072,14 +1084,15 @@ worried about.</p>
 
 <div class="takeaway"><b>That is the whole of what Fettler is.</b> Three
 commands put it on a machine and turn it on in a project:
-<a href="quickstart.html">the quick start</a>. The reference
-behind them is <a href="install.html">installing it</a> for the
+<a href="fettle-quickstart.html">the quick start</a>. The reference
+behind them is <a href="fettle-install.html">installing it</a> for the
 per-machine wiring and the exit codes, and
-<a href="setup.html">Fettler in a project</a> for declaring
+<a href="fettle-setup.html">Fettler in a project</a> for declaring
 trees, scopes and tasks.</div>
 
 <nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
-  <a href="screening-models.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Screening: the models</span></span></a>
+  <a href="fettle-models.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">The models</span></span></a>
+  
 </nav>
 <footer>Named for the shoddy mills of the West Riding: Useless Things Made
 Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>

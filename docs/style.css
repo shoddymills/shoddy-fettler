@@ -38,8 +38,8 @@ body{margin:0; background:var(--paper); color:var(--ink);
 /* --- top bar / doc nav --- */
 .topbar{position:sticky; top:0; z-index:10; background:rgba(239,236,228,.92);
   backdrop-filter:saturate(120%) blur(6px); border-bottom:1px solid var(--line)}
-/* Two rows: the wordmark and the about-links ride together up top, the
-   fourteen-item single row this replaced wrapped raggedly at any width. */
+/* Two rows: the wordmark and the about-links ride together up top; below
+   them one line holds the program switcher and the current lane's items. */
 .topbar .inner{max-width:var(--max); margin:0 auto; padding:.5rem 1.25rem .55rem; font-size:.82rem}
 .topbar .row{display:flex; flex-wrap:wrap; align-items:center; gap:.75rem; row-gap:.2rem}
 .topbar .phase{display:inline-flex; align-items:center; gap:.42rem;
@@ -64,6 +64,26 @@ body{margin:0; background:var(--paper); color:var(--ink);
 .docnav a{color:var(--ink-soft); text-decoration:none; font-weight:500}
 .docnav a:hover{color:var(--accent)}
 .docnav .here{color:var(--accent); font-weight:700}
+/* One line: the program switcher on the left, then the current lane's
+   sections. The switcher is drawn as a two-position control - a bordered
+   track holding both programs, the chosen one filled in the house madder -
+   so it reads as a switch rather than as two more links. Each position
+   carries a small caption naming what the program is for. On a lane page
+   the other program links to the SAME section in the other lane, so
+   flipping programs never loses the reader's place. */
+.topbar .lanes{display:flex; align-items:center; gap:.2rem 1rem; flex-wrap:wrap; margin-top:.35rem}
+.docnav.switch{display:inline-flex; flex:none; gap:2px; padding:2px;
+  border:1px solid var(--line); border-radius:.55rem; background:var(--card)}
+.docnav.switch a, .docnav.switch .here{display:flex; flex-direction:column; align-items:center;
+  padding:.16rem .6rem .2rem; border-radius:.4rem; line-height:1.2;
+  font-weight:700; letter-spacing:.07em; text-transform:uppercase; font-size:.7rem}
+.docnav.switch small{display:block; font-weight:500; letter-spacing:.02em;
+  text-transform:none; font-size:.6rem; opacity:.7}
+.docnav.switch .here{background:var(--madder); color:#fff}
+.docnav.switch .here small{opacity:.85}
+.docnav.switch a{color:var(--ink-soft)}
+.docnav.switch a:hover{color:var(--madder); background:var(--accent-soft)}
+.topbar .lanes .docnav.main{justify-content:space-between; gap:.2rem .5rem; margin-top:0; flex:1}
 /* Justified spacing turns ugly once the row wraps — pack left instead. */
 @media (max-width:760px){.docnav.main{justify-content:flex-start; gap:.2rem .8rem}}
 
@@ -198,7 +218,7 @@ details.worked p{padding:0 .9rem .8rem; margin:.5rem 0 0}
   border-radius:.45rem}
 .ask .lab{font-weight:700; font-size:.7rem; letter-spacing:.06em;
   text-transform:uppercase; color:var(--accent); margin-right:.5rem}
-/* Scoped to p deliberately: setup.html wraps each step in <section class="step">,
+/* Scoped to p deliberately: fettle-setup.html wraps each step in <section class="step">,
    and an unscoped .step handed those whole sections this label's uppercase,
    bold, .7rem and letter-spacing — text-transform and font-weight inherit, so
    every paragraph inside them rendered as shouted small print. */
@@ -283,6 +303,13 @@ table.thumbs.code td.thumb{width:180px}
 .gallery.mini .lab{padding:.4rem .55rem .5rem}
 .gallery.mini .lab b{font-size:.8rem}
 .gallery.mini .lab span{font-size:.68rem; min-height:2em}
+/* --- the two programs, side by side (index) --- */
+.pair{display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.4rem 0 .4rem}
+@media (max-width:640px){.pair{grid-template-columns:1fr}}
+.pair .prog{border:1px solid var(--line); border-radius:.6rem; background:var(--card); padding:.9rem 1.05rem 1rem}
+.pair .prog .cmd{color:var(--accent); font-weight:700; font-size:.74rem; letter-spacing:.06em; text-transform:uppercase; margin:0 0 .4rem}
+.pair .prog p{margin:.35rem 0 0; font-size:.94rem}
+.pair .prog .go{display:inline-block; margin-top:.6rem; font-weight:600; text-decoration:none}
 .onramp{display:grid; grid-template-columns:minmax(0,3fr) minmax(220px,2fr);
   gap:1.2rem; align-items:center; margin:1.2rem 0 1.6rem}
 .onramp p{margin:0}

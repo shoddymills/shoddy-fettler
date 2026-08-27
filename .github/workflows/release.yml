@@ -67,20 +67,20 @@ jobs:
       - name: Test
         run: ./scripts/fettler-build.sh test
 
-      # BOTH programs, 6 RIDs each, 12 archives. The upload below has to
-      # name both: an archive that is built and not attached is
+      # THREE programs, 6 RIDs each, 18 archives. The upload below has to
+      # name all three: an archive that is built and not attached is
       # indistinguishable from one that was never built, except that
       # nothing fails.
-      - name: Publish fettle and burler
+      - name: Publish fettle, burler and pick
         run: ./scripts/fettler-build.sh publish ${{ steps.ver.outputs.version }}
 
-      # R6.9, asserted rather than assumed, on both programs. burler is
-      # launched by fettle as a child process; one that arrives without its
+      # R6.9, asserted rather than assumed, on all three programs. burler
+      # is launched as a child process; one that arrives without its
       # execute bit turns every screened read into a refusal that blames
       # the sidecar for not starting.
       - name: The unix archives carry the executable bit
         run: |
-          for program in fettle burler; do
+          for program in fettle burler pick; do
             for rid in linux-x64 linux-arm64 osx-x64 osx-arm64; do
               archive="artifacts/publish/$program-${{ steps.ver.outputs.version }}-$rid.tar.gz"
               tar -tvzf "$archive" | grep -q "^-rwx" || {
@@ -103,21 +103,27 @@ jobs:
           echo "fettle --version -> $reported"
           echo "$reported" | grep -q '${{ steps.ver.outputs.version }}' || {
             echo "the binary does not report ${{ steps.ver.outputs.version }}"; exit 1; }
+          tar -xzf artifacts/publish/pick-${{ steps.ver.outputs.version }}-linux-x64.tar.gz \
+            -C smoke-release
+          reported=$(./smoke-release/pick --version)
+          echo "pick --version -> $reported"
+          echo "$reported" | grep -q '${{ steps.ver.outputs.version }}' || {
+            echo "pick does not report ${{ steps.ver.outputs.version }}"; exit 1; }
 
       # Every archive must carry both files. The licences oblige it, and an
       # obligation nobody can read has not been met.
       - name: Every archive carries NOTICE and LICENSE
         run: |
           cd artifacts/publish
-          for a in fettle-*.tar.gz burler-*.tar.gz; do
+          for a in fettle-*.tar.gz burler-*.tar.gz pick-*.tar.gz; do
             tar -tzf "$a" | grep -q '^NOTICE$'  || { echo "$a has no NOTICE";  exit 1; }
             tar -tzf "$a" | grep -q '^LICENSE$' || { echo "$a has no LICENSE"; exit 1; }
           done
-          for a in fettle-*.zip burler-*.zip; do
+          for a in fettle-*.zip burler-*.zip pick-*.zip; do
             unzip -l "$a" | grep -q 'NOTICE'  || { echo "$a has no NOTICE";  exit 1; }
             unzip -l "$a" | grep -q 'LICENSE' || { echo "$a has no LICENSE"; exit 1; }
           done
-          echo "all 12 archives carry both"
+          echo "all 18 archives carry both"
 
       # Hand-written notes win. They must be committed BEFORE the tag is
       # pushed, because this job checks out the tag and sees only what that
@@ -156,5 +162,7 @@ jobs:
             artifacts/publish/fettle-*.tar.gz \
             artifacts/publish/burler-*.zip \
             artifacts/publish/burler-*.tar.gz \
+            artifacts/publish/pick-*.zip \
+            artifacts/publish/pick-*.tar.gz \
             --title "${{ steps.ver.outputs.tag }}" \
             --notes-file BODY.md

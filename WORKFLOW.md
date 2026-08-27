@@ -171,8 +171,8 @@ the moment somebody else pushes, and nothing announces it.
 ## 8 — Watch, then verify
 
 Actions → **Release**. It rebuilds from the tag on a clean Linux runner, runs
-both suites again, publishes 12 archives — `fettle` and `burler`, six RIDs
-each — and composes the release body from your notes file.
+all three suites again, publishes 18 archives — `fettle`, `burler` and
+`pick`, six RIDs each — and composes the release body from your notes file.
 
 Three things it asserts before publishing, each of which has broken a release
 somewhere:

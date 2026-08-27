@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The executable, and the whole of it is wiring: read argv, hand it
+       to one of the two front ends in Picker, write what comes back to
+       the real stdout, return the exit code. Every decision worth making
+       was made in Picker and is tested there without a process.
+
+       The project and the server are Picker, and the thing a person or
+       a script types is `pick`, the imperative, because
+       `pick select ...` reads as an instruction - the fettle/fettler
+       arrangement, kept.
+
+       The front end is chosen by the `serve` subcommand rather than by
+       the name the executable was invoked under, for fettle's stated
+       reason: selection by argv[0] rests on a mechanism not in ordinary
+       use on Windows, and both required platforms spell a subcommand
+       the same way.
+
+       PublishSingleFile and self-contained are set by the publish step
+       in fettler-build.ps1 rather than here, so a plain `dotnet build`
+       stays fast. The managed-SNI pin (D2) rides in from Picker.csproj
+       as a runtime host option AND is set in Main before any connection
+       opens, so neither path can miss it. -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>pick</AssemblyName>
+    <RootNamespace>Pick</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Picker\Picker.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="Switch.Microsoft.Data.SqlClient.UseManagedNetworkingOnWindows"
+                                    Value="true" />
+  </ItemGroup>
+
+</Project>

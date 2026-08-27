@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1570 1180" role="img"
   aria-label="Component diagram of three boundaries. First, the model, Claude in VS Code, whose eleven built-in tools are every one of them struck through as denied: the six file tools Read, Write, Edit, NotebookEdit, Grep and Glob; then the three shells Bash, PowerShell and Monitor, Monitor being a shell because it runs the command it is handed in the same environment Bash does; and last the two output readers BashOutput and TaskOutput, which start nothing and write nothing but hand back the output of work already done, bytes that reached the model without passing the tree boundary, the secret scan or the disclosure screen. Second, the Fettler MCP server, whose boundary comes from .fettler.json and which refuses to write the files that govern it or the model. Third, the filesystem, visible only as the declared trees, with everything else refused as nonexistent.">
 <style>
-/* Extracted from docs/diagram.html so the figure can stand alone in a README.
+/* Extracted from docs/fettle-workstation.html so the figure can stand alone in a README.
    The palette is the site's: madder for what is refused, drab for what is
    granted, indigo for what is read-only, over the unbleached wool ground.
    Kept in step with the page by hand - if the diagram there is restyled,
@@ -162,7 +162,7 @@ text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 
 <rect x="40" y="956" width="440" height="60" rx="8" class="card2"/>
 <text x="52" y="974" class="cardTm mono" fill="var(--ink)">.claude/settings.local.json&#160;&#160;<tspan class="bad">&#8856; governed</tspan></text>
-<text x="52" y="992" class="note">personal and gitignored &#8212; grants made here never appear in a</text>
+<text x="52" y="992" class="note">personal, not checked in &#8212; grants made here never appear in a</text>
 <text x="52" y="1006" class="note">review, so doctor names its presence (finding 2.13)</text>
 
 <!-- ============ COLUMN 2 : FETTLER ============ -->
@@ -199,7 +199,7 @@ text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 <text x="600" y="548" class="snip mono">&#160;&#160;&#160;&#160;"build": { "run": "pwsh -File build.ps1" } } }</text>
 
 <rect x="580" y="584" width="430" height="112" rx="8" class="card2"/>
-<text x="592" y="602" class="cardTm mono" fill="var(--ink)">.fettler.local.json &#8212; gitignored&#160;&#160;<tspan class="bad">&#8856; governed</tspan></text>
+<text x="592" y="602" class="cardTm mono" fill="var(--ink)">.fettler.local.json &#8212; not checked in&#160;&#160;<tspan class="bad">&#8856; governed</tspan></text>
 <text x="592" y="616" class="note">this machine&#8217;s own; a name in both files is the overlay&#8217;s entirely</text>
 <rect x="592" y="622" width="406" height="64" rx="5" class="snipbg"/>
 <text x="600" y="636" class="snip mono">{ "trees": { "scratch": {</text>
@@ -246,7 +246,7 @@ text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 <rect x="1085" y="506" width="445" height="110" rx="8" fill="var(--drab-tint)" stroke="var(--drab)"/>
 <text x="1098" y="526" class="cardTm mono" fill="var(--ink)">scratch &#8594; C:/Users/you/&#8230;/Temp/claude/&lt;project&gt;</text>
 <text x="1098" y="541" class="badge mono ok">can: list read create update rename delete</text>
-<text x="1098" y="566" class="note">the harness&#8217;s staging area, declared in the gitignored overlay.</text>
+<text x="1098" y="566" class="note">the harness&#8217;s staging area, declared in the uncommitted overlay.</text>
 <text x="1098" y="579" class="note">without it, denying the built-in Write closes staging entirely &#8212;</text>
 <text x="1098" y="592" class="note">doctor names the gap (finding 2.15). no execute: staging, not running</text>
 

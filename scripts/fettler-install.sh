@@ -5,6 +5,7 @@
 #   ./scripts/fettler-install.sh -To DIR          install into DIR instead
 #   ./scripts/fettler-install.sh -Stop            end the servers still on the old build
 #   ./scripts/fettler-install.sh -DryRun          say what would happen and touch nothing
+#   ./scripts/fettler-install.sh -Program pick    the SQL tool instead of fettle
 #   ./scripts/fettler-install.sh -Program burler  the sidecar instead of fettle
 #
 # The twin of fettler-install.ps1 and equivalent to it, down to the spelling of the
@@ -95,9 +96,9 @@ while [ $# -gt 0 ]; do
 done
 
 case "$program" in
-    fettle|burler) ;;
+    fettle|burler|pick) ;;
     *) stop_with "'$program' is not a program in this repository." \
-                 "It is fettle or burler." ;;
+                 "It is fettle, burler or pick." ;;
 esac
 
 # ---- 1. this machine's runtime identifier ----

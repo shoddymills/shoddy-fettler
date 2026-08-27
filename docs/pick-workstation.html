@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="The picked workstation &mdash; two pictures of a SQL Server as pick sees it: the server as a map with one database lit, and the three boundaries that make it look that way.">
+<title>The Picked Workstation | Picker</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* The figure frame, kept in step with fettle-workstation.html by hand: the
+   card, the caption, and the button that hands the figure the whole screen.
+   The diagrams themselves are standalone SVGs under media/. */
+.wsfig{position:relative; background:var(--card); border:1px solid var(--line);
+  border-radius:.6rem; padding:2.6rem .6rem .6rem}
+.wsfig img{display:block; width:100%; height:auto}
+.wsfs{position:absolute; top:.55rem; right:.6rem; z-index:2;
+  background:var(--madder); color:#fff; border:0; border-radius:.45rem;
+  padding:.45rem .85rem; font-family:inherit; font-size:.82rem; font-weight:650;
+  letter-spacing:.02em; cursor:pointer}
+.wsfs:hover{filter:brightness(1.12)}
+.wsfig:fullscreen{background:var(--paper); display:flex; align-items:center;
+  justify-content:center; overflow:auto; padding:0; border:0; border-radius:0}
+.wsfig:fullscreen img{height:96vh; width:auto; max-width:97vw}
+figure.wsdiag{margin:1.4rem 0}
+figure.wsdiag figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2rem 0}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="inner">
+  <div class="row">
+    <a class="phase" href="index.html"><img class="mark" src="media/brand/shoddy-icon.svg" alt="" width="23" height="23">Shoddy &middot; Fettler</a>
+    <span class="spacer"></span>
+    <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
+  </div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle-workstation.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><a href="pick.html">Overview</a><span class="here">Workstation</span><a href="pick-quickstart.html">Quick start</a><a href="pick-install.html">Install</a><a href="pick-setup.html">In a project</a><a href="pick-screening.html">Screening</a><a href="pick-models.html">Models</a><a href="pick-reference.html">Reference</a></nav></div>
+</div></div>
+<div class="wrap">
+<header class="mast">
+<p class="eyebrow">Shoddy &middot; Picker</p>
+<h1 id="workstation">The Picked Workstation</h1>
+<p class="kicker">Two pictures: the server as a map with one database
+lit, and the boundaries that make it look that way. There is less to
+draw than on the fettled workstation, because SQL needs less &mdash;
+one database, one statement, no shell.</p>
+</header>
+
+<nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a href="pick.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Picker</span></span></a><a class="next" href="pick-quickstart.html"><span class="pnwrap"><span class="ttl">Quick Start</span><span class="dir">Next &rarr;</span></span></a></nav>
+
+<p>Where <code>fettle</code>&#8217;s map is a whole disk &mdash;
+directories, scratch folders, credentials, an operating system, and
+every way off the machine &mdash; pick&#8217;s world is one server, one
+declared database, and one way in. <b>No command produced this
+arrangement</b>: every line of it was written by hand into
+<code>.picker.json</code> and its uncommitted local twin, both printed on
+<a href="pick-setup.html">the project page</a>, and pick refuses to
+write either.</p>
+
+<h2 id="map">The server, and the one way onto it</h2>
+
+<figure class="wsdiag">
+<div class="wsfig" id="pmfig">
+<button class="wsfs" id="pmfs" type="button" title="Show the diagram full screen">&#x26F6; Full screen</button>
+<img src="media/pick-map.svg" width="1280" height="900"
+  alt="A map of a SQL Server as pick sees it. The whole server is one hatched area meaning out of bounds by default. Inside it, one database, Sales, is lit: dbo.Orders may be selected and described, dbo.Customers may be selected without its ssn and dob columns which do not exist here, dbo.TopCustomers is a view whose columns answer and whose stored text never does, and the audit schema is sealed and never even listed. The rest of the server is dark: the system databases, an adjacent undeclared database, the system catalog, and linked servers. A strip across the bottom of the server names the login pick connects as, granted only SELECT and VIEW DEFINITION. Below the server is the one way in: pick, carrying one SELECT at a time, parsed whole, rewritten three-part and screened on the way back; beside it, everything else - there is no shell, no EXEC, no second statement, and no write verb exists to try.">
+</div>
+<figcaption><b>The server, and the one way onto it.</b> The hatched
+ground is the whole server, and it is the default; the lit database is
+the entire list, not a summary of it. Inside the one lit database the
+scopes go on deciding &mdash; a schema sealed, two columns that do not
+exist here, a view that answers its columns and never its text. The
+system databases, the neighbours, the catalog and the linked servers
+are not locked doors on the map: they are simply not on the map, and
+asking for any of them answers in the same words as asking for a table
+that never existed. And the one way in carries statements, never
+commands &mdash; one <code>SELECT</code> at a time, parsed whole,
+rewritten, and <a href="pick-screening.html">screened on the way
+back</a>.</figcaption>
+</figure>
+
+<p><b>Correlating the map with the two files that drew it:</b></p>
+
+<table>
+<tr><th>On the map</th><th>What says so</th></tr>
+<tr><td><code>Sales</code> lit, and nothing else</td><td>the one entry under <code>"databases"</code> &mdash; out of bounds is the default, and whatever is absent stays dark</td></tr>
+<tr><td><code>audit.*</code> sealed, never even listed</td><td><code>"can": []</code> on its scope &mdash; a scope <em>replaces</em> what the database grants, so an empty one grants nothing at all</td></tr>
+<tr><td><code>ssn</code> and <code>dob</code> nonexistent in <code>Customers</code></td><td><code>"columns": ["-ssn", "-dob"]</code> &mdash; removed from <code>SELECT *</code> before the server sees the query, and refused anywhere else a column can appear</td></tr>
+<tr><td>the view's stored text never answering</td><td><b>no line, and no line could</b> &mdash; view text is denied in full by design, because it embeds the very structure the scopes may be hiding</td></tr>
+<tr><td>the login's short leash</td><td><b>not pick's file at all</b> &mdash; a grant a person makes on the server, so that even a fault in pick has nothing wider to spend</td></tr>
+<tr><td>the one way in</td><td>the <code>connect</code> line in the uncommitted local file &mdash; and the gate in front of it, which no line switches off</td></tr>
+</table>
+
+<h2 id="boundaries">And here is how it is held</h2>
+
+<figure class="wsdiag">
+<div class="wsfig" id="pwfig">
+<button class="wsfs" id="pwfs" type="button" title="Show the diagram full screen">&#x26F6; Full screen</button>
+<img src="media/pick-workstation.svg" width="1570" height="1150" loading="lazy"
+  alt="Component diagram of three boundaries. First, the model, Claude in VS Code - the same client that runs fettle, with no built-in SQL tool to deny, so the one route is the five picker tools. Second, the Picker MCP server, pick, whose boundary comes from .picker.json and is re-read before every call, offering only catalogs, objects, select, describe and doctor, with no write verb to deny. Third, the SQL Server, visible only as the declared databases: one database Sales with a hidden audit schema and excluded columns, a least-privilege login granted only SELECT and VIEW DEFINITION, and everything undeclared, including the system catalog and linked servers, refused in the same words as a table that was never there.">
+</div>
+<figcaption><b>A workstation, picked.</b> The same three-boundary shape
+the fettled workstation draws, with less in
+it because there is less to hold: the model needs nothing new denied
+&mdash; there is no built-in SQL tool &mdash; so wiring pick adds one
+bounded route and closes nothing; the tool takes its boundary from a
+governed file it re-reads before every call and refuses to write; and
+the server exists only as the declared databases, behind a login that
+could not do more even if the gate failed. The diagram fits the page;
+<b>Full screen</b> shows it at reading size.</figcaption>
+</figure>
+
+<h2 id="reading">How to read it</h2>
+
+<ul>
+<li><b>The model boundary needs nothing new.</b> The eleven built-ins
+a fettled workstation denies are file tools, shells and output
+readers; none of them speaks SQL. Registering pick is one <code>.mcp.json</code> entry, and
+pick refuses to write that file, or any file that governs it or the
+model.</li>
+<li><b>The tool boundary is a governed file, re-read every call.</b>
+Where <code>fettle serve</code> learns its trees at launch, pick
+re-reads <code>.picker.json</code> before every call &mdash; an edit
+binds on the next request. No tool schema carries a connection string
+or a database name to widen it with. And where fettle must refuse its
+write verbs on governed files, pick is simpler still: <b>it has no
+write verb at all</b>.</li>
+<li><b>The server boundary is the declared databases.</b> No default
+database, no <code>USE</code>, no <code>sys.*</code>, no linked
+servers; objects and columns scoped one by one; hidden refused in the
+words of absent. <a href="pick-reference.html">The reference</a> holds
+every refusal.</li>
+<li><b>And beneath all of it, the login</b> &mdash; granted only
+<code>SELECT</code> and <code>VIEW DEFINITION</code>, so the server
+keeps its own boundary too. <a href="pick-setup.html#login">The login
+argument</a> in full.</li>
+</ul>
+
+<p><b>Prove it, don&#8217;t trust it.</b> Ask the assistant to try each
+of these, and watch what comes back:</p>
+
+<table>
+<tr><th>Ask it to&hellip;</th><th>A correct setup&hellip;</th></tr>
+<tr><td>select from a database on the server that is not declared</td><td>refuses as not found &mdash; in the same words as a table that never existed</td></tr>
+<tr><td>run <code>DELETE</code>, or two statements in one call</td><td>refuses &mdash; the gate carries one SELECT and nothing else</td></tr>
+<tr><td>select <code>ssn</code> from a table whose scope excludes it</td><td>refuses as a column that does not exist &mdash; and <code>WHERE ssn = &hellip;</code> refuses identically</td></tr>
+<tr><td>read <code>sys.tables</code>, or <code>OBJECT_DEFINITION()</code></td><td>refuses &mdash; the catalog answers through <code>describe</code>, governed by the scopes</td></tr>
+<tr><td>describe a view</td><td>answers its columns and never its stored text</td></tr>
+<tr><td>select rows holding a synthetic SSN from a screened scope</td><td>refuses naming a category and a count, quoting nothing</td></tr>
+</table>
+
+<nav class="pagenav pagenav-bottom" aria-label="Picker, in order">
+  <a href="pick.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Picker</span></span></a>
+  <a class="next" href="pick-quickstart.html"><span class="pnwrap"><span class="ttl">Quick Start</span><span class="dir">Next &rarr;</span></span></a>
+</nav>
+<footer>Named for the shoddy mills of the West Riding: Useless Things Made
+Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>
+&copy; 2026 Stephen Vincent Foster</footer>
+</div>
+<script src="copy.js"></script>
+<script>
+(function () {
+  var figs = document.querySelectorAll(".wsfig");
+  Array.prototype.forEach.call(figs, function (fig) {
+    var btn = fig.querySelector(".wsfs");
+    if (!btn) return;
+    if (!fig.requestFullscreen) { btn.style.display = "none"; return; }
+    btn.addEventListener("click", function () {
+      if (document.fullscreenElement) { document.exitFullscreen(); }
+      else { fig.requestFullscreen(); }
+    });
+  });
+  document.addEventListener("fullscreenchange", function () {
+    Array.prototype.forEach.call(document.querySelectorAll(".wsfs"), function (btn) {
+      var mine = btn.parentNode === document.fullscreenElement;
+      btn.innerHTML = mine ? "&#10005; Exit full screen" : "&#x26F6; Full screen";
+    });
+  });
+})();
+</script>
+</body>
+</html>
