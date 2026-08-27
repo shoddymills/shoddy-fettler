@@ -445,3 +445,16 @@ smoke/
 # places them in a directory named in .fettler.local.json.
 models/
 *.onnx
+
+# ---- Picker ----
+
+# The per-machine half of Picker's configuration: connection strings,
+# credentials included, and this machine's models directory.
+# .fettler.local.json's twin, kept out of the diff for the same reason.
+.picker.local.json
+
+# The throwaway configuration ci.yml drives pick against, its reply
+# capture, and pick's own publish staging.
+pick-smoke.json
+pick-reply.json
+published-pick/

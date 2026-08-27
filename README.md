@@ -1,7 +1,14 @@
-# Fettler
+# Fettler & Picker
 
-**File, search and edit tools for a model and a script. One program, two
-front ends, and no shell between it and the file.**
+**Bounded tools for a model and a script — the files through `fettle`,
+the SQL Server through `pick`. Two programs, two front ends each, and no
+shell between them and the data.**
+
+| `fettle` — the files | `pick` — the SQL Server |
+|---|---|
+| **Find, search, read and edit inside *declared trees*, and nothing else.** No current directory, no path that climbs out, no shell to sneak past it. Batches land all or not at all; refused edits stop happening. | **SELECT and DESCRIBE inside *declared databases*, and nothing else.** No default database, no `USE`, no linked servers, no system catalog. Tables, views and columns scoped one by one; one statement through a fail-closed parser gate. |
+| A disclosure screen can refuse regulated data leaving a tree you name. | The same screen, over the rows coming out — same categories, same models, same `burler`. |
+| [Docs](https://shoddymills.github.io/shoddy-fettler/) · [Quick start](https://shoddymills.github.io/shoddy-fettler/fettle-quickstart.html) | [Docs](https://shoddymills.github.io/shoddy-fettler/pick.html) · [Quick start](https://shoddymills.github.io/shoddy-fettler/pick-quickstart.html) · [Reference](https://shoddymills.github.io/shoddy-fettler/pick-reference.html) |
 
 An assistant given Fettler cannot go wandering. Every path it touches must sit
 inside a *tree* — a folder you named ahead of time. Outside those trees
@@ -25,21 +32,25 @@ explorer, your editor and your git stay exactly as they were.
 
 **[Read the docs](https://shoddymills.github.io/shoddy-fettler/)**
 &nbsp;·&nbsp;
-[Quick start](https://shoddymills.github.io/shoddy-fettler/quickstart.html)
+[Quick start](https://shoddymills.github.io/shoddy-fettler/fettle-quickstart.html)
 &nbsp;·&nbsp;
-[Installing it](https://shoddymills.github.io/shoddy-fettler/install.html)
+[Installing it](https://shoddymills.github.io/shoddy-fettler/fettle-install.html)
 &nbsp;·&nbsp;
-[In a project](https://shoddymills.github.io/shoddy-fettler/setup.html)
+[In a project](https://shoddymills.github.io/shoddy-fettler/fettle-setup.html)
 
 The project, the lane and the MCP server are **Fettler**. The thing a
 person or a script types is **`fettle`**, the imperative — because
 `fettle move a.txt b.txt` reads as an instruction and `fettler move`
 does not. Both spellings are correct and neither is a typo.
 
+The SQL twin follows the same arrangement: the project is **Picker**,
+the command is **`pick`** — named for the rag pickers of the shoddy
+trade, who picked and graded the stock by hand and altered none of it.
+
 ## The fettled workstation
 
 <p align="center">
-  <a href="https://shoddymills.github.io/shoddy-fettler/diagram.html">
+  <a href="https://shoddymills.github.io/shoddy-fettler/fettle-workstation.html">
     <img src="docs/media/disk-map.svg" width="900"
          alt="A map of a developer's disk and the network beyond it. The whole machine is hatched, meaning out of bounds by default; a handful of lit blocks are the entire list of what is reachable. One repository is opened at one folder and shut at the next. The files that define the boundary are sealed inside the very tree that grants everything else. Two sanctioned network exits lead from one project only - and a Dropbox folder has its own sync door that no task opens and nothing here can close.">
   </a>
@@ -58,7 +69,7 @@ why sealing that folder is not about privacy but about shutting a route that
 would bypass every other line on the map.
 
 <p align="center">
-  <a href="https://shoddymills.github.io/shoddy-fettler/diagram.html">
+  <a href="https://shoddymills.github.io/shoddy-fettler/fettle-workstation.html">
     <img src="docs/media/workstation.svg" width="900"
          alt="A component diagram of three boundaries. First the model, whose eleven built-in tools are every one of them struck through as denied: six file tools, three shells, and two output readers. Second the Fettler MCP server, whose boundary comes from .fettler.json and which refuses to write the files that govern it or the model. Third the filesystem, visible only as the declared trees, with everything else refused as nonexistent.">
   </a>
@@ -76,7 +87,7 @@ nothing, but they hand back the output of work already done, and those bytes
 reached the model without passing the tree boundary, the secret scan or the
 disclosure screen.
 
-**[Both diagrams full size, with the reasoning behind every line](https://shoddymills.github.io/shoddy-fettler/diagram.html)**
+**[Both diagrams full size, with the reasoning behind every line](https://shoddymills.github.io/shoddy-fettler/fettle-workstation.html)**
 
 ## What is here
 
@@ -87,8 +98,11 @@ disclosure screen.
 | `Fettler/Mcp` | the MCP front end — stdio JSON-RPC, hand-rolled over `System.Text.Json` |
 | `fettle` | the executable, and the whole of it is wiring |
 | `burler` | the disclosure screen's model host — a **second** executable, for the reason below |
+| `Picker` | the SQL boundary — verbs, grants, columns, the resolver, the ScriptDom query gate, both front ends |
+| `pick` | a **third** executable — SELECT and DESCRIBE inside declared SQL Server databases, its own MCP server |
 | `Fettler.Tests` | the proof; every item in R10 of the requirements is an assertion here |
 | `burler.Tests` | burler's own proof — its own project, so each side of the pipe asserts the wire independently |
+| `Picker.Tests` | Picker's proof — the grant matrix and the whole query gate, pure against a catalog of literals |
 | `docs/` | the published site, deployed to Pages from `main` |
 | `scripts/` | the verifiers and the sitemap generator — all Node, all read-only bar one |
 | `release-notes/` | one file per tag; the whole file becomes the release body |
@@ -116,7 +130,7 @@ enough to be worth resuming.
 
 ```powershell
 ./scripts/fettler-build.ps1               # restore + build (Debug)
-./scripts/fettler-build.ps1 test          # Fettler.Tests AND burler.Tests — both, always
+./scripts/fettler-build.ps1 test          # Fettler.Tests, burler.Tests AND Picker.Tests — all, always
 ./scripts/fettler-build.ps1 check         # the verifiers: twins, permissions, docs, errors
 ./scripts/fettler-build.ps1 release       # Release build
 ./scripts/fettler-build.ps1 publish 1.0.0 # self-contained single-file per OS, per program
@@ -223,13 +237,21 @@ here can drift out of step with it.
 
 | You want | Page |
 |---|---|
-| Installed and turned on, in about five minutes | [Quick start](https://shoddymills.github.io/shoddy-fettler/quickstart.html) |
-| What the boundary looks like on a disk, drawn | [The workstation](https://shoddymills.github.io/shoddy-fettler/diagram.html) |
-| Per-machine wiring and client registrations | [Install](https://shoddymills.github.io/shoddy-fettler/install.html) |
-| Declaring trees, scopes and tasks | [In a project](https://shoddymills.github.io/shoddy-fettler/setup.html) |
-| Refusing to disclose regulated data | [Screening](https://shoddymills.github.io/shoddy-fettler/screening.html) |
-| The models the clinical, legal and scientific tiers need | [Screening: the models](https://shoddymills.github.io/shoddy-fettler/screening-models.html) |
-| The boundary in full, every verb, every refusal, every exit code, the threat model | [Reference](https://shoddymills.github.io/shoddy-fettler/reference.html) |
+| Installed and turned on, in about five minutes | [Quick start](https://shoddymills.github.io/shoddy-fettler/fettle-quickstart.html) |
+| What the boundary looks like on a disk, drawn | [The workstation](https://shoddymills.github.io/shoddy-fettler/fettle-workstation.html) |
+| Per-machine wiring and client registrations | [Install](https://shoddymills.github.io/shoddy-fettler/fettle-install.html) |
+| Declaring trees, scopes and tasks | [In a project](https://shoddymills.github.io/shoddy-fettler/fettle-setup.html) |
+| Refusing to disclose regulated data | [Screening](https://shoddymills.github.io/shoddy-fettler/fettle-screening.html) |
+| The models the clinical, legal and scientific tiers need | [The models](https://shoddymills.github.io/shoddy-fettler/fettle-models.html) |
+| SELECT and DESCRIBE inside declared SQL Server databases | [Pick](https://shoddymills.github.io/shoddy-fettler/pick.html) |
+| pick's boundary, drawn on the same workstation | [Pick: the workstation](https://shoddymills.github.io/shoddy-fettler/pick-workstation.html) |
+| A first bounded SELECT, in about five minutes | [Pick: quick start](https://shoddymills.github.io/shoddy-fettler/pick-quickstart.html) |
+| pick's per-machine wiring, and burler beside it | [Pick: install](https://shoddymills.github.io/shoddy-fettler/pick-install.html) |
+| Declaring servers, databases, scopes and columns for `pick` | [Pick, in a project](https://shoddymills.github.io/shoddy-fettler/pick-setup.html) |
+| Refusing to disclose regulated rows | [Pick: screening](https://shoddymills.github.io/shoddy-fettler/pick-screening.html) |
+| pick's models, chosen and licensed | [Pick: the models](https://shoddymills.github.io/shoddy-fettler/pick-models.html) |
+| The query gate refusal by refusal, DESCRIBE's rules, pick's exit codes | [Pick: the reference](https://shoddymills.github.io/shoddy-fettler/pick-reference.html) |
+| The boundary in full, every verb, every refusal, every exit code, the threat model | [Reference](https://shoddymills.github.io/shoddy-fettler/fettle-reference.html) |
 | Why any of it is shaped the way it is | the source — the reasoning sits beside the code it explains |
 
 ## Contributing
@@ -244,6 +266,7 @@ is the sequence.
 ## Licence
 
 MIT, &copy; 2026 Stephen Vincent Foster. `fettle` bundles PdfPig
-(Apache-2.0); every archive carries `NOTICE` and `LICENSE`, and
+(Apache-2.0); `pick` bundles Microsoft's ScriptDom parser and SqlClient
+driver (both MIT); every archive carries `NOTICE` and `LICENSE`, and
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) is the full statement.
 

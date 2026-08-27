@@ -2,6 +2,9 @@
   <Project Path="Fettler/Fettler.csproj" />
   <Project Path="fettle/fettle.csproj" />
   <Project Path="burler/burler.csproj" />
+  <Project Path="Picker/Picker.csproj" />
+  <Project Path="pick/pick.csproj" />
   <Project Path="Fettler.Tests/Fettler.Tests.csproj" />
   <Project Path="burler.Tests/burler.Tests.csproj" />
+  <Project Path="Picker.Tests/Picker.Tests.csproj" />
 </Solution>

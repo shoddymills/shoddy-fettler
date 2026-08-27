@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Installing pick &mdash; the archives, getting pick onto PATH, the managed SQL networking that makes every platform first-class, burler beside it, and the MCP front end for an assistant.">
+<title>Installing It | Picker</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+</head>
+<body>
+<div class="topbar"><div class="inner">
+  <div class="row">
+    <a class="phase" href="index.html"><img class="mark" src="media/brand/shoddy-icon.svg" alt="" width="23" height="23">Shoddy &middot; Fettler</a>
+    <span class="spacer"></span>
+    <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
+  </div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle-install.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><a href="pick.html">Overview</a><a href="pick-workstation.html">Workstation</a><a href="pick-quickstart.html">Quick start</a><span class="here">Install</span><a href="pick-setup.html">In a project</a><a href="pick-screening.html">Screening</a><a href="pick-models.html">Models</a><a href="pick-reference.html">Reference</a></nav></div>
+</div></div>
+<div class="wrap">
+<header class="mast">
+<p class="eyebrow">Shoddy &middot; Picker</p>
+<h1 id="installing">Installing It</h1>
+<p class="kicker">The download, getting it on PATH, the optional
+<code>burler</code> beside it, and the MCP front end for an assistant.
+Read this once per machine.</p>
+</header>
+
+<nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a href="pick-quickstart.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Quick Start</span></span></a><a class="next" href="pick-setup.html"><span class="pnwrap"><span class="ttl">In a Project</span><span class="dir">Next &rarr;</span></span></a></nav>
+
+<div class="takeaway"><b>This is the long way round, not the fastest
+route.</b> If you just want pick working against a database, a handful
+of commands do it: <a href="pick-quickstart.html">the quick start</a>.
+Come back here for the why and the detail.</div>
+
+<p><b>Everything on this page is done once on a machine and not
+again.</b> First, get the binary onto <code>PATH</code>. Then decide
+whether this machine screens with models &mdash; if so,
+<code>burler</code> sits beside pick. Then, optionally, register it with
+an assistant client. Turning it on against a particular server comes
+after; that is <a href="pick-setup.html">pick in a project</a>.</p>
+
+<h2 id="download">The download</h2>
+
+<p>One download, one file on disk, no .NET runtime on the target
+machine. Every release attaches a self-contained, single-file
+<code>pick</code> per operating system, beside <code>fettle</code>'s
+and <code>burler</code>'s archives.</p>
+
+<table>
+<tr><th>Platform</th><th>Archive</th></tr>
+<tr><td>Windows</td><td><code>pick-X.Y.Z-win-x64.zip</code></td></tr>
+<tr><td>macOS, Apple silicon</td><td><code>pick-X.Y.Z-osx-arm64.tar.gz</code></td></tr>
+<tr><td>macOS, Intel</td><td><code>pick-X.Y.Z-osx-x64.tar.gz</code></td></tr>
+<tr><td>Linux</td><td><code>pick-X.Y.Z-linux-x64.tar.gz</code></td></tr>
+</table>
+
+<p>The unix archives are tars because the execute bit only survives a
+tar. Each archive carries <code>NOTICE</code> and <code>LICENSE</code>.
+The single file has two Microsoft libraries bundled in &mdash; the
+ScriptDom T-SQL parser the <a href="pick-reference.html#gate">query
+gate</a> is built on, and the SqlClient driver that carries the
+connection &mdash; both MIT.</p>
+
+<div class="note"><b>ScriptDom and SqlClient are in <code>pick</code>
+and in nothing else this project ships</b> &mdash; just as PdfPig is in
+<code>fettle</code> alone and ONNX Runtime in <code>burler</code> alone.
+No program here references another; each carries its own allowlisted
+dependencies and nothing can leak between them. The full statement is in
+<code>THIRD-PARTY-NOTICES.md</code>.</div>
+
+<h2 id="path">Putting it on <code>PATH</code></h2>
+
+<div class="plat win"><span class="os">Windows &middot; PowerShell</span><div class="body">
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$dir = "$env:LOCALAPPDATA\Programs\pick"
+New-Item -ItemType Directory -Force $dir | Out-Null
+Expand-Archive pick-X.Y.Z-win-x64.zip -DestinationPath $dir -Force
+Get-ChildItem $dir -Recurse | Unblock-File
+$user = [Environment]::GetEnvironmentVariable('Path', 'User')
+if ($user -notlike "*$dir*") {
+    [Environment]::SetEnvironmentVariable('Path', "$user;$dir", 'User')
+}</code></pre></div>
+
+</div></div>
+
+<div class="plat mac"><span class="os">macOS and Linux</span><div class="body">
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>mkdir -p ~/.local/bin
+tar -xzf pick-X.Y.Z-osx-arm64.tar.gz -C ~/.local/bin
+xattr -d com.apple.quarantine ~/.local/bin/pick   # macOS only</code></pre></div>
+
+</div></div>
+
+<p><b>Then open a new terminal</b> &mdash; the one you just used still
+has the old <code>PATH</code> &mdash; and check it:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>pick version</code></pre></div>
+
+<p><b>Three traps, all of them silent:</b></p>
+
+<ul>
+<li><b>A stale terminal.</b> A shell reads <code>PATH</code> once, when
+it starts, so the change is invisible to every terminal already open.
+Open a new one before deciding it did not work.</li>
+<li><b>The Mark of the Web, on Windows.</b> A downloaded archive
+carries a flag its contents inherit, and a flagged executable may be
+refused or interrogated every launch &mdash;
+<code>Unblock-File</code> clears it.</li>
+<li><b>Quarantine, on macOS.</b> The same idea by another name;
+<code>xattr -d com.apple.quarantine</code> clears it.</li>
+</ul>
+
+<h3 id="install-source">From source</h3>
+
+<p>Nothing else in this repository has to be built first. Picker
+references no other project here:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>./scripts/fettler-build.ps1 publish X.Y.Z    # cuts fettle, burler AND pick archives</code></pre></div>
+
+<p>Archives land in <code>artifacts/publish/</code>. Or publish just
+pick for this machine:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>dotnet publish pick -c Release -r win-x64 --self-contained `
+    -p:PublishSingleFile=true -o $env:LOCALAPPDATA\Programs\pick</code></pre></div>
+
+<h2 id="sni">Every platform is first-class, by construction</h2>
+
+<p>SQL Server's client stack historically leaned on a native Windows
+networking layer &mdash; the piece that made "works on my machine" mean
+"works on Windows". pick pins the driver's <b>managed</b> networking
+path everywhere: once in the executable's runtime configuration, and
+once more as the first line of its <code>Main</code>, so no code path
+can run before the pin is set. The same code moves the bytes on
+Windows, macOS and Linux, and no native networking library ships in any
+archive. There is no Windows-only behaviour to fall back to, which
+means there is none to drift.</p>
+
+<h2 id="burler">burler sits beside it &mdash; if you screen with models</h2>
+
+<p>The <a href="pick-screening.html">disclosure screen's</a> first tier
+runs inside <code>pick</code> with nothing installed. The model-backed
+categories &mdash; <code>clinical</code>, <code>legal</code>,
+<code>scientific</code> &mdash; need <code>burler</code>, the same
+model host <code>fettle</code> uses. One download serves both
+programs, and one models directory serves both installs.</p>
+
+<ul>
+<li><b>It is looked for beside the running executable, never on
+<code>PATH</code></b>: put <code>burler</code> (or
+<code>burler.exe</code>) in the same directory as <code>pick</code>.
+Already running it beside <code>fettle</code>? Copy the same file
+&mdash; the two installs may share a models directory but each program
+wants the sidecar beside itself.</li>
+<li><b>The models are a separate download</b>, laid out per category
+&mdash; <a href="pick-models.html">the models page</a> walks it
+checkpoint by checkpoint, licences included.</li>
+<li><b><code>pick doctor</code> reports both facts</b>: the models
+directory the configuration names (and whether it exists), and whether
+burler is where it is expected &mdash; with the note that only
+model-backed screening needs it.</li>
+</ul>
+
+<h2 id="register">Registering the MCP server</h2>
+
+<div class="takeaway"><b>pick has no <code>setup</code> verb &mdash; a
+person writes the registration.</b> That is a smaller job than it is
+for fettle, because there is nothing else to write: no tree file to
+scaffold, no deny list to install, no instruction block. One JSON entry
+per project, and the boundary itself is
+<a href="pick-setup.html">the two <code>.picker</code> files</a>, which
+you write anyway.</div>
+
+<p>For Claude Code (and the VS&nbsp;Code extension, which shares its
+registry), in the project's <code>.mcp.json</code>:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "mcpServers": {
+    "picker": { "command": "pick", "args": ["serve"] }
+  }
+}</code></pre></div>
+
+<p>Or once for every project this account opens, under
+<code>mcpServers</code> in <code>~/.claude.json</code> &mdash; the
+entry is identical. Other clients keep their registrations in their own files; the entry
+to write into them is the same command and arguments.</p>
+
+<p><b>No deny list accompanies any of it, because there is nothing to
+deny.</b> The client has no built-in SQL tool, so wiring pick adds a
+bounded route without opening any other. The file tools and shells are
+a different story, and they are <code>fettle</code>'s story: on a
+workstation that runs both programs, fettle's own install is where the
+built-ins get excluded, and a fettled workstation needs nothing more
+before it picks.</p>
+
+<h2 id="mcp">The MCP front end</h2>
+
+<p><code>pick serve</code> starts the front end on stdio. A client
+launches it; a person does not &mdash; run by hand it waits on stdin,
+which is correct behaviour that looks like a hang. The tools are named
+<code>mcp__picker__VERB</code>: <code>mcp__picker__catalogs</code>,
+<code>mcp__picker__select</code> and so on, and every answer is
+byte-identical to the CLI's <code>--json</code> mode.</p>
+
+<table>
+<tr><th></th><th><code>pick VERB</code></th><th><code>pick serve</code></th></tr>
+<tr><td>Started by</td><td>a person, or a script</td><td>the client, from the registration above</td></tr>
+<tr><td>Boundary from</td><td>the nearest <code>.picker.json</code> upward from the current directory, or <code>--config PATH</code></td><td>the <code>.picker.json</code> where the client launched it &mdash; <b>re-read before every call</b>, so an edit binds on the next request</td></tr>
+<tr><td>Answers with</td><td>text, or JSON under <code>--json</code></td><td>MCP tool results, byte-identical to <code>--json</code></td></tr>
+<tr><td>Dispatcher</td><td colspan="2">the same one &mdash; a verb behaves identically through either</td></tr>
+</table>
+
+<p><b>No tool schema carries a connection string, a server name, or a
+database name.</b> The model cannot point the boundary anywhere; a
+person edits the two files, and pick refuses to write them.</p>
+
+<div class="takeaway"><b>To check the server is live, ask the assistant
+for <code>catalogs</code>.</b> It answers with the declared servers and
+databases without opening a connection. No such tool means no server
+started &mdash; which looks identical to <code>pick</code> not being on
+<a href="#path"><code>PATH</code></a>, and usually is exactly that.</div>
+
+<h2 id="update">Updating, and taking it off again</h2>
+
+<ul>
+<li><b>Update:</b> replace the file; the next launch is the new build.
+A running <code>pick serve</code> belongs to the client that launched
+it and serves the old build until that session restarts &mdash; the
+same rule as every stdio server. Configuration never waits for a
+restart, only binaries do, because the boundary is re-read on every
+call.</li>
+<li><b>Remove:</b> delete the directory and the <code>PATH</code>
+entry, and remove the <code>"picker"</code> entry from any
+<code>.mcp.json</code> that names it. The two <code>.picker</code>
+files in a project are yours &mdash; keep them for the next install or
+delete them with it. Nothing else was written anywhere.</li>
+</ul>
+
+<div class="takeaway"><b>The machine is ready.</b> Everything from here
+is per-project and in a fixed order &mdash; declare the server and its
+databases, scope the objects and columns, set up the login, run
+<code>doctor</code>, then prove a refusal actually refuses:
+<a href="pick-setup.html">pick in a project</a>.</div>
+
+<nav class="pagenav pagenav-bottom" aria-label="Picker, in order">
+  <a href="pick-quickstart.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Quick Start</span></span></a>
+  <a class="next" href="pick-setup.html"><span class="pnwrap"><span class="ttl">In a Project</span><span class="dir">Next &rarr;</span></span></a>
+</nav>
+<footer>Named for the shoddy mills of the West Riding: Useless Things Made
+Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>
+&copy; 2026 Stephen Vincent Foster</footer>
+</div>
+<script src="copy.js"></script>
+</body>
+</html>

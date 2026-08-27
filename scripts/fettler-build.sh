@@ -2,12 +2,12 @@
 # Build Fettler: restore, build, test, check and publish.
 #
 #   ./scripts/fettler-build.sh              restore + build (Debug)
-#   ./scripts/fettler-build.sh test         build + run Fettler.Tests and burler.Tests
+#   ./scripts/fettler-build.sh test         build + run Fettler.Tests, burler.Tests and Picker.Tests
 #   ./scripts/fettler-build.sh check        the verifiers - twins, permissions, docs, errors
 #   ./scripts/fettler-build.sh release      Release build - what a client should launch
 #   ./scripts/fettler-build.sh publish [V]  self-contained single-file binaries, one
 #                           archive per OS per program; V names them
-#                           (fettle-V-RID, burler-V-RID)
+#                           (fettle-V-RID, burler-V-RID, pick-V-RID)
 #
 # The twin of fettler-build.ps1 and equivalent to it. This repository needs
 # NOTHING built first: Fettler references no project outside its own
@@ -34,12 +34,14 @@ node_check() {
 case "$command" in
     build)   run build Fettler.slnx ;;
     test)
-        # Both, and both every time. burler is a separate project because
+        # All of them, every time. burler is a separate project because
         # its ONNX dependency may not enter Fettler's package allowlist,
-        # and a lane whose second test project is only run when somebody
-        # remembers is a lane with an untested half.
+        # Picker is a separate program with its own allowlist entirely -
+        # and a lane whose later test projects are only run when somebody
+        # remembers is a lane with untested halves.
         run test Fettler.Tests
         run test burler.Tests
+        run test Picker.Tests
         ;;
     check)
         # The gates that are not tests. All Node, all fast, and all of them
@@ -90,14 +92,16 @@ case "$command" in
         stamp=""
         [ -n "$version" ] && stamp="-p:Version=$version"
 
-        # TWO programs, each its own archive. burler is optional and is
+        # THREE programs, each its own archive. burler is optional and is
         # only wanted by somebody who has switched the disclosure screen
         # on, so folding it into fettle's archive would make every
         # download pay for ONNX Runtime to get a feature most trees never
         # use. fettle looks for it BESIDE ITSELF, so the two unpack into
-        # one directory when both are wanted.
+        # one directory when both are wanted. pick is its own tool with
+        # its own configuration, wanted by nobody who did not ask for a
+        # database boundary - same argument, its own archive.
         for rid in win-x64 win-arm64 linux-x64 linux-arm64 osx-x64 osx-arm64; do
-            for program in fettle burler; do
+            for program in fettle burler pick; do
                 dir="$pub/$program/$rid"
 
                 # burler bundles ONNX Runtime, which is native per RID.
@@ -133,7 +137,7 @@ case "$command" in
                 esac
             done
         done
-        ls -1 "$pub" | grep -E '^(fettle|burler)' | sed 's/^/  -> /'
+        ls -1 "$pub" | grep -E '^(fettle|burler|pick)' | sed 's/^/  -> /'
         ;;
     *)
         echo "unknown command: $command (build | test | check | release | publish)" >&2

@@ -14,6 +14,12 @@ namespace Fettler.Tests;
 /// configuration lives in the project, so "the file governing the
 /// assistant" and "a file the assistant may write" were the same
 /// file.</para>
+///
+/// <para>pick's <c>.picker.json</c> pair is here for the same reason:
+/// it is the whole boundary of the assistant's SQL tool, which never
+/// writes it and re-reads it before every call - so a Fettler that
+/// could write it would hand the assistant that boundary through the
+/// side door.</para>
 /// </summary>
 public sealed class ClientRuleFileTests
 {
@@ -22,6 +28,9 @@ public sealed class ClientRuleFileTests
     [InlineData(".fettler.local.json")]
     [InlineData(".mcp.json")]
     [InlineData("nested/deep/.mcp.json")]
+    [InlineData(".picker.json")]
+    [InlineData(".picker.local.json")]
+    [InlineData("nested/deep/.picker.local.json")]
     [InlineData(".claude/settings.json")]
     [InlineData(".claude/settings.local.json")]
     [InlineData(".vscode/mcp.json")]
@@ -55,6 +64,7 @@ public sealed class ClientRuleFileTests
     [InlineData("CLAUDE.md")]
     [InlineData(".claude/notes.md")]
     [InlineData(".fettler.json.bak")]
+    [InlineData(".picker.json.bak")]
     [InlineData("src/mcp.json")]
     public void OrdinaryFilesStayOrdinary(string path)
     {
@@ -85,5 +95,6 @@ public sealed class ClientRuleFileTests
         Assert.Equal(Outcome.Governed, refused.Failure!.Outcome);
         Assert.Contains(".claude/settings.json", refused.Failure!.Message, StringComparison.Ordinal);
         Assert.Contains(".fettler.json", refused.Failure!.Message, StringComparison.Ordinal);
+        Assert.Contains(".picker.json", refused.Failure!.Message, StringComparison.Ordinal);
     }
 }

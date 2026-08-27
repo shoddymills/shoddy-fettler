@@ -123,7 +123,7 @@ echo "  tag        $tag"
 echo "  commit     $short  $(git log -1 --format=%s)"
 echo "  notes      $notes"
 [ -n "$previous" ] && echo "  since      $previous"
-echo "  publishes  fettle and burler, 6 RIDs each, 12 archives"
+echo "  publishes  fettle, burler and pick, 6 RIDs each, 18 archives"
 echo
 echo "  Pushing the tag is the moment it ships, and a tag is never moved."
 echo

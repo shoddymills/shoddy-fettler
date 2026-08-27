@@ -17,7 +17,7 @@
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <nav class="docnav main" aria-label="Documentation"><a href="index.html">Overview</a><a href="diagram.html">The workstation</a><a href="quickstart.html">Quick start</a><span class="here">Install</span><a href="setup.html">In a project</a><a href="screening.html">Screening</a><a href="reference.html">Reference</a></nav>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick-install.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-workstation.html">Workstation</a><a href="fettle-quickstart.html">Quick start</a><span class="here">Install</span><a href="fettle-setup.html">In a project</a><a href="fettle-screening.html">Screening</a><a href="fettle-models.html">Models</a><a href="fettle-reference.html">Reference</a></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
@@ -26,11 +26,11 @@
 <p class="kicker">The download, getting it on PATH, and the optional MCP front end for an assistant. Read this once per machine.</p>
 </header>
 
-<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="quickstart.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Quick Start</span></span></a><a class="next" href="setup.html"><span class="pnwrap"><span class="ttl">In a project</span><span class="dir">Next &rarr;</span></span></a></nav>
+<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="fettle-quickstart.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Quick Start</span></span></a><a class="next" href="fettle-setup.html"><span class="pnwrap"><span class="ttl">In a project</span><span class="dir">Next &rarr;</span></span></a></nav>
 
 <div class="takeaway"><b>This is the long way round, not the fastest
 route.</b> If you just want Fettler working, three commands do it:
-<a href="quickstart.html">the quick start</a>. Come back here
+<a href="fettle-quickstart.html">the quick start</a>. Come back here
 for the why and the flags.</div>
 
 <p><b>Everything on this page is done once on a machine and not
@@ -39,7 +39,7 @@ of folders your terminal searches when you type a command. Then,
 optionally, register it with an assistant client, and decide &mdash; for
 this account, across every project &mdash; whether Fettler is an option
 or the route. Turning it on in a particular project comes after; that is
-<a href="setup.html">Fettler in a project</a>. What the tool
+<a href="fettle-setup.html">Fettler in a project</a>. What the tool
 actually is, and what its boundary means, is
 <a href="index.html">Fettler</a>.</p>
 
@@ -217,7 +217,7 @@ declared.</p>
 <code>--hooks</code>, <code>--force</code>, <code>--command</code>
 &mdash; belong to a particular project rather than to the machine. The
 full table is with the step that uses them:
-<a href="setup.html#setup"><code>fettle setup</code> in a
+<a href="fettle-setup.html#setup"><code>fettle setup</code> in a
 project</a>.</p>
 
 <h2 id="exclusions">The exclusion list</h2>
@@ -249,7 +249,7 @@ readers.</b> They start nothing and write nothing, which is exactly why
 they were missed &mdash; neither an editor nor a shell. But they hand
 back the output of work already done, and those bytes reached the model
 without passing the tree boundary, the secret scan or the
-<a href="screening.html">disclosure screen</a>.
+<a href="fettle-screening.html">disclosure screen</a>.
 <code>TaskOutput</code> settles the question itself: it recommends
 <code>Read</code> on the task's output file as the alternative, which is
 a tool already on this list.</li>
@@ -260,11 +260,11 @@ can only close the names on it, and the client keeps growing new
 ones.</b> So <code>fettle doctor</code> prints the date its inventory
 was drawn, and reports any tool your configuration names that the
 inventory does not know
-(<a href="reference.html#findings">2.18</a>) &mdash; because silence
+(<a href="fettle-reference.html#findings">2.18</a>) &mdash; because silence
 about an unknown tool otherwise reads exactly like a clean bill of
 health. Other MCP servers are the same problem in a different shape and
 are reported separately
-(<a href="reference.html#findings">2.17</a>).</p>
+(<a href="fettle-reference.html#findings">2.17</a>).</p>
 
 <p><b><code>Read</code> is on the list, with no path-scoped
 exception.</b> A blanket <code>Read</code> defeats three protections at
@@ -272,18 +272,18 @@ once: containment, the <code>read</code> permission, and hidden scopes.
 A scope with no <code>list</code> is invisible to <code>search</code>
 &mdash; and one call away from being read in full. Denying
 <code>Read</code> is affordable because Fettler reads
-<a href="reference.html#types">notebooks, images and PDF</a> as well as
+<a href="fettle-reference.html#types">notebooks, images and PDF</a> as well as
 source.</p>
 
 <div class="takeaway"><b>Before you deny <code>Write</code>, a project
 needs its scratch tree declared.</b> An assistant stages work &mdash; a
-long replacement, a generated file, a diff it is about to apply &mdash;
+long replacement, a generated file, a patch it is about to apply &mdash;
 in a scratch directory the harness gives it, well outside your source
 tree. Deny <code>Write</code> and that route shuts. The scratch is
 outside every declared tree, so Fettler will not write there either.
 Both routes closed &mdash; and it surfaces at the first staging write,
 not while you are running <code>setup</code>. Declaring it is
-<a href="setup.html#scratch">step 2 of setting up a
+<a href="fettle-setup.html#scratch">step 2 of setting up a
 project</a>.</div>
 
 <h3 id="shell">The shell is denied by name, never by command</h3>
@@ -319,7 +319,7 @@ better:</p>
 "allow": ["Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)"]</code></pre></div>
 
 <p><b>Never allowlist a command that writes.</b> That is
-<a href="reference.html#findings">doctor check 2.6</a>, and
+<a href="fettle-reference.html#findings">doctor check 2.6</a>, and
 <code>&gt;</code> and <code>&gt;&gt;</code> are on the list it matches
 against. A bare <code>"Bash"</code> in <code>allow</code> grants the
 whole shell back and undoes the deny entirely.</p>
@@ -444,11 +444,11 @@ exactly that.</div>
 is per-project and in a fixed order &mdash; declare your trees, declare
 the scratch, declare your tasks, run <code>setup</code>, run
 <code>doctor</code>, then prove a refusal actually refuses:
-<a href="setup.html">Fettler in a project</a>.</div>
+<a href="fettle-setup.html">Fettler in a project</a>.</div>
 
 <nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
-  <a href="quickstart.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Quick Start</span></span></a>
-  <a class="next" href="setup.html"><span class="pnwrap"><span class="ttl">In a project</span><span class="dir">Next &rarr;</span></span></a>
+  <a href="fettle-quickstart.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Quick Start</span></span></a>
+  <a class="next" href="fettle-setup.html"><span class="pnwrap"><span class="ttl">In a project</span><span class="dir">Next &rarr;</span></span></a>
 </nav>
 <footer>Named for the shoddy mills of the West Riding: Useless Things Made
 Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>

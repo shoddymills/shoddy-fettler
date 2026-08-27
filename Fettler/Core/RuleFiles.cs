@@ -35,6 +35,15 @@ namespace Fettler.Core;
 /// persuades rather than permits, and an assistant maintaining a project's
 /// instructions is ordinary work.</para>
 ///
+/// <para><b>pick's files are the same argument once more.</b> The
+/// <c>.picker.json</c> pair is the whole boundary of the assistant's
+/// SQL tool: the databases, the grants, the column rules. pick itself
+/// has no write path at all, and it re-reads the pair before every
+/// call - so a Fettler that could write them would hand the assistant
+/// pick's boundary through the side door, and the very next pick call
+/// would obey the edit. They are refused here on the same terms as
+/// this tool's own.</para>
+///
 /// <para><b><c>setup</c> is unaffected, by construction rather than by
 /// exemption.</b> It writes those files with plain file IO and never
 /// resolves a path through <see cref="Roots"/>, so this guard - which
@@ -58,6 +67,8 @@ public static class RuleFiles
         RootsFile.FileName,
         RootsFile.LocalFileName,
         ".mcp.json",
+        ".picker.json",
+        ".picker.local.json",
     ];
 
     /// <summary>

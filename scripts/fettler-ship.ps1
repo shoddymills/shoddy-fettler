@@ -147,7 +147,7 @@ Write-Host "  tag        $tag" -ForegroundColor White
 Write-Host "  commit     $($commit.Substring(0,8))  $((RunGit @('log','-1','--format=%s')).Text)"
 Write-Host "  notes      $notes"
 if ($previous) { Write-Host "  since      $previous" }
-Write-Host "  publishes  fettle and burler, 6 RIDs each, 12 archives"
+Write-Host "  publishes  fettle, burler and pick, 6 RIDs each, 18 archives"
 Write-Host ''
 Write-Host "  Pushing the tag is the moment it ships, and a tag is never moved." -ForegroundColor Yellow
 Write-Host ''

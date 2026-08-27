@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Fettler &mdash; bounded file, search and edit tools for a model and a script. What it is, what it guarantees, and where its boundary comes from.">
-<title>Fettler</title>
+<meta name="description" content="Fettler &amp; Picker &mdash; bounded tools for a model and a script: files through fettle, SQL Server through pick. What they are, what they guarantee, and where the boundary comes from.">
+<title>Fettler &amp; Picker</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="favicon.ico" sizes="48x48">
@@ -17,132 +17,116 @@
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <nav class="docnav main" aria-label="Documentation"><span class="here">Overview</span><a href="diagram.html">The workstation</a><a href="quickstart.html">Quick start</a><a href="install.html">Install</a><a href="setup.html">In a project</a><a href="screening.html">Screening</a><a href="reference.html">Reference</a></nav>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle.html">fettle<small>for files</small></a><a href="pick.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-workstation.html">Workstation</a><a href="fettle-quickstart.html">Quick start</a><a href="fettle-install.html">Install</a><a href="fettle-setup.html">In a project</a><a href="fettle-screening.html">Screening</a><a href="fettle-models.html">Models</a><a href="fettle-reference.html">Reference</a></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
 <p class="eyebrow">Shoddy &middot; Fettler</p>
-<h1 id="fettler">Fettler</h1>
-<p class="kicker">File, search and edit tools for a model and a script. One program, two front ends, and no shell between it and the file.</p>
+<h1 id="fettler">Fettler &amp; Picker</h1>
+<p class="kicker">Bounded tools for a model and a script &mdash; the files through <code>fettle</code>, the SQL Server through <code>pick</code>. Two programs, two front ends each, and no shell between them and the data.</p>
 </header>
 
-<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a class="next" href="diagram.html"><span class="pnwrap"><span class="ttl">The Fettled Workstation</span><span class="dir">Next &rarr;</span></span></a></nav>
+<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a class="next" href="fettle.html"><span class="pnwrap"><span class="ttl">Fettle, for the files</span><span class="dir">Next &rarr;</span></span></a></nav>
 
-<div class="onramp">
-<p><b>An assistant given Fettler cannot go wandering. Everything outside
-the boundary is denied.</b> Every path it touches must sit inside a
-<em>tree</em> &mdash; a folder you named ahead of time. Outside those
-trees, everything is refused: writing, reading, listing, even learning
-that a file exists. There is no current directory to change. No path can
-climb out of a tree. There is no shell to sneak past it with. So the
-assistant cannot wander into a sibling project, an old copy, or your home
-directory, read the wrong thing, and then answer from it with complete
-confidence.</p>
-<a class="shot" href="reference.html#boundary"><img src="media/fettler.svg" alt="A terminal showing two declared trees with their permissions, and a path from outside the boundary refused" loading="lazy"><span class="lab"><b>fettle</b><span>bounded file tools &middot; no shell in between</span></span></a>
+<div class="pair">
+<div class="prog">
+<p class="cmd">fettle &mdash; the files</p>
+<p><b>Find, search, read and edit inside declared trees, and nothing
+else.</b> No current directory, no path that climbs out, no shell to
+sneak past it. Batches land all or not at all, and a disclosure screen
+can refuse regulated data leaving a tree you name.</p>
+<a class="go" href="fettle.html">Start with the files &rarr;</a>
+</div>
+<div class="prog">
+<p class="cmd">pick &mdash; the SQL Server</p>
+<p><b>SELECT and DESCRIBE inside declared databases, and nothing
+else.</b> No default database, no <code>USE</code>, no system catalog;
+tables, views and columns scoped one by one; one statement through a
+fail-closed parser gate &mdash; and the same screen over the rows coming
+out.</p>
+<a class="go" href="pick.html">Start with the SQL &rarr;</a>
+</div>
 </div>
 
-<p>Inside the boundary, it does the work an assistant actually does on
-source files. It can find a file, search its contents, read it, write it,
-edit it, move it, copy it, and delete it. It can also run a named build
-task. It is written in C#, ships from this repository, and installs as
-one file. <b>And nothing it does changes how <em>you</em> work.</b> Your
-shell, your file explorer, your editor, and your git stay exactly as they
-were.</p>
+<h2 id="discipline">One discipline, twice</h2>
 
-<div class="takeaway"><b>The project is Fettler; the command is
-<code>fettle</code>.</b> The command uses the verb form because
-<code>fettle move a.txt b.txt</code> reads as an instruction, and
-<code>fettler move</code> does not. Both spellings are correct. Neither
-is a typo.</div>
+<p>The two programs are one argument applied to two kinds of data, and
+every rule below holds for both:</p>
 
-<p class="note"><span class="lab">Note</span> <b>This page asks you to
-type nothing.</b> To have it working in about five minutes instead, go
-straight to the <a href="quickstart.html">quick start</a>.</p>
+<ul>
+<li><b>The world is a declared list.</b> A tree in
+<code>.fettler.json</code>; a database in <code>.picker.json</code>.
+Whatever the file does not name does not exist &mdash; there is no
+default directory and no default database to fall into.</li>
+<li><b>Hidden is absent.</b> A path outside the trees, a hidden scope,
+an undeclared database, an excluded column: each is refused <em>in the
+same words as something that was never there</em>, so a refusal cannot
+be used to map what it protects.</li>
+<li><b>No shell, anywhere.</b> <code>fettle</code> runs only declared
+tasks, whole and argumentless; <code>pick</code> runs only one parsed
+and rewritten SELECT. Neither ever composes a command line.</li>
+<li><b>A person writes the rules, and the tools refuse to.</b> The
+configuration files are refused by every write path of the very tools
+they govern.</li>
+<li><b>Two front ends, one behaviour.</b> Each program is a CLI for a
+script and an MCP server for a model over the same core, and the MCP
+answers are byte-identical to the CLI's <code>--json</code> mode.
+Where the outcome words match, the exit codes carry
+<a href="fettle-reference.html#codes">the same numbers</a> in both
+programs.</li>
+</ul>
 
-<h2 id="does">What it does</h2>
+<h2 id="screen">They can refuse to disclose regulated data</h2>
 
-<table>
-<tr><th></th><th></th></tr>
-<tr><td><b>Bounded, not advisory</b></td><td>Every path resolves inside a tree you declared. Outside is refused <em>identically whether or not the file exists</em>, so a refusal cannot be used to probe a disk. No current directory, no path that climbs out, no shell to reach past it with.</td></tr>
-<tr><td><b>Every answer is the next call's argument</b></td><td><code>search</code> hands back <code>tree:path:line:column</code>. <code>read</code> numbers its lines and states a hash. <code>edit</code> asks for exactly those. Refused edits stop happening.</td></tr>
-<tr><td><b>It reads more than source</b></td><td>Notebooks as cells, spreadsheets as rows with their formulas, Word as paragraphs under their headings, PDF as text per page, images as facts &mdash; and inside archives without unpacking them.</td></tr>
-<tr><td><b>Batches are all or nothing</b></td><td>Every edit resolves before the first byte moves. A permission not granted, a file changed underneath, an anchor that no longer matches: any of these stops the whole batch with the tree exactly as it was.</td></tr>
-<tr><td><b>Two front ends, one core</b></td><td>A CLI for a script, an MCP server for a model, over the same operations. Machine-readable mode puts the complete result on stdout &mdash; failures included.</td></tr>
-<tr><td><b>Nothing changes how <em>you</em> work</b></td><td>Your shell, file explorer, editor and git stay exactly as they were.</td></tr>
-</table>
-
-<h2 id="refactor">One refactor, with the arithmetic</h2>
-
-<p>Rename a C# type in this repository and you touch <b>200 occurrences
-across 23 files</b>. That number is measured, not estimated &mdash;
-<code>fettle search</code> counted it. This is the change nobody does by
-hand, and every assistant is asked to do anyway.</p>
-
-<table>
-<tr><th></th><th>Built-in file tools</th><th>Fettler</th></tr>
-<tr><td><b>Calls</b></td><td>one search, then a read and an edit for each file &mdash; <b>47</b></td><td><code>search</code>, <code>replace --dry-run</code>, <code>replace</code> &mdash; <b>3</b></td></tr>
-<tr><td><b>Context spent</b></td><td>23 whole files pulled through it</td><td>the matching lines</td></tr>
-<tr><td><b>If it fails at file 15</b></td><td>14 files renamed, 9 not: a tree that no longer compiles, half-changed &mdash; and nothing says which half</td><td>nothing is written unless all 23 resolved first; if a <em>write</em> then fails, it names the file it stopped at and how many were already done</td></tr>
-<tr><td><b>Per-file properties</b></td><td>whatever the writer happened to emit</td><td>each file keeps its own encoding, line endings and execute bit</td></tr>
-</table>
-
-<div class="takeaway"><b>The measurement that decided the design.</b> A
-model's tool call costs a round trip and a block of its context. Scanning
-this repository's 15&nbsp;MB of tracked text costs a few hundred
-milliseconds. The exchange costs about a thousand times more than the
-work &mdash; so the work is not the thing to optimise.</div>
-
-<h2 id="screen">It can refuse to disclose regulated data</h2>
-
-<p><b>Optional, off by default, and it costs one line to try.</b> A tree
-can declare that certain things must not leave it. The first tier runs
-inside <code>fettle</code> with nothing installed: labelled record
-numbers, dates of birth, SSNs, Luhn-valid cards, emails, phone numbers.</p>
+<p><b>Optional, off by default, and shared &mdash; one screen, both
+programs.</b> A tree or a database can declare that certain things must
+not leave it. The first tier runs in process with nothing installed:
+labelled record numbers, dates of birth, SSNs, Luhn-valid cards, emails,
+phone numbers.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>"trees": {
   "records": { "path": "./records", "can": ["list", "read"], "screen": ["identifiers"] }
 }</code></pre></div>
 
-<p>Anything it finds refuses the <b>whole response</b> rather than
-handing back a redacted copy that looks safe and is not &mdash; and an
-image, which it cannot read into, is refused rather than served
-unchecked.</p>
+<p>Anything it finds refuses the <b>whole response</b> &mdash; a file
+read, a search, a result set of rows &mdash; rather than handing back a
+redacted copy that looks safe and is not.</p>
 
 <p><b>And here is what it does not catch.</b> Names, addresses,
 conditions and free text need a model, which is a separate download.
 <code>identifiers</code> is the only one of the four categories that
 works with nothing installed; <code>clinical</code>,
 <code>legal</code> and <code>scientific</code> screen nothing at all
-until you install one, and <code>fettle roots</code> says so in as many
-words rather than letting the category name imply otherwise.
-<a href="screening.html">How screening works &rarr;</a></p>
+until you install one, and the tools say so in as many words rather
+than letting the category name imply otherwise.
+<a href="fettle-screening.html">Screening for the files</a> &middot;
+<a href="pick-screening.html">screening for the rows</a> &middot;
+the models, <a href="fettle-models.html">for fettle</a> and
+<a href="pick-models.html">for pick</a> &mdash; one installation on
+disk serves both.</p>
 
 <h2 id="start">Getting started</h2>
 
-<ul>
-<li><b><a href="quickstart.html">Quick start</a></b> &mdash; installed and
-turned on in a project, in about five minutes.</li>
-<li><b><a href="diagram.html">The fettled workstation</a></b> &mdash; what
-the boundary looks like on a disk, drawn.</li>
-<li><b><a href="install.html">Install</a></b> &mdash; the per-machine
-wiring and the client registrations.</li>
-<li><b><a href="setup.html">In a project</a></b> &mdash; declaring trees,
-scopes and tasks.</li>
-<li><b><a href="screening.html">Screening</a></b> &mdash; switching on the
-refusal to disclose regulated data, and proving it refuses.</li>
-<li><b><a href="reference.html">Reference</a></b> &mdash; the boundary in
-full, the seven permissions, every verb, every refusal, every exit code,
-and what this defends against.</li>
-</ul>
+<table>
+<tr><th>You want</th><th>fettle</th><th>pick</th></tr>
+<tr><td>What it is, and why</td><td><a href="fettle.html">Overview</a></td><td><a href="pick.html">Overview</a></td></tr>
+<tr><td>The boundary, drawn</td><td><a href="fettle-workstation.html">Workstation</a></td><td><a href="pick-workstation.html">Workstation</a></td></tr>
+<tr><td>Working in five minutes</td><td><a href="fettle-quickstart.html">Quick start</a></td><td><a href="pick-quickstart.html">Quick start</a></td></tr>
+<tr><td>The per-machine wiring</td><td><a href="fettle-install.html">Install</a></td><td><a href="pick-install.html">Install</a></td></tr>
+<tr><td>Declaring the boundary</td><td><a href="fettle-setup.html">In a project</a></td><td><a href="pick-setup.html">In a project</a></td></tr>
+<tr><td>Refusing regulated data</td><td><a href="fettle-screening.html">Screening</a></td><td><a href="pick-screening.html">Screening</a></td></tr>
+<tr><td>The second tier's models, chosen and licensed</td><td><a href="fettle-models.html">Models</a></td><td><a href="pick-models.html">Models</a></td></tr>
+<tr><td>Every verb, refusal and exit code</td><td><a href="fettle-reference.html">Reference</a></td><td><a href="pick-reference.html">Reference</a></td></tr>
+</table>
 
-<div class="takeaway"><b>It is written in C#, ships as one
-self-contained file per platform, and needs nothing installed alongside
-it.</b> <code>burler</code>, the model host the screen's second tier
-uses, is a separate download wanted only by people who switch that tier
-on.</div>
+<div class="takeaway"><b>Both are written in C#, ship as one
+self-contained file each per platform, and need nothing installed
+alongside them.</b> <code>burler</code>, the model host the screen's
+second tier uses, is a separate download wanted only by people who
+switch that tier on &mdash; and it serves both programs.</div>
 
 <nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
-  <a class="next" href="diagram.html"><span class="pnwrap"><span class="ttl">The Fettled Workstation</span><span class="dir">Next &rarr;</span></span></a>
+  <a class="next" href="fettle.html"><span class="pnwrap"><span class="ttl">Fettle, for the files</span><span class="dir">Next &rarr;</span></span></a>
 </nav>
 <footer>Named for the shoddy mills of the West Riding: Useless Things Made
 Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>

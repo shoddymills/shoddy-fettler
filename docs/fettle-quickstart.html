@@ -17,7 +17,7 @@
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <nav class="docnav main" aria-label="Documentation"><a href="index.html">Overview</a><a href="diagram.html">The workstation</a><span class="here">Quick start</span><a href="install.html">Install</a><a href="setup.html">In a project</a><a href="screening.html">Screening</a><a href="reference.html">Reference</a></nav>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick-quickstart.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-workstation.html">Workstation</a><span class="here">Quick start</span><a href="fettle-install.html">Install</a><a href="fettle-setup.html">In a project</a><a href="fettle-screening.html">Screening</a><a href="fettle-models.html">Models</a><a href="fettle-reference.html">Reference</a></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
@@ -26,7 +26,7 @@
 <p class="kicker">Install it, register it, turn it on in a project, check it. Four steps, one command each. The pages after this one are the detail behind them.</p>
 </header>
 
-<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="diagram.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">The Fettled Workstation</span></span></a><a class="next" href="install.html"><span class="pnwrap"><span class="ttl">Installing It</span><span class="dir">Next &rarr;</span></span></a></nav>
+<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="fettle-workstation.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">The Fettled Workstation</span></span></a><a class="next" href="fettle-install.html"><span class="pnwrap"><span class="ttl">Installing It</span><span class="dir">Next &rarr;</span></span></a></nav>
 
 <div class="takeaway"><b>You need two things before you start:</b> the
 archive for your platform from the latest release, and a project folder
@@ -71,7 +71,7 @@ fettle 1.0.0</code></pre></div>
 not found</em></b>, the usual cause is the terminal &mdash; open a new
 one. The second cause is a typo in the directory. Nothing later on this
 page works until this line does. The long version, with the reasons, is
-<a href="install.html#path">putting it on
+<a href="fettle-install.html#path">putting it on
 <code>PATH</code></a>.</div>
 
 <h2 id="machine">2. Register it once for this machine</h2>
@@ -145,7 +145,7 @@ you need. Either put the command in <code>.fettler.json</code> as a
 task, or name it in <code>allow</code> &mdash;
 <code>"allow": ["Bash(git status:*)"]</code>. Never allow one that
 writes files. The reasoning is
-<a href="install.html#shell">the shell section</a>.</div>
+<a href="fettle-install.html#shell">the shell section</a>.</div>
 
 <p>To use another client instead of <code>claude-code</code>:
 <code>claude-desktop</code>, <code>vscode-copilot</code>,
@@ -200,18 +200,18 @@ past Fettler rather than a broken registration.</p>
 
 <table>
 <tr><th>What you see</th><th>What to do</th></tr>
-<tr><td><code>on PATH: no</code></td><td>Step 1 did not take. <a href="install.html#path">Putting it on <code>PATH</code></a> &mdash; and open a new terminal. Nothing else works until this does.</td></tr>
-<tr><td><code>absent</code></td><td>Run step 2 or step 3 for that client and level. <a href="reference.html#findings">The wiring table</a> gives the exact command per row.</td></tr>
-<tr><td><code>broken</code></td><td>The registration is there, and its command does not resolve. Re-run <code>setup</code> with <code>--command</code> naming the binary, and <code>--force</code> to overwrite an entry that says something else. <a href="reference.html#findings">Details</a>.</td></tr>
-<tr><td>A numbered finding &mdash; <code>2.6</code>, <code>2.8</code>, <code>B.17</code>&hellip;</td><td><a href="reference.html#findings">Everything doctor can report, and how to clear it</a> has a row per check: what it found, and the edit that clears it.</td></tr>
-<tr><td>Exit <b>1</b> with no finding you recognise</td><td>Warnings only, nothing broken. <a href="setup.html#verdicts">The four verdicts</a> says which rows count as what.</td></tr>
+<tr><td><code>on PATH: no</code></td><td>Step 1 did not take. <a href="fettle-install.html#path">Putting it on <code>PATH</code></a> &mdash; and open a new terminal. Nothing else works until this does.</td></tr>
+<tr><td><code>absent</code></td><td>Run step 2 or step 3 for that client and level. <a href="fettle-reference.html#findings">The wiring table</a> gives the exact command per row.</td></tr>
+<tr><td><code>broken</code></td><td>The registration is there, and its command does not resolve. Re-run <code>setup</code> with <code>--command</code> naming the binary, and <code>--force</code> to overwrite an entry that says something else. <a href="fettle-reference.html#findings">Details</a>.</td></tr>
+<tr><td>A numbered finding &mdash; <code>2.6</code>, <code>2.8</code>, <code>B.17</code>&hellip;</td><td><a href="fettle-reference.html#findings">Everything doctor can report, and how to clear it</a> has a row per check: what it found, and the edit that clears it.</td></tr>
+<tr><td>Exit <b>1</b> with no finding you recognise</td><td>Warnings only, nothing broken. <a href="fettle-setup.html#verdicts">The four verdicts</a> says which rows count as what.</td></tr>
 </table>
 
 <div class="note"><b>The commonest three, on a first run.</b>
 <code>2.15</code> &mdash; your assistant's scratch directory (the
 staging folder it writes drafts into) is outside every tree, which
 matters now that <code>Write</code> is denied. Declare it, per
-<a href="setup.html#scratch">step 2 of setting up a
+<a href="fettle-setup.html#scratch">step 2 of setting up a
 project</a>. <code>2.8</code> at the global level &mdash; expected,
 since step 2 deliberately left the machine-wide deny list alone. And
 <code>2.17</code> if you run any other MCP server, which most people
@@ -254,18 +254,18 @@ write.</p>
 
 <table>
 <tr><th>You want</th><th>Page</th></tr>
-<tr><td>To widen the tree, add a second one, or hide a folder from the assistant entirely</td><td><a href="setup.html#declare">Step 1, declaring your trees</a></td></tr>
-<tr><td>The scratch directory an assistant stages work in, which needs declaring before <code>Write</code> is denied</td><td><a href="setup.html#scratch">Step 2, declaring the scratch</a></td></tr>
-<tr><td>Every flag <code>setup</code> takes</td><td><a href="setup.html#flags">In a project</a></td></tr>
-<tr><td>Every exit code a script can branch on</td><td><a href="reference.html#codes">The reference</a></td></tr>
-<tr><td>To stop a tree of health or customer records leaving in a transcript</td><td><a href="screening.html">Screening</a></td></tr>
-<tr><td>What the permissions mean and why the defaults are what they are</td><td><a href="reference.html#permissions">Fettler</a></td></tr>
-<tr><td>To run it from a script instead of an assistant, or to register it by hand</td><td><a href="install.html#mcp">The MCP front end</a></td></tr>
+<tr><td>To widen the tree, add a second one, or hide a folder from the assistant entirely</td><td><a href="fettle-setup.html#declare">Step 1, declaring your trees</a></td></tr>
+<tr><td>The scratch directory an assistant stages work in, which needs declaring before <code>Write</code> is denied</td><td><a href="fettle-setup.html#scratch">Step 2, declaring the scratch</a></td></tr>
+<tr><td>Every flag <code>setup</code> takes</td><td><a href="fettle-setup.html#flags">In a project</a></td></tr>
+<tr><td>Every exit code a script can branch on</td><td><a href="fettle-reference.html#codes">The reference</a></td></tr>
+<tr><td>To stop a tree of health or customer records leaving in a transcript</td><td><a href="fettle-screening.html">Screening</a></td></tr>
+<tr><td>What the permissions mean and why the defaults are what they are</td><td><a href="fettle-reference.html#permissions">Fettler</a></td></tr>
+<tr><td>To run it from a script instead of an assistant, or to register it by hand</td><td><a href="fettle-install.html#mcp">The MCP front end</a></td></tr>
 </table>
 
 <nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
-  <a href="diagram.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">The Fettled Workstation</span></span></a>
-  <a class="next" href="install.html"><span class="pnwrap"><span class="ttl">Installing It</span><span class="dir">Next &rarr;</span></span></a>
+  <a href="fettle-workstation.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">The Fettled Workstation</span></span></a>
+  <a class="next" href="fettle-install.html"><span class="pnwrap"><span class="ttl">Installing It</span><span class="dir">Next &rarr;</span></span></a>
 </nav>
 <footer>Named for the shoddy mills of the West Riding: Useless Things Made
 Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>

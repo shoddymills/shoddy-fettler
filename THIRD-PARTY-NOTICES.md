@@ -1,7 +1,7 @@
 # Third-party notices
 
-Fettler distributes two programs. This file is the developer-facing summary
-of what rides along inside each of them.
+This repository distributes three programs. This file is the
+developer-facing summary of what rides along inside each of them.
 
 **[`NOTICE`](NOTICE) is the file that matters legally**, and it is the one
 that travels: `scripts/fettler-build.ps1 publish` copies `NOTICE` and `LICENSE` into every
@@ -16,12 +16,27 @@ reading the source; it does not ship.
 | [PdfPig](https://github.com/UglyToad/PdfPig) | 0.1.15 | Apache-2.0 | `fettle` | reads PDF documents as text |
 | [Microsoft.ML.OnnxRuntime](https://github.com/microsoft/onnxruntime) | 1.20.1 | MIT | `burler` | runs the screening models |
 | [Microsoft.ML.Tokenizers](https://github.com/dotnet/machinelearning) | 1.0.0 | MIT | `burler` | the WordPiece tokenizer a BERT-family model needs |
+| [Microsoft.SqlServer.TransactSql.ScriptDom](https://github.com/microsoft/SqlScriptDOM) | 180.59.2 | MIT | `pick` | parses the one SELECT the query gate accepts |
+| [Microsoft.Data.SqlClient](https://github.com/dotnet/SqlClient) | 7.0.2 | MIT | `pick` | the connection to SQL Server |
 
-Nothing else. There are no transitive dependencies to list: PdfPig has none
-at all, and the two `burler` packages bring only their own native runtime
-assets.
+PdfPig has no transitive dependencies at all; the two `burler` packages
+bring only their own native runtime assets; ScriptDom brings nothing.
+**Microsoft.Data.SqlClient is the one wide closure in the repository** -
+the Microsoft.IdentityModel and Microsoft.Extensions families,
+`Microsoft.SqlServer.Server`, `Microsoft.Bcl.Cryptography` and a handful
+of `System.*` packages - accepted because a first-party SQL Server driver
+has no slimmer substitute, and every package in it is Microsoft-authored
+and MIT. Its native Windows SNI library is present in the dependency
+graph and **never used and never shipped**: `pick` pins the managed
+network path on all three operating systems, and its archive carries the
+single executable alone.
 
-## The allowlist, and why it is short
+## The allowlists, and why they are short
+
+`pick` carries its own allowlist in `Picker.csproj`, in the same form and
+under the same tests as `fettle`'s: today it admits exactly the two
+packages in the table above, and its csproj comment records the
+managed-SNI pin and the fallback that would ever relax it.
 
 `fettle` publishes **self-contained and single-file per operating system**, so
 a package with native assets does not merely complicate the build - it

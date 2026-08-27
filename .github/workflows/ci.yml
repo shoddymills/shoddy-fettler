@@ -65,6 +65,24 @@ jobs:
             exit 1
           fi
 
+      # Picker is a THIRD program on the same terms: it shares the
+      # repository, the release and the version number with the others,
+      # and shares nothing else. Where behaviour must match - the
+      # tier-one screening patterns, the burler wire - each side carries
+      # its own copy, proven equivalent by test, never by a reference.
+      - name: Picker stays in its own lane
+        run: |
+          if grep -rE '<ProjectReference[^>]*Include="[^"]*(Picker|pick)' \
+               Fettler Fettler.Tests fettle burler burler.Tests --include='*.csproj'; then
+            echo 'nothing on the Fettler side may reference Picker or pick'
+            exit 1
+          fi
+          if grep -rE '<ProjectReference[^>]*Include="[^"]*(Fettler|fettle|burler)' \
+               Picker pick Picker.Tests --include='*.csproj'; then
+            echo 'nothing on the Picker side may reference Fettler, fettle or burler'
+            exit 1
+          fi
+
       # R1.2, package side, narrowed to what its reason supports: an
       # ALLOWLIST, checked as an exact set. A package added to a csproj and
       # not to this list fails the push that added it, which makes widening
@@ -91,6 +109,25 @@ jobs:
           done
           echo "packages: ${found:-none}"
 
+      # pick's own allowlist, on fettle's terms: a package added to its
+      # csproj and not to this list fails the push that added it.
+      - name: Only allowlisted packages ride along in what pick ships
+        run: |
+          allowed='Microsoft.SqlServer.TransactSql.ScriptDom Microsoft.Data.SqlClient'
+          found=$(grep -hoE '<PackageReference Include="[^"]+"' \
+                    Picker/Picker.csproj pick/pick.csproj \
+                  | sed -E 's/.*Include="([^"]+)".*/\1/' | sort -u)
+          for pkg in $found; do
+            echo "$allowed" | tr ' ' '\n' | grep -qx "$pkg" || {
+              echo "pick takes $pkg, which is not on its allowlist"
+              echo "adding one is a decision: put it in this list, in Picker.csproj's comment,"
+              echo "in Picker.Tests' FrontEndTests.Allowed, in THIRD-PARTY-NOTICES.md, and in"
+              echo "NOTICE if its licence asks"
+              exit 1
+            }
+          done
+          echo "packages: ${found:-none}"
+
       # Two obligations travel with a distributed binary. Apache-2.0 wants
       # the licence and any NOTICE alongside it, because fettle bundles
       # PdfPig into the single file it ships; MIT wants the copyright notice
@@ -105,6 +142,11 @@ jobs:
           grep -q 'PdfPig' NOTICE || { echo 'NOTICE does not mention PdfPig'; exit 1; }
           grep -q 'fettle alone' NOTICE || {
             echo 'NOTICE no longer scopes PdfPig to fettle alone'; exit 1; }
+          grep -q 'ScriptDom' NOTICE || { echo 'NOTICE does not mention ScriptDom'; exit 1; }
+          grep -q 'Microsoft.Data.SqlClient' NOTICE || {
+            echo 'NOTICE does not mention Microsoft.Data.SqlClient'; exit 1; }
+          grep -q 'pick alone' NOTICE || {
+            echo 'NOTICE no longer scopes the SQL packages to pick alone'; exit 1; }
           for f in scripts/fettler-build.ps1 scripts/fettler-build.sh; do
             grep -q 'NOTICE'  "$f" || { echo "$f does not put NOTICE in the archive";  exit 1; }
             grep -q 'LICENSE' "$f" || { echo "$f does not put LICENSE in the archive"; exit 1; }
@@ -168,6 +210,9 @@ jobs:
 
       - name: Test burler
         run: dotnet test burler.Tests -c Release --logger "console;verbosity=normal"
+
+      - name: Test Picker
+        run: dotnet test Picker.Tests -c Release --logger "console;verbosity=normal"
 
       # R2.5: drive the built binary end to end on every push, so the
       # shipped artefact cannot rot between releases. This is the published
@@ -274,3 +319,56 @@ jobs:
           $request = '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}'
           $reply = $request | & ./published/fettle.exe serve --root smoke
           if ($reply -notmatch '"serverInfo"') { throw "no serverInfo in: $reply" }
+
+      # pick, end to end on the published single file: version, the
+      # declared surface with NO server behind it (catalogs opens no
+      # connection, which is the point), and the MCP handshake. A live
+      # SELECT needs a SQL Server, which the suite covers where one
+      # answers - this proves the shipped artefact starts, reads its
+      # configuration, and speaks.
+      - name: Publish the single-file pick
+        run: dotnet publish pick -c Release --self-contained -p:PublishSingleFile=true -o published-pick
+
+      - name: Drive pick (unix)
+        if: runner.os != 'Windows'
+        run: |
+          set -euo pipefail
+          exe=./published-pick/pick
+          printf '%s\n' '{"servers":{"nowhere":{"connect":"env:PICK_SMOKE","databases":{"Sales":{"can":["list","select","describe"]}}}}}' > pick-smoke.json
+
+          "$exe" --version
+          out=$("$exe" --config pick-smoke.json catalogs --json)
+          echo "$out" | grep -q '"Sales"' || { echo "catalogs did not answer the declared database: $out"; exit 1; }
+
+          # A refusal is an ANSWER on stdout with its own exit code.
+          out=$("$exe" --config pick-smoke.json select 'DELETE FROM Sales.dbo.T' --json) && code=0 || code=$?
+          echo "$out" | grep -q '"outcome":"refused"' || { echo "expected refused on stdout: $out"; exit 1; }
+          [ "$code" = "8" ] || { echo "expected exit 8, got $code"; exit 1; }
+
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}' \
+            | "$exe" serve --config pick-smoke.json > pick-reply.json
+          grep -q '"picker"' pick-reply.json || { echo "no picker serverInfo in: $(cat pick-reply.json)"; exit 1; }
+
+      - name: Drive pick (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $PSNativeCommandUseErrorActionPreference = $false
+
+          $exe = './published-pick/pick.exe'
+          Set-Content pick-smoke.json '{"servers":{"nowhere":{"connect":"env:PICK_SMOKE","databases":{"Sales":{"can":["list","select","describe"]}}}}}' -Encoding utf8
+
+          & $exe --version
+          $out = & $exe --config pick-smoke.json catalogs --json
+          if ($out -notmatch '"Sales"') { Write-Host "catalogs did not answer: $out"; exit 1 }
+
+          $out = & $exe --config pick-smoke.json select 'DELETE FROM Sales.dbo.T' --json
+          $code = $LASTEXITCODE
+          if ($code -ne 8) { Write-Host "expected exit 8, got $code : $out"; exit 1 }
+          if ($out -notmatch '"outcome":"refused"') { Write-Host "expected refused on stdout: $out"; exit 1 }
+
+          $request = '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}'
+          $reply = $request | & $exe serve --config pick-smoke.json
+          if ($reply -notmatch '"picker"') { Write-Host "no picker serverInfo in: $reply"; exit 1 }
+          exit 0

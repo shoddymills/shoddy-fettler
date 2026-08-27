@@ -106,6 +106,52 @@ for (const p of pages) {
     }
 }
 
+// ---- lanes: the main bar shows ONE program, and it is the page's own ----
+// The identity check above compares only item TEXT, and both lanes
+// deliberately use the same words - so it cannot see a pick page
+// carrying fettle's items, which would pass every other check and be
+// wrong on sight. Say the lane rules directly: exactly one main bar per
+// page, every href in it inside one lane, and the lane matching the
+// page's own name (shared pages - index, heritage, authorship - carry
+// the fettle lane, the first program).
+for (const p of pages) {
+  if (p === "404.html") continue;
+  const text = read("docs/" + p);
+  const main = [...text.matchAll(/<nav class="docnav main"[^>]*>([\s\S]*?)<\/nav>/g)];
+  if (main.length !== 1) {
+    fail("docs/" + p + ": expected exactly one main bar, found " + main.length);
+    continue;
+  }
+  const hrefs = [...main[0][1].matchAll(/href="([^"#]+)"/g)].map(m => m[1]);
+  const lane = p.startsWith("pick") ? "pick" : "fettle";
+  for (const href of hrefs)
+    if (!href.startsWith(lane))
+      fail("docs/" + p + ": its main bar links to " + href +
+           ", which is not in the " + lane + " lane");
+}
+
+// ---- lanes: outside the switcher, a lane page never leaves its lane ----
+// The switcher is the ONE deliberate crossover, and it jumps to the same
+// section on the other side. Every other cross-lane link is a reader
+// silently changing programs mid-page - which is how the screening pages
+// once sent a pick reader to fettle's instructions - so the lanes are
+// isolated: each has its own copy of every page, and a fact both programs
+// share is stated twice rather than linked across. Shared pages (index,
+// heritage, authorship, and the self-contained 404) belong to both
+// programs and may link either lane.
+{
+  const shared = new Set(["index.html", "heritage.html", "authorship.html", "404.html"]);
+  for (const p of pages) {
+    if (shared.has(p)) continue;
+    const text = read("docs/" + p)
+      .replace(/<nav class="docnav switch"[\s\S]*?<\/nav>/g, "");
+    const crossing = p.startsWith("pick") ? /href="(fettle[^"]*)"/g : /href="(pick[^"]*)"/g;
+    for (const m of text.matchAll(crossing))
+      fail("docs/" + p + ": links across the lanes to " + m[1] +
+           " outside the switcher - the lanes are isolated on purpose");
+  }
+}
+
 // ---- links: every internal href resolves, fragment included ----
 {
   const ids = {};
@@ -252,10 +298,15 @@ for (const p of pages) {
 }
 
 
-// ---- encoding: no UTF-8 round-tripped through CP1252 ----
+// ---- encoding: no UTF-8 round-tripped through CP1252 or CP437/850 ----
 // The signature is a byte sequence that is valid UTF-8 but reads as the
 // CP1252 rendering of a character nobody types: an em dash arriving as three
 // characters, and on a second pass as eight.
+//
+// The 437/850 family is the same fault through a Windows console codepage
+// instead of a Windows text codepage. It is here because the design
+// transcript arrived with every em dash as "ΓÇö" - and this check, as it
+// stood, was satisfied.
 //
 // A file that is legitimately ABOUT the fault - a release note explaining
 // one - opts out by carrying the marker below anywhere in its text. Reach
@@ -263,6 +314,7 @@ for (const p of pages) {
 {
   const MARKER = "verify-docs: mojibake is the subject here";
   const SIGNS = [
+    "ΓÇö", "ΓÇô", "ΓÇÖ", "ΓÇ£", "ΓÇ¥", "ΓÇÿ",
     "â", "â", "â", "â",
     "â", "â", "Ã©", "Ã¨",
     "Ã¢", "Â ", "Â·", "└ó",
@@ -281,7 +333,7 @@ for (const p of pages) {
       if (text.includes(MARKER)) continue;
       for (const sign of SIGNS)
         if (text.includes(sign)) {
-          fail(rel + ": carries UTF-8 round-tripped through CP1252 (found " +
+          fail(rel + ": carries UTF-8 round-tripped through a legacy codepage (found " +
                JSON.stringify(sign) + ")");
           break;
         }

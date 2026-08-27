@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 990" role="img"
   aria-label="A map of a developer's disk and the network beyond it. The machine is one hatched area meaning out of bounds by default. On the left, the code folder holds a sibling project that is out of bounds, a planning repository that grants nothing at its root but opens two folders by name while keeping two others invisible, and the shoddy project which is fully in bounds apart from a sealed pocket holding its own configuration files. On the right, the user's folder holds one permitted scratch directory and several refused ones: keys and credentials, Documents which contains a Dropbox folder, browser profiles, and the operating system. Below the machine is the network: two sanctioned exits lead from the shoddy project to github.com and nuget.org, every other address has no route, and the Dropbox folder has its own continuous sync door to dropbox.com that no task opens and nothing here can close.">
 <style>
-/* Extracted from docs/diagram.html so the figure can stand alone in a README.
+/* Extracted from docs/fettle-workstation.html so the figure can stand alone in a README.
    The palette is the site's: madder for what is refused, drab for what is
    granted, indigo for what is read-only, over the unbleached wool ground.
    Kept in step with the page by hand - if the diagram there is restyled,

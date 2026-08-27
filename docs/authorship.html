@@ -17,7 +17,7 @@
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><span class="here">Authorship</span></nav>
   </div>
-  <nav class="docnav main" aria-label="Documentation"><a href="index.html">Overview</a><a href="diagram.html">The workstation</a><a href="quickstart.html">Quick start</a><a href="install.html">Install</a><a href="setup.html">In a project</a><a href="screening.html">Screening</a><a href="reference.html">Reference</a></nav>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle.html">fettle<small>for files</small></a><a href="pick.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-workstation.html">Workstation</a><a href="fettle-quickstart.html">Quick start</a><a href="fettle-install.html">Install</a><a href="fettle-setup.html">In a project</a><a href="fettle-screening.html">Screening</a><a href="fettle-models.html">Models</a><a href="fettle-reference.html">Reference</a></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
@@ -63,7 +63,7 @@ it was built by directing one.</b> The boundary it enforces &mdash; declared
 trees, no working directory, no shell, a configuration the tool may not
 write &mdash; is the author's answer to what that experience showed was
 needed. A tool that decided its own limits would be no answer at all,
-which is why <a href="reference.html#rules">the rule that makes every other rule
+which is why <a href="fettle-reference.html#rules">the rule that makes every other rule
 hold</a> is that Fettler cannot grant itself anything.</p>
 <p>The division of labor was consistent throughout. The tool drafted. The
 author decided. Nothing entered the tool without being commissioned, and
@@ -89,7 +89,38 @@ copyright claim. This page is that disclosure, made voluntarily and in
 advance.</div>
 
 <h2 id="the-record">The record</h2>
-<p><b>Fettler's design record is in Fettler's own source, and it is unusually
+<p>The design of Fettler is documented in a contemporaneous conversation
+record &mdash; one kept as the work happened &mdash;
+<a href="devlog.html">the DEVLOG</a>. Every message from the author is
+preserved there <em>verbatim, typos included</em>, deliberately, as part of
+the record. The table below condenses it: the commissioning of the tool,
+from the first complaint to the naming, on 16&nbsp;August&nbsp;2026. The
+left column is what the author wrote, exactly as written. The right column
+is what each instruction did to the tool.</p>
+<table class="prose">
+<thead><tr><th>The author's words, verbatim</th><th>What the words decided</th></tr></thead>
+<tbody>
+<tr><td>&ldquo;throughout our work, we've consantly been hit by bash and windows issues when using tools to develop shoddy.&rdquo;</td>
+<td>Framed the problem: file work was failing at the shell, not at the files. The inventory this message ordered became the verb list.</td></tr>
+<tr><td>&ldquo;i also have this desire that anyone using shoddy -- including with claude, not need anything else. no python. no wsl. no bash. nothing else required.&rdquo;</td>
+<td>Set the single-install goal that still governs the release: self-contained executables, nothing else on the machine.</td></tr>
+<tr><td>&ldquo;ok...that's enough. i'm asking a purely functionaly language to do a lot of side-effect stuff. that's not a good fit for the language.&rdquo;</td>
+<td>Killed the first design on the merits &mdash; a tool of side effects would not be written in a purely functional language. Refusing a feature is a design decision, and it was the author's.</td></tr>
+<tr><td>&ldquo;let's keep this 100% csharp. no shoddy. but part of the repo. to keep our single-install goal.&rdquo;</td>
+<td>Chose the implementation language and the arrangement that still holds: same repository, same release, separate program.</td></tr>
+<tr><td>&ldquo;would this be both mcp and scripted (from ps or sh)?&rdquo;</td>
+<td>Produced the two front ends over one core &mdash; the fettle a model uses and the fettle a script uses are the same program.</td></tr>
+<tr><td>&ldquo;no dependencies on shoddy... including its runtime. i don't want these two things coupled together.&rdquo;</td>
+<td>Became the independence rule, held by tests: no project reference leaves this repository, ever.</td></tr>
+<tr><td>&ldquo;also, what about file-level operations? move, copy, delete, rename, create&rdquo; &hellip; &ldquo;also, must work on windows and mac.&rdquo;</td>
+<td>Commissioned the file-level verbs and their refusals &mdash; no wildcards on anything destructive, no implicit overwrite &mdash; and made Windows and macOS equal.</td></tr>
+<tr><td>&ldquo;for naming, consider the tools use and the source of the shoddy name. think maintenance in a 1875 shoddy mill.&rdquo;</td>
+<td>Named the tool. The fettler kept a mill's carding engines in order; <code>fettle</code> is the imperative.</td></tr>
+<tr><td>&ldquo;is a file-watcher useful in the mcp? to notify you of changes you may not otherwise know about...&rdquo;</td>
+<td>A feature proposed, examined, and put out of scope with the reasoning recorded &mdash; staleness is checked against what was read instead of watching the tree.</td></tr>
+</tbody>
+</table>
+<p><b>The rest of the record is in Fettler's own source, and it is unusually
 complete.</b> This is not an accident of style. Every load-bearing decision in
 the tool is written down beside the code that implements it, with the reason
 that produced it and, where one exists, the requirement clause it answers to.
@@ -114,7 +145,7 @@ in a hurry, so the boundary, the allowlist and the layering are each asserted
 by a test that fails when they stop being true.</td></tr>
 <tr><td>This site</td>
 <td><a href="index.html">What the tool guarantees</a>, and
-<a href="reference.html#threat">what it deliberately does not</a>.</td></tr>
+<a href="fettle-reference.html#threat">what it deliberately does not</a>.</td></tr>
 </tbody>
 </table>
 <p>The commit history of this repository carries the rest: what changed, when,

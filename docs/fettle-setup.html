@@ -17,7 +17,7 @@
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <nav class="docnav main" aria-label="Documentation"><a href="index.html">Overview</a><a href="diagram.html">The workstation</a><a href="quickstart.html">Quick start</a><a href="install.html">Install</a><span class="here">In a project</span><a href="screening.html">Screening</a><a href="reference.html">Reference</a></nav>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick-setup.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-workstation.html">Workstation</a><a href="fettle-quickstart.html">Quick start</a><a href="fettle-install.html">Install</a><span class="here">In a project</span><a href="fettle-screening.html">Screening</a><a href="fettle-models.html">Models</a><a href="fettle-reference.html">Reference</a></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
@@ -26,10 +26,10 @@
 <p class="kicker">Six steps, in the order they depend on each other. Declare the boundary, wire the client, prove the refusals.</p>
 </header>
 
-<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="install.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Installing It</span></span></a><a class="next" href="screening.html"><span class="pnwrap"><span class="ttl">Screening</span><span class="dir">Next &rarr;</span></span></a></nav>
+<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="fettle-install.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Installing It</span></span></a><a class="next" href="fettle-screening.html"><span class="pnwrap"><span class="ttl">Screening</span><span class="dir">Next &rarr;</span></span></a></nav>
 
 <p>This page assumes <code>fettle</code> is already on the machine and
-registered. That is <a href="install.html">installing it</a>,
+registered. That is <a href="fettle-install.html">installing it</a>,
 done once. What follows is per project, and the numbering is not
 decoration: <b>each step needs the one before it.</b></p>
 
@@ -37,7 +37,7 @@ decoration: <b>each step needs the one before it.</b></p>
 you run anything.</b> It is the file that declares your trees, and
 until it exists this project has no boundary. The server learns its
 trees at launch, from the <code>.fettler.json</code> in the folder it
-starts in &mdash; and <a href="reference.html#defaults">declaring nothing
+starts in &mdash; and <a href="fettle-reference.html#defaults">declaring nothing
 is a refusal</a>, not a fallback to the current directory.
 <code>setup --local</code> will <em>create</em> the file if none is
 there, and it is the only thing that does. But what it writes is the
@@ -48,7 +48,7 @@ says. <b><code>setup</code> and <code>doctor</code> are the two verbs
 that run without one</b>; everything else refuses until it exists.</div>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code># 1. write .fettler.json in an editor          &lt;- your boundary; nothing below writes it
-# 2. add .fettler.local.json for the scratch   &lt;- gitignored, this machine's own
+# 2. add .fettler.local.json for the scratch   &lt;- not checked in; this machine's own
 # 3. add "tasks" if anything needs running
 fettle doctor                                  # what is wired, and what goes round it
 fettle setup claude-code --local --dry-run     # what would change
@@ -110,11 +110,11 @@ and only a configuration file can widen that.</li>
 it.</b> A scope naming <code>create</code> and nothing else grants
 <code>create</code> and nothing else &mdash; not even
 <code>read</code>. The rules are on
-<a href="reference.html#scopes">the Fettler page</a>.</li>
+<a href="fettle-reference.html#scopes">the Fettler page</a>.</li>
 <li><b>Paths are relative, forward-slashed, no drive letter.</b> They
 resolve against the file, not against whoever is calling &mdash; which
 is what lets the file be checked in.
-<a href="reference.html#paths">The spelling table</a> has the
+<a href="fettle-reference.html#paths">The spelling table</a> has the
 cases.</li>
 <li><b>A tree that does not exist is a startup failure.</b> So the
 checked-in file can only name trees that travel with the project.
@@ -137,7 +137,7 @@ declared by /work/shoddy/.fettler.json</code></pre></div>
 
 <h3 id="local">The personal overlay</h3>
 
-<p>A gitignored <code>.fettler.local.json</code> beside it is merged
+<p>An uncommitted <code>.fettler.local.json</code> beside it is merged
 over the top. Your machine's own trees need not be typed on every
 command, and need not be inflicted on everybody else's checkout.</p>
 
@@ -150,17 +150,17 @@ running it.</p>
 
 <div class="takeaway"><b>Do this before the deny list lands, not
 after.</b> An assistant stages work &mdash; a long replacement, a
-generated file, a diff it is about to apply &mdash; in a scratch
+generated file, a patch it is about to apply &mdash; in a scratch
 directory the harness gives it, well outside your source tree. Deny the
 built-in <code>Write</code> and that route shuts. The scratch is
 outside every declared tree, so Fettler will not write there either.
 <b>Both routes closed</b> &mdash; and it surfaces at the first staging
 write, not while you are running <code>setup</code>.</div>
 
-<p>It goes in the gitignored overlay, because the path is this
+<p>It goes in the uncommitted overlay, because the path is this
 machine's and nobody else's:</p>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>// .fettler.local.json  - beside .fettler.json, gitignored
+<div class="promptbox"><button class="copy">Copy</button><pre><code>// .fettler.local.json  - beside .fettler.json, kept out of source control
 {
   "trees": {
     "scratch": {
@@ -181,7 +181,7 @@ being written.</li>
 anyway. A scratch tree is for staging text, not for running what is
 staged.</li>
 <li><b><code>fettle doctor</code> reports its absence as
-<a href="reference.html#findings">2.15</a></b>, and stops once a tree inside it is
+<a href="fettle-reference.html#findings">2.15</a></b>, and stops once a tree inside it is
 declared.</li>
 </ul>
 
@@ -191,7 +191,7 @@ declared.</li>
 the files that say what Fettler may do, and Fettler refuses to write
 those at every permission level. <code>setup</code> is bound by the same
 rule. If it could declare a tree, it could grant itself any tree, and
-<a href="reference.html#rules">the refusal that makes every other rule
+<a href="fettle-reference.html#rules">the refusal that makes every other rule
 hold</a> would be decoration. It may <b>create</b> a starter
 <code>.fettler.json</code> where none exists; it never changes one. So
 it names the fix, and a person applies it &mdash; the same shape as
@@ -225,15 +225,15 @@ shell command. It also <b>needs the tree to grant
 <code>pwsh</code> on a machine that only has Windows PowerShell fails at
 launch, not at declaration time.</li>
 <li><b>A task takes no arguments from its caller.</b> A variant is a
-second declared task, or a value the file declares. <a href="reference.html#grammar">The command
+second declared task, or a value the file declares. <a href="fettle-reference.html#grammar">The command
 grammar</a> is exact about quoting and backslashes.</li>
 <li><b>A value that changes every time goes in
 <code>replacements</code>.</b> The branch to cut, or the note to commit
 under, cannot be a second task &mdash; it is a fresh string each time.
 Declare it once, name it in the command line, and keep the value in the
-<a href="#local">personal overlay</a>, which is gitignored, so today's
-branch name never becomes a diff.
-<a href="reference.html#replacements">What a replacement means</a> is on
+<a href="#local">personal overlay</a>, which is kept out of source control, so today's
+branch name never lands in source control.
+<a href="fettle-reference.html#replacements">What a replacement means</a> is on
 the reference page. Only an identifier between braces is a name, so a
 brace already on a command line keeps meaning what it meant.</li>
 <li><b><code>cwd</code> &mdash; the folder the task runs in &mdash; is
@@ -279,10 +279,10 @@ rather than letting the name imply otherwise.</p>
 
 <div class="takeaway"><b>It is a safety net and not a boundary.</b> A
 clean verdict is evidence of absence, never a certificate of it.
-<a href="screening.html">Screening</a> is the whole procedure &mdash;
+<a href="fettle-screening.html">Screening</a> is the whole procedure &mdash;
 what each category covers, how to prove a refusal actually refuses, and
 what it deliberately does not do.
-<a href="screening-models.html">The models</a> is the other half, for
+<a href="fettle-models.html">The models</a> is the other half, for
 the three categories that need one.</div>
 
 <h2 id="setup">4. Run <code>fettle setup</code></h2>
@@ -301,10 +301,10 @@ must be kept in step by hand.</p>
 <tr><th>Flag</th><th>What it does</th></tr>
 <tr><td><code>&lt;client&gt;</code></td><td>One of <code>claude-code</code>, <code>claude-desktop</code>, <code>vscode-copilot</code>, <code>github-copilot</code>.</td></tr>
 <tr><td><code>--all</code></td><td>Every client this machine has. Ones that are not installed are skipped rather than created.</td></tr>
-<tr><td><code>--local</code></td><td>The repository level: <code>.mcp.json</code>, <code>.vscode/mcp.json</code>, <code>.claude/settings.json</code>. Reviewable in a diff, affects this tree only. <b>The deny list is written here by default</b> &mdash; asking for setup in a project <em>is</em> asking for Fettler to be the route in it.</td></tr>
-<tr><td><code>--global</code></td><td>The machine level, covered on <a href="install.html#global">installing it</a>. The registration is written; <b>the deny list is only offered</b>, and needs <code>--deny</code> as well.</td></tr>
+<tr><td><code>--local</code></td><td>The repository level: <code>.mcp.json</code>, <code>.vscode/mcp.json</code>, <code>.claude/settings.json</code>. Reviewable in source control, affects this tree only. <b>The deny list is written here by default</b> &mdash; asking for setup in a project <em>is</em> asking for Fettler to be the route in it.</td></tr>
+<tr><td><code>--global</code></td><td>The machine level, covered on <a href="fettle-install.html#global">installing it</a>. The registration is written; <b>the deny list is only offered</b>, and needs <code>--deny</code> as well.</td></tr>
 <tr><td><code>--deny</code></td><td>Write the deny list at the global level too. It is a separate flag because changing how the assistant may work in <em>every</em> project is not a side effect of configuring one.</td></tr>
-<tr><td><code>--hooks</code></td><td>Add the <code>SessionStart</code> hook that runs <code>doctor</code>. Claude Code only, opt-in, and <b>added once however often you re-run</b>. It is independent of whether the deny list needed changing, so asking for it on a project that is already denied still installs it. <a href="install.html#hooks">What it writes</a>.</td></tr>
+<tr><td><code>--hooks</code></td><td>Add the <code>SessionStart</code> hook that runs <code>doctor</code>. Claude Code only, opt-in, and <b>added once however often you re-run</b>. It is independent of whether the deny list needed changing, so asking for it on a project that is already denied still installs it. <a href="fettle-install.html#hooks">What it writes</a>.</td></tr>
 <tr><td><code>--command PATH</code></td><td>Register an absolute path instead of a bare <code>fettle</code>. This is the answer when the binary is deliberately not on <code>PATH</code>.</td></tr>
 <tr><td><code>--dry-run</code></td><td>Print the identical report and write nothing. <b>Run this first.</b></td></tr>
 <tr><td><code>--force</code></td><td>Overwrite an existing <code>fettler</code> entry rather than leaving it alone. Needed when a registration is <code>broken</code> and has to be replaced.</td></tr>
@@ -334,7 +334,7 @@ than writing a registration it knows will fail to launch.</li>
 <li><b>It creates a <code>.fettler.json</code> at <code>--local</code>,
 and never changes one.</b> Creating where none exists is scaffolding.
 Rewriting one is the escape
-<a href="reference.html#rules">the rule-file refusal</a> closes, and
+<a href="fettle-reference.html#rules">the rule-file refusal</a> closes, and
 belongs to a person with an editor. <code>--global</code> declares no
 tree and so writes no such file &mdash; it says so in its own output.
 What it creates declares the folder as <code>work</code> and nothing
@@ -398,7 +398,7 @@ what could let the assistant go round the boundary:
 per level, ending in a verdict. The findings are numbered, and each one
 is a way round the boundary &mdash; <code>!</code> is serious,
 <code>-</code> is worth knowing.
-<a href="reference.html#findings">Everything doctor can report, and how
+<a href="fettle-reference.html#findings">Everything doctor can report, and how
 to clear it</a> gives a row per check: what it found, and the edit that
 clears it. <code>setup</code> adds and never deletes, so any finding
 whose fix is "remove" is yours to make in an editor.</p>
@@ -440,8 +440,8 @@ yet. This is the same property that stops a model widening its own
 boundary, met from the other side.</div>
 
 <nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
-  <a href="install.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Installing It</span></span></a>
-  <a class="next" href="screening.html"><span class="pnwrap"><span class="ttl">Screening</span><span class="dir">Next &rarr;</span></span></a>
+  <a href="fettle-install.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Installing It</span></span></a>
+  <a class="next" href="fettle-screening.html"><span class="pnwrap"><span class="ttl">Screening</span><span class="dir">Next &rarr;</span></span></a>
 </nav>
 <footer>Named for the shoddy mills of the West Riding: Useless Things Made
 Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>

@@ -1,0 +1,188 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1570 1150" role="img"
+  aria-label="Component diagram of three boundaries. First, the model, Claude in VS Code - the same client that runs fettle, with no built-in SQL tool to deny, so the one route is the five picker tools. Second, the Picker MCP server, pick, whose boundary comes from .picker.json and is re-read before every call, offering only catalogs, objects, select, describe and doctor, with no write verb to deny. Third, the SQL Server, visible only as the declared databases: one database Sales with a hidden audit schema and excluded columns, a least-privilege login granted only SELECT and VIEW DEFINITION, and everything undeclared, including the system catalog and linked servers, refused in the same words as a table that was never there.">
+<style>
+/* Extracted from docs/pick-workstation.html so the figure can stand alone in a README.
+   The palette is the site's: madder for what is refused, drab for what is
+   granted, indigo for what is read-only, over the unbleached wool ground.
+   Kept in step with the page by hand - if the diagram there is restyled,
+   re-extract rather than patching one of the two. */
+svg{
+  --madder:#6E3A33; --drab:#55604A; --indigo:#2F4560;
+  --ink:#2E2A26; --ink-soft:#5b544a; --line:#ddd6c6; --line-soft:#e7e2d5;
+  --paper:#efece4; --card:#f8f6f0; --code-bg:#e9e5da; --code-ink:#33302b;
+  --drab-tint:#e5e8dc; --indigo-tint:#e0e5ec; --madder-tint:#ecdfda;
+  --dim:#e7e4da; --brick:#e3cfc8;
+}
+text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.mono{font-family:Consolas,"Cascadia Code",ui-monospace,Menlo,monospace}
+.bframe{fill:none; stroke-dasharray:8 6; stroke-width:1.6}
+.btab{font-size:12.5px; font-weight:700; fill:var(--paper); letter-spacing:.04em}
+.bsub{font-size:11.5px; fill:var(--ink-soft); font-style:italic}
+.card2{fill:var(--card); stroke:var(--line)}
+.cardT{font-size:12.5px; font-weight:700; fill:var(--ink)}
+.cardTm{font-size:12px; font-weight:700}
+.snip{font-size:11px; fill:var(--code-ink)}
+.snipbg{fill:var(--code-bg); stroke:var(--line-soft)}
+.note{font-size:10.5px; fill:var(--ink-soft); font-style:italic}
+.grpT{font-size:11.5px; font-weight:650; fill:var(--ink-soft); letter-spacing:.05em}
+.lbl{font-size:11px; fill:var(--ink-soft); paint-order:stroke; stroke:var(--card); stroke-width:4px; stroke-linejoin:round}
+.lblR{font-size:11px; fill:var(--madder); font-weight:650; paint-order:stroke; stroke:var(--card); stroke-width:4px; stroke-linejoin:round}
+.route{stroke:var(--drab); stroke-width:2; fill:none}
+.routeMain{stroke:var(--drab); stroke-width:3; fill:none}
+.blocked{stroke:var(--madder); stroke-width:1.8; fill:none; stroke-dasharray:5 4}
+.tree{font-size:12px}
+.ok{fill:var(--drab); font-weight:650}
+.ro{fill:var(--indigo); font-weight:650}
+.bad{fill:var(--madder); font-weight:650}
+.hid{fill:var(--ink-soft)}
+.badge{font-size:10.5px; font-weight:650}
+.leg{font-size:12px; fill:var(--ink)}
+</style>
+<rect width="100%" height="100%" fill="var(--card)"/>
+<defs>
+  <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="var(--drab)"/>
+  </marker>
+  <pattern id="hatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+    <line x1="0" y1="0" x2="0" y2="7" stroke="var(--line)" stroke-width="1.4"/>
+  </pattern>
+</defs>
+
+<!-- ============ BOUNDARY FRAMES ============ -->
+<rect x="20" y="40" width="485" height="1000" class="bframe" stroke="var(--indigo)"/>
+<rect x="14" y="28" width="235" height="24" rx="4" fill="var(--indigo)"/>
+<text x="26" y="45" class="btab">&#171;boundary&#187; THE MODEL</text>
+<text x="40" y="72" class="bsub">the same client that runs fettle &#8212; nothing new to deny</text>
+
+<rect x="560" y="40" width="460" height="1000" class="bframe" stroke="var(--madder)"/>
+<rect x="554" y="28" width="244" height="24" rx="4" fill="var(--madder)"/>
+<text x="566" y="45" class="btab">&#171;boundary&#187; THE TOOL &#8212; PICK</text>
+<text x="580" y="72" class="bsub">one process between the model and the server</text>
+
+<rect x="1065" y="40" width="480" height="1000" class="bframe" stroke="var(--drab)"/>
+<rect x="1059" y="28" width="252" height="24" rx="4" fill="var(--drab)"/>
+<text x="1071" y="45" class="btab">&#171;boundary&#187; THE SQL SERVER</text>
+<text x="1085" y="72" class="bsub">what exists, seen through the declared databases</text>
+
+<!-- ============ COLUMN 1 : THE MODEL ============ -->
+<rect x="40" y="86" width="440" height="200" rx="8" class="card2"/>
+<text x="56" y="106" class="cardT">VS Code &#183; Claude Code extension</text>
+<text x="56" y="120" class="note">the workstation is already fettled &#8212; the file tools and shells are denied</text>
+
+<rect x="60" y="130" width="400" height="30" rx="6" fill="var(--indigo-tint)" stroke="var(--indigo)"/>
+<text x="260" y="149" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--indigo)">Claude &#8212; the model</text>
+
+<text x="60" y="184" class="note">there is no built-in SQL tool to deny: wiring pick opens one</text>
+<text x="60" y="198" class="note">bounded route and closes nothing</text>
+<text x="60" y="224" class="grpT">THE ONE ROUTE &#8212; MCP TOOLS</text>
+<rect x="60" y="232" width="400" height="24" rx="6" fill="var(--drab-tint)" stroke="var(--drab)"/>
+<text x="70" y="248" class="mono" font-size="11" fill="var(--drab)" font-weight="650">mcp__picker__*&#160;&#160;catalogs &#183; objects &#183; select &#183; describe &#183; doctor</text>
+
+<rect x="40" y="306" width="440" height="96" rx="8" class="card2"/>
+<text x="52" y="324" class="cardTm mono" fill="var(--ink)">.mcp.json &#8212; launches the server&#160;&#160;<tspan class="bad">&#8856; governed</tspan></text>
+<rect x="52" y="332" width="416" height="46" rx="5" class="snipbg"/>
+<text x="60" y="346" class="snip mono">{ "mcpServers": {</text>
+<text x="60" y="359" class="snip mono">&#160;&#160;&#160;&#160;"picker": { "command": "pick",</text>
+<text x="60" y="372" class="snip mono">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"args": ["serve"] } } }</text>
+
+<text x="40" y="430" class="note">registered per project, exactly as fettle is &#8212; and pick refuses to</text>
+<text x="40" y="444" class="note">write this file, or any file that governs it or the model</text>
+
+<!-- ============ COLUMN 2 : PICK ============ -->
+<rect x="580" y="86" width="430" height="150" rx="8" class="card2"/>
+<text x="596" y="106" class="cardT">pick serve &#8212; the MCP front end</text>
+<text x="596" y="121" class="note">launched by the client, on stdio &#183; re-reads its boundary before</text>
+<text x="596" y="134" class="note">every call &#183; opens no connection until a verb needs one</text>
+<text x="596" y="158" class="grpT">VERBS OFFERED TO THE MODEL</text>
+<rect x="596" y="166" width="398" height="26" rx="6" fill="var(--drab-tint)" stroke="var(--drab)"/>
+<text x="606" y="183" class="mono" font-size="11.5" fill="var(--ink)">catalogs &#183; objects &#183; select &#183; describe &#183; doctor</text>
+<text x="596" y="214" class="note">select carries ONE statement, parsed whole and rewritten before the</text>
+<text x="596" y="227" class="note">server sees it &#8212; there is no write verb to deny</text>
+
+<text x="580" y="266" class="grpT">THE BOUNDARY &#8212; A PERSON WRITES IT; THE TOOL REFUSES TO</text>
+<rect x="580" y="276" width="430" height="204" rx="8" class="card2"/>
+<text x="592" y="294" class="cardTm mono" fill="var(--ink)">.picker.json &#8212; checked in&#160;&#160;<tspan class="bad">&#8856; governed</tspan></text>
+<rect x="592" y="302" width="406" height="168" rx="5" class="snipbg"/>
+<text x="600" y="316" class="snip mono">{ "servers": { "warehouse": {</text>
+<text x="600" y="330" class="snip mono">&#160;&#160;&#160;&#160;// connect: in the local file, below</text>
+<text x="600" y="344" class="snip mono">&#160;&#160;&#160;&#160;"databases": { "Sales": {</text>
+<text x="600" y="358" class="snip mono">&#160;&#160;&#160;&#160;&#160;&#160;"can": ["list","select","describe"],</text>
+<text x="600" y="372" class="snip mono">&#160;&#160;&#160;&#160;&#160;&#160;"screen": ["identifiers"],</text>
+<text x="600" y="386" class="snip mono">&#160;&#160;&#160;&#160;&#160;&#160;"scopes": [</text>
+<text x="600" y="400" class="snip mono">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;{ "object": "dbo.Customers", "can": ["list","select"],</text>
+<text x="600" y="414" class="snip mono">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;"columns": ["-ssn","-dob"] },</text>
+<text x="600" y="428" class="snip mono">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;{ "object": "audit.*", "can": [] } ] } } } } }</text>
+
+<rect x="580" y="496" width="430" height="96" rx="8" class="card2"/>
+<text x="592" y="514" class="cardTm mono" fill="var(--ink)">.picker.local.json &#8212; not checked in&#160;&#160;<tspan class="bad">&#8856; governed</tspan></text>
+<rect x="592" y="522" width="406" height="60" rx="5" class="snipbg"/>
+<text x="600" y="536" class="snip mono">{ "models": "C:/screening-models",</text>
+<text x="600" y="550" class="snip mono">&#160;&#160;"servers": { "warehouse": { "connect":</text>
+<text x="600" y="564" class="snip mono">&#160;&#160;&#160;&#160;"Server=&#8230;;Integrated Security=true" } } }</text>
+
+<rect x="580" y="612" width="430" height="156" rx="8" fill="var(--madder-tint)" stroke="var(--madder)"/>
+<text x="596" y="634" class="cardT" fill="var(--madder)">the refusals that make it hold</text>
+<text x="600" y="658" class="snip mono">not one SELECT &#183; EXEC &#183; INTO&#160;&#160;&#8594; exit  8&#160;&#160;refused</text>
+<text x="600" y="676" class="snip mono">undeclared db &#183; hidden object &#8594; exit  3&#160;&#160;not-found</text>
+<text x="600" y="694" class="snip mono">hidden column, anywhere&#160;&#160;&#160;&#160;&#160;&#160;&#8594; exit  3&#160;&#160;not-found</text>
+<text x="600" y="712" class="snip mono">sys.* &#183; four-part names&#160;&#160;&#160;&#160;&#160;&#160;&#8594; exit  8&#160;&#160;refused</text>
+<text x="600" y="730" class="snip mono">regulated rows leaving&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#8594; exit 13&#160;&#160;screened</text>
+<text x="596" y="754" class="note">hidden and absent answer in the same words &#8212; the catalog cannot be probed</text>
+
+<!-- ============ COLUMN 3 : THE SQL SERVER ============ -->
+<rect x="1085" y="86" width="445" height="230" rx="8" fill="var(--drab-tint)" stroke="var(--drab)"/>
+<text x="1098" y="106" class="cardTm mono" fill="var(--ink)">Sales &#8594; warehouse</text>
+<text x="1098" y="121" class="badge mono ok">can: list select describe&#160;&#160;&#183;&#160;&#160;screen: identifiers</text>
+<text x="1102" y="145" class="tree mono" fill="var(--ink)">&#9500;&#9472; dbo.Orders&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;<tspan class="ok">&#9679; select &#183; describe</tspan></text>
+<text x="1102" y="164" class="tree mono" fill="var(--ink)">&#9500;&#9472; dbo.Customers&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;<tspan class="ok">&#9679; select</tspan> <tspan class="hid">&#8212; columns: -ssn -dob</tspan></text>
+<text x="1102" y="183" class="tree mono" fill="var(--ink)">&#9500;&#9472; dbo.TopCustomers&#160;&#160;&#160;&#160;&#160;&#160;<tspan class="ok">&#9679; a view &#8212; columns, never its text</tspan></text>
+<text x="1102" y="202" class="tree mono" fill="var(--ink)">&#9492;&#9472; audit.Log&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;<tspan class="hid">&#9618; hidden &#8212; can: []</tspan></text>
+<text x="1098" y="228" class="note">a scope replaces what its database grants; the most specific decides.</text>
+<text x="1098" y="241" class="note">audit.Log is absent from objects, and a SELECT naming it is refused</text>
+<text x="1098" y="254" class="note">in the same words as a table that was never there.</text>
+<text x="1098" y="280" class="note">SELECT * expands to the permitted columns before the server sees it;</text>
+<text x="1098" y="293" class="note">ssn in a WHERE is refused like a column that does not exist</text>
+
+<rect x="1085" y="336" width="445" height="96" rx="8" fill="var(--indigo-tint)" stroke="var(--indigo)"/>
+<text x="1098" y="356" class="cardTm mono" fill="var(--ink)">the login pick connects as</text>
+<text x="1098" y="371" class="badge mono ro">granted only SELECT and VIEW DEFINITION</text>
+<text x="1098" y="395" class="note">the server keeps its own boundary: even a fault in pick has nothing</text>
+<text x="1098" y="408" class="note">wider to spend. a login failure reports as denied &#8212; never as the</text>
+<text x="1098" y="421" class="note">gate refusing</text>
+
+<rect x="1085" y="456" width="445" height="240" rx="8" fill="var(--dim)" stroke="var(--line)"/>
+<rect x="1085" y="456" width="445" height="240" rx="8" fill="url(#hatch)" opacity="0.5"/>
+<text x="1098" y="480" class="cardT" fill="var(--ink-soft)">outside every declared database</text>
+<text x="1102" y="508" class="tree mono hid">master &#183; msdb &#183; tempdb</text>
+<text x="1102" y="527" class="tree mono hid">OtherDb.dbo.Anything&#160;&#160;&#160;(real, undeclared)</text>
+<text x="1102" y="546" class="tree mono hid">sys.* &#183; INFORMATION_SCHEMA &#183; OBJECT_DEFINITION()</text>
+<text x="1102" y="565" class="tree mono hid">OtherServer.OtherDb..&#160;&#160;&#160;(a linked server)</text>
+<text x="1098" y="598" class="tree mono bad">not listable &#183; not selectable &#183; not knowable</text>
+<text x="1098" y="617" class="tree mono bad">every name &#8594; exit 3, table or no table</text>
+<text x="1098" y="644" class="note">the connection could reach more &#8212; the login should not, and the</text>
+<text x="1098" y="657" class="note">gate refuses before a statement ever leaves the process</text>
+
+<!-- ============ ROUTES ============ -->
+<line x1="480" y1="145" x2="574" y2="145" class="route" marker-end="url(#arrG)"/>
+<text x="527" y="136" text-anchor="middle" class="lbl">tool calls &#183; stdio</text>
+
+<line x1="655" y1="272" x2="655" y2="242" class="route" marker-end="url(#arrG)"/>
+<text x="668" y="260" class="lbl">declares the servers &#8212; re-read before every call</text>
+
+<line x1="1010" y1="190" x2="1078" y2="190" class="routeMain" marker-end="url(#arrG)"/>
+<text x="1044" y="179" text-anchor="middle" class="lbl">one SELECT</text>
+
+<path d="M 1010 576 H 1072" class="blocked"/>
+<line x1="1066" y1="570" x2="1078" y2="582" stroke="var(--madder)" stroke-width="2"/>
+<line x1="1078" y1="570" x2="1066" y2="582" stroke="var(--madder)" stroke-width="2"/>
+<text x="1041" y="566" text-anchor="middle" class="lblR">exit 3</text>
+
+<!-- ============ LEGEND ============ -->
+<line x1="20" y1="1078" x2="1545" y2="1078" stroke="var(--line)" stroke-width="1"/>
+<text x="20"   y="1106" class="leg"><tspan class="ok">&#9679;</tspan> granted verb</text>
+<text x="160"  y="1106" class="leg"><tspan class="hid">&#9618;</tspan> hidden scope</text>
+<text x="300"  y="1106" class="leg"><tspan class="ro">&#9685;</tspan> the login &#8212; read-only by grant</text>
+<text x="560"  y="1106" class="leg"><tspan class="bad">&#8856;</tspan> governed &#8212; the tool never writes its own rules</text>
+<text x="1030" y="1106" class="leg" fill="var(--drab)">&#9472;&#9472;&#9654; allowed route</text>
+<text x="1200" y="1106" class="leg" fill="var(--madder)">&#9476;&#9476;&#10005; blocked route</text>
+</svg>

@@ -17,7 +17,7 @@
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <nav class="docnav main" aria-label="Documentation"><a href="index.html">Overview</a><a href="diagram.html">The workstation</a><a href="quickstart.html">Quick start</a><a href="install.html">Install</a><a href="setup.html">In a project</a><span class="here">Screening</span><a href="reference.html">Reference</a></nav>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick-screening.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-workstation.html">Workstation</a><a href="fettle-quickstart.html">Quick start</a><a href="fettle-install.html">Install</a><a href="fettle-setup.html">In a project</a><span class="here">Screening</span><a href="fettle-models.html">Models</a><a href="fettle-reference.html">Reference</a></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
@@ -26,11 +26,11 @@
 <p class="kicker">Stop a regulated document leaving a tree by accident. The first tier needs nothing installed and one line of configuration.</p>
 </header>
 
-<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="setup.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">In a Project</span></span></a><a class="next" href="screening-models.html"><span class="pnwrap"><span class="ttl">Screening: the models</span><span class="dir">Next &rarr;</span></span></a></nav>
+<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="fettle-setup.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">In a Project</span></span></a><a class="next" href="fettle-models.html"><span class="pnwrap"><span class="ttl">The models</span><span class="dir">Next &rarr;</span></span></a></nav>
 
 <p>This page assumes Fettler is installed and turned on in a project.
-That is <a href="install.html">installing it</a> and
-<a href="setup.html">in a project</a>, in that order. The screen
+That is <a href="fettle-install.html">installing it</a> and
+<a href="fettle-setup.html">in a project</a>, in that order. The screen
 is the last thing you switch on, and <b>most projects never switch it on
 at all</b>.</p>
 
@@ -50,7 +50,7 @@ fettle read one-of-the-records.pdf           # confirm it refuses</code></pre></
 <p><b>That is the whole feature for most people who want it.</b> Names,
 addresses, conditions and free text need a model, which is a second
 program and a download you fetch yourself &mdash;
-<a href="screening-models.html">installing the models</a> is that half,
+<a href="fettle-models.html">installing the models</a> is that half,
 and nothing on this page depends on it.</p>
 
 <h2 id="need">Do you need this?</h2>
@@ -66,9 +66,9 @@ that chain.</p>
 <tr><th>Your tree holds</th><th>Switch it on?</th></tr>
 <tr><td>Patient notes, discharge summaries, lab results</td><td><b>Yes.</b> This is the case the screen was built for.</td></tr>
 <tr><td>Customer records with names, addresses, card or account numbers</td><td><b>Yes</b>, with <code>identifiers</code> at least &mdash; which catches the card and account numbers. The <em>names and addresses</em> need a model; see <a href="#categories">the categories</a>.</td></tr>
-<tr><td>Signed contracts, credit files, student records</td><td><b>Probably.</b> Read the caveat in <a href="#limits">step 11</a> first &mdash; two of those three regimes are not covered categories.</td></tr>
+<tr><td>Signed contracts, credit files, student records</td><td><b>Probably.</b> Read the caveat in <a href="#limits">what it does not do</a> first &mdash; two of those three regimes are not covered categories.</td></tr>
 <tr><td>Source code, build scripts, documentation</td><td><b>No.</b> The email-address detector alone will refuse a great deal of it. See the warning below.</td></tr>
-<tr><td>Anonymised or synthetic data</td><td><b>No</b> &mdash; but if it sits inside a screened tree, give it a scope that turns the screen off. <a href="#carve">Step 2 shows how.</a></td></tr>
+<tr><td>Anonymised or synthetic data</td><td><b>No</b> &mdash; but if it sits inside a screened tree, give it a scope that turns the screen off. <a href="#carve">Carving out a folder</a> shows how.</td></tr>
 </table>
 
 <p class="note"><span class="lab">Note</span> <b>Do not put
@@ -158,7 +158,8 @@ them alive in configurations indefinitely, still over-promising.</p>
 <code>scientific</code> screen nothing until you install a model.</b>
 None of the three has a pattern behind it. A tree that names one of them
 and has no models directory is screened in name only. <code>fettle
-roots</code> says so in as many words, and <a href="#name">step 6</a> is
+roots</code> says so in as many words, and
+<a href="fettle-models.html#name">naming the models directory</a> is
 the act that changes it.</div>
 
 <div class="takeaway"><b>The mirror of that, and the more important
@@ -260,7 +261,8 @@ above it.</b> The tree says it screens <code>clinical</code>, and
 <code>clinical</code> is judged by a model that is not installed yet, so
 right now it screens nothing at all. <code>roots</code> says so rather
 than letting the word imply otherwise &mdash; and once you install one
-it names the checkpoint instead. That is <a href="#name">step 6</a>.</div>
+it names the checkpoint instead. That is
+<a href="fettle-models.html#name">naming the directory</a>.</div>
 
 <p>Now read a file you know holds an identifier:</p>
 
@@ -295,7 +297,7 @@ model is a separate download.</b> <code>clinical</code>,
 <code>legal</code> and <code>scientific</code> screen nothing at all
 until one is installed, and <code>fettle roots</code> says so rather than
 letting the category name imply otherwise.
-<a href="screening-models.html">Installing the models &rarr;</a></div>
+<a href="fettle-models.html">Installing the models &rarr;</a></div>
 
 <h2 id="prove">Prove it refuses</h2>
 
@@ -314,30 +316,6 @@ each of these, and watch what comes back.</p>
 <tr><td>read an ordinary file with no identifiers in it</td><td>served. If this one refuses, the screen is on a tree it does not belong on.</td></tr>
 </table>
 
-<h3 id="byhand">Driving burler by hand</h3>
-
-<p>When the model tier is the part in doubt, run burler yourself. It
-reads one request per line and answers one line:</p>
-
-<div class="promptbox"><button class="copy">Copy</button><pre><code>$ burler --models C:/models/screening
-{"op":"screen","categories":["clinical"],"payload":"the weather was fine"}
-{"ok":true,"findings":[]}</code></pre></div>
-
-<p>Type the request line, press return, and read the answer.</p>
-
-<table>
-<tr><th>What comes back</th><th>What it tells you</th></tr>
-<tr><td><code>{"ok":true,"findings":[]}</code></td><td>Everything works. It loaded the model, ran it, and found nothing in that sentence.</td></tr>
-<tr><td><code>{"ok":true,"findings":[{"category":"clinical","count":1,&hellip;</code></td><td>It found something. Try a payload with a name or a date in it to see this.</td></tr>
-<tr><td><code>{"ok":false,"error":"'clinical' is screened and there is no model for it&hellip;"}</code></td><td>The models directory has no <code>clinical</code> folder. The message names the path it looked at.</td></tr>
-<tr><td><code>{"ok":false,"error":"the model at &hellip; would not load&hellip;"}</code></td><td>The file is there and is not a model burler can run. Usually a bad export, or a file that did not finish downloading.</td></tr>
-<tr><td>Nothing at all, and it exits</td><td>Check the message on the error stream. Started with no <code>--models</code>, it says <code>burler needs --models DIRECTORY, naming where the screening models are.</code> and exits <code>2</code>.</td></tr>
-</table>
-
-<p><b>An empty <code>findings</code> array means it checked and found
-nothing. A missing one is a fault.</b> The two are never spelled the
-same way, on either side of the pipe.</p>
-
 <h2 id="trouble">When it refuses and you did not expect it</h2>
 
 <p><b>Every refusal names its own cause.</b> Read the first few words:
@@ -354,13 +332,13 @@ could not <em>run</em>. Those are different problems.</p>
 <td><b>The screen broke.</b> What follows is one of the rows below. Nothing was checked, so nothing is served.</td></tr>
 
 <tr><td><code>&hellip; the screening sidecar is not installed</code></td>
-<td>burler is not beside <code>fettle</code>. The message says where it looked. Redo <a href="#install">step 3</a>, or take <code>"screen"</code> off the scope.</td></tr>
+<td>burler is not beside <code>fettle</code>. The message says where it looked. Redo <a href="fettle-models.html#install">the burler install</a>, or take <code>"screen"</code> off the scope.</td></tr>
 
 <tr><td><code>&hellip; would not start:</code></td>
 <td>The file is there and will not launch. Usually the wrong platform archive, or no permission to execute it. On macOS, the quarantine attribute.</td></tr>
 
 <tr><td><code>&hellip; refused:</code> and then burler's own words</td>
-<td>burler declined and said why &mdash; a category with no directory, a model that would not load, a manifest missing a field. Its message names the file. <a href="#byhand">Drive it by hand</a> to see the whole thing.</td></tr>
+<td>burler declined and said why &mdash; a category with no directory, a model that would not load, a manifest missing a field. Its message names the file. <a href="fettle-models.html#byhand">Drive it by hand</a> to see the whole thing.</td></tr>
 
 <tr><td><code>&hellip; did not answer within 30 seconds</code></td>
 <td>It is alive and stuck. The child is killed, so the next read pays a fresh start rather than reusing a process nobody can account for. A payload far larger than a page can do this on a slow machine.</td></tr>
@@ -375,7 +353,7 @@ could not <em>run</em>. Those are different problems.</p>
 <td>Expected. Nothing here reads pixels. Move the image to an unscreened scope if it genuinely holds nothing.</td></tr>
 </table>
 
-<p><a href="screening.html">The reference page</a> lists every
+<p><a href="fettle-reference.html#refusals">The reference page</a> lists every
 message the screen can produce, with what each one means.</p>
 
 <h3 id="closed">Why every one of these refuses</h3>
@@ -437,23 +415,23 @@ to withstand anybody trying.</p>
 <tr><td>Offer a confidence setting</td><td>Any detection refuses. A dial gets turned until the check is off.</td></tr>
 <tr><td>Read images</td><td>Nothing here reads pixels, so an image in a screened scope is refused rather than served unchecked.</td></tr>
 <tr><td>Redact, mask or edit</td><td>It refuses the whole response. Handing back a document with holes in it would look like a safe copy of the original, and would not be one.</td></tr>
-<tr><td>Screen what you write <em>into</em> a tree</td><td>That is the credential net, which judges what a write adds. <a href="reference.html#refusals">The refusals section</a> covers it.</td></tr>
-<tr><td>Stop anything outside Fettler</td><td>A shell command, an allowed built-in reader, or a person with the file open reads it as normal. The screen sits on Fettler's answers, and only there. <a href="reference.html#findings"><code>fettle doctor</code></a> is what finds the ways round.</td></tr>
+<tr><td>Screen what you write <em>into</em> a tree</td><td>That is the credential net, which judges what a write adds. <a href="fettle-reference.html#refusals">The refusals section</a> covers it.</td></tr>
+<tr><td>Stop anything outside Fettler</td><td>A shell command, an allowed built-in reader, or a person with the file open reads it as normal. The screen sits on Fettler's answers, and only there. <a href="fettle-reference.html#findings"><code>fettle doctor</code></a> is what finds the ways round.</td></tr>
 </table>
 
 <h3 id="more">Where the rest of it is written down</h3>
 
 <table>
 <tr><th>You want</th><th>Page</th></tr>
-<tr><td>Installing the models the second tier needs</td><td><a href="screening-models.html">Screening: the models</a></td></tr>
-<tr><td>Declaring trees, scopes and tasks in the first place</td><td><a href="setup.html#declare">In a project</a></td></tr>
-<tr><td>Every exit code, including <code>13</code></td><td><a href="reference.html#codes">The reference</a></td></tr>
-<tr><td>What Fettler defends against, and what it does not</td><td><a href="reference.html#threat">The reference</a></td></tr>
+<tr><td>Installing the models the second tier needs</td><td><a href="fettle-models.html">Screening: the models</a></td></tr>
+<tr><td>Declaring trees, scopes and tasks in the first place</td><td><a href="fettle-setup.html#declare">In a project</a></td></tr>
+<tr><td>Every exit code, including <code>13</code></td><td><a href="fettle-reference.html#codes">The reference</a></td></tr>
+<tr><td>What Fettler defends against, and what it does not</td><td><a href="fettle-reference.html#threat">The reference</a></td></tr>
 </table>
 
 <nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
-  <a href="setup.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">In a Project</span></span></a>
-  <a class="next" href="screening-models.html"><span class="pnwrap"><span class="ttl">Screening: the models</span><span class="dir">Next &rarr;</span></span></a>
+  <a href="fettle-setup.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">In a Project</span></span></a>
+  <a class="next" href="fettle-models.html"><span class="pnwrap"><span class="ttl">The models</span><span class="dir">Next &rarr;</span></span></a>
 </nav>
 <footer>Named for the shoddy mills of the West Riding: Useless Things Made
 Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>

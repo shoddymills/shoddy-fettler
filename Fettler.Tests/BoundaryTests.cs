@@ -54,6 +54,8 @@ public sealed class BoundaryTests
     [Theory]
     [InlineData(".fettler.json")]
     [InlineData(".fettler.local.json")]
+    [InlineData(".picker.json")]
+    [InlineData(".picker.local.json")]
     public async Task NoWritingVerbTouchesAFileThatGovernsThisTool(string ruled)
     {
         using var box = new Sandbox();
@@ -106,6 +108,8 @@ public sealed class BoundaryTests
     [InlineData(".fettler.json.bak")]
     [InlineData("notes/fettler.json")]
     [InlineData("fettler.local.json")]
+    [InlineData("notes/picker.json")]
+    [InlineData(".picker.json.md")]
     public async Task AFileThatMerelyRESEMBLESARuleFileIsOrdinary(string ordinary)
     {
         using var box = new Sandbox();

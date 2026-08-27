@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Pick &mdash; SELECT and DESCRIBE inside declared SQL Server databases. Fettler's boundary, applied to a catalog: declared databases, scoped objects, scoped columns, and the same disclosure screen.">
+<title>Picker</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+</head>
+<body>
+<div class="topbar"><div class="inner">
+  <div class="row">
+    <a class="phase" href="index.html"><img class="mark" src="media/brand/shoddy-icon.svg" alt="" width="23" height="23">Shoddy &middot; Fettler</a>
+    <span class="spacer"></span>
+    <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
+  </div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><span class="here">Overview</span><a href="pick-workstation.html">Workstation</a><a href="pick-quickstart.html">Quick start</a><a href="pick-install.html">Install</a><a href="pick-setup.html">In a project</a><a href="pick-screening.html">Screening</a><a href="pick-models.html">Models</a><a href="pick-reference.html">Reference</a></nav></div>
+</div></div>
+<div class="wrap">
+<header class="mast">
+<p class="eyebrow">Shoddy &middot; Picker</p>
+<h1 id="pick">Picker</h1>
+<p class="kicker">SELECT and DESCRIBE inside declared SQL Server databases.
+Fettler's boundary, applied to a catalog &mdash; and nothing else can be
+said, asked, or run.</p>
+</header>
+
+<nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a class="next" href="pick-workstation.html"><span class="pnwrap"><span class="ttl">The Picked Workstation</span><span class="dir">Next &rarr;</span></span></a></nav>
+
+<div class="onramp">
+<p><b>An assistant given pick cannot go wandering through a server.</b>
+Every object a query touches must sit inside a <em>database</em> you
+declared ahead of time &mdash; the same move Fettler makes with trees,
+made against a catalog instead of a disk. Outside the declared
+databases everything is refused: selecting, describing, listing, even
+learning that a table exists. There is no default database to fall
+into, no <code>USE</code> to change it, and no way to reach a linked
+server, a system view, or a stored procedure. The only statements it
+will carry are a single <code>SELECT</code> and a metadata
+<code>DESCRIBE</code>, and both come back through the same disclosure
+screen Fettler runs.</p>
+<a class="shot" href="pick-reference.html#gate"><img src="media/picker.svg" alt="A terminal showing one declared database with its grants and scoped objects, and a query naming an undeclared database refused" loading="lazy"><span class="lab"><b>pick</b><span>bounded SQL &middot; no shell in between</span></span></a>
+</div>
+
+<div class="takeaway"><b>The project is Picker; the command is
+<code>pick</code></b> &mdash; the fettle/fettler arrangement, named for
+the rag pickers of the <a href="heritage.html">shoddy trade</a>, who
+picked and graded the stock by hand and altered none of it. It is a
+<b>third executable</b> in this repository, beside <code>fettle</code>
+and <code>burler</code>: its own MCP server, its own CLI, its own
+configuration, and no project reference to either of the others.</div>
+
+<h2 id="boundary">The boundary &mdash; declared databases</h2>
+
+<p><code>.picker.json</code> names servers, and inside each server the
+databases that exist as far as pick is concerned. That list is the
+entire world:</p>
+
+<ul>
+<li><b>No default database.</b> An unqualified <code>FROM Customers</code>
+is resolved by searching the declared databases &mdash; never by asking
+the connection what database it happens to be sitting in. If two
+declared databases both have a <code>Customers</code>, the query is
+refused as ambiguous, naming both, and the fix is to qualify.</li>
+<li><b>A name outside the boundary is not there.</b>
+<code>OtherDb.dbo.Anything</code>, where <code>OtherDb</code> is real
+but undeclared, is refused <em>in the same words</em> as
+<code>Sales.dbo.NoSuchTable</code>, where the table never existed. A
+refusal that distinguished the two would let a caller map the server by
+reading refusals &mdash; the hidden-is-absent rule Fettler applies to
+paths, applied to a catalog.</li>
+<li><b>Four-part names are refused outright</b> &mdash; a linked server
+is a second server wearing a prefix.</li>
+<li><b>One server per statement.</b> A query may join across declared
+databases on the same server; it may not span servers.</li>
+<li><b>The system catalog is closed.</b> <code>sys.*</code> and
+<code>INFORMATION_SCHEMA</code> are refused by name, and the catalog
+functions that answer the same questions &mdash;
+<code>OBJECT_DEFINITION</code> and its relatives &mdash; are refused
+with them. What pick will say about structure, it says through
+<code>describe</code>, which respects the scopes.</li>
+</ul>
+
+<h2 id="verbs">The verbs</h2>
+
+<p>Three grant words govern everything a scope may do &mdash;
+<code>list</code>, <code>select</code>, <code>describe</code> &mdash;
+and five tools spend them. The CLI verbs are the same words, and the
+MCP answers are byte-identical to <code>pick VERB --json</code>.</p>
+
+<table>
+<tr><th>Tool</th><th>What it answers</th></tr>
+<tr><td><code>catalogs</code></td><td>the declared servers, databases and scopes &mdash; the boundary itself, answered without opening a connection</td></tr>
+<tr><td><code>objects</code></td><td>the tables and views this caller may see: only objects whose scope grants <code>list</code>, and never a hidden one</td></tr>
+<tr><td><code>select</code></td><td>one SELECT statement, through <a href="pick-reference.html#gate">the gate</a>, screened on the way out</td></tr>
+<tr><td><code>describe</code></td><td>an object's columns, indexes and keys from the catalog &mdash; with a shape hash, so a caller can tell when a table changed underneath it</td></tr>
+<tr><td><code>doctor</code></td><td>whether the configuration loads, whether each server answers a bounded knock, and whether the screening models are where the configuration says &mdash; without ever printing a credential</td></tr>
+</table>
+
+<p>An object whose scope grants no <code>list</code> is absent from
+<code>objects</code> <em>and</em> refused as nonexistent everywhere
+else. An object that is listed but not granted <code>select</code> is
+refused honestly instead, naming what its scope does grant &mdash;
+because its existence was already disclosed by the listing.</p>
+
+<h2 id="gate">One statement, through a gate that fails closed</h2>
+
+<p>Every statement is parsed to a syntax tree before anything touches a
+connection, and the tree is walked against an <b>allowlist</b> of
+constructs the gate understands &mdash; anything unrecognised refuses
+the whole statement. What passes is rewritten before it runs: every
+reference to its full three-part name, <code>SELECT *</code> expanded
+to the columns this caller is actually permitted. A hidden column is
+refused everywhere it could appear &mdash; the select list,
+<code>WHERE</code>, <code>ORDER BY</code>, inside expressions &mdash;
+in the same words as a column that does not exist.
+<a href="pick-reference.html">Every refusal, in full &rarr;</a></p>
+
+<h2 id="screening">The same screen, over result sets</h2>
+
+<p>A database or a scope may declare <code>screen</code>, exactly as a
+Fettler tree does, and the mechanism is the same one:
+<a href="pick-screening.html">tier one</a> matches structured
+identifiers in process with nothing installed, the model-backed
+categories are judged by <a href="pick-models.html">models you
+install</a> through the same <code>burler</code> sidecar, one detection refuses the whole response,
+and the refusal names a category and a count and quotes nothing back.
+No rows are trimmed to make a result pass &mdash; a result set with the
+offending rows quietly removed would be a fabricated answer wearing a
+clean verdict. <a href="pick-screening.html">Screening, for the rows
+&rarr;</a></p>
+
+<div class="takeaway"><b>The screen is a safety net under the scopes,
+not a substitute for them.</b> A column somebody can <em>name</em> as
+sensitive belongs in a column exclusion, where the boundary refuses it
+deterministically. The screen exists for what nobody predicted &mdash;
+an SSN pasted into a notes column, an email in a free-text field.</div>
+
+<h2 id="start">Getting started</h2>
+
+<ul>
+<li><b><a href="pick-workstation.html">The workstation</a></b> &mdash;
+the server as pick sees it, drawn: one database lit, one way in, and
+the boundaries that hold it.</li>
+<li><b><a href="pick-quickstart.html">Quick start</a></b> &mdash; from
+nothing to a first bounded SELECT in about five minutes.</li>
+<li><b><a href="pick-install.html">Install</a></b> &mdash; the
+per-machine wiring: the archive, <code>burler</code> beside it, and the
+registration.</li>
+<li><b><a href="pick-setup.html">In a project</a></b> &mdash; declaring
+servers, databases, scopes and columns; the two files; the
+least-privilege login.</li>
+<li><b><a href="pick-screening.html">Screening</a></b> &mdash; the
+refusal to disclose regulated rows, and proving it refuses;
+<a href="pick-models.html">the models</a> have a page of their
+own.</li>
+<li><b><a href="pick-reference.html">Reference</a></b> &mdash; the query
+gate refusal by refusal, column scoping everywhere it binds, what
+DESCRIBE will and will not say, the caps, and the exit codes.</li>
+</ul>
+
+<nav class="pagenav pagenav-bottom" aria-label="Picker, in order">
+  
+  <a class="next" href="pick-workstation.html"><span class="pnwrap"><span class="ttl">The Picked Workstation</span><span class="dir">Next &rarr;</span></span></a>
+</nav>
+<footer>Named for the shoddy mills of the West Riding: Useless Things Made
+Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>
+&copy; 2026 Stephen Vincent Foster</footer>
+</div>
+<script src="copy.js"></script>
+</body>
+</html>

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="pick's disclosure screen, in order &mdash; decide whether a database needs it, switch on the tier that needs nothing installed, carve out the scopes that do not, and prove a refusal refuses.">
+<title>Screening | Picker</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+</head>
+<body>
+<div class="topbar"><div class="inner">
+  <div class="row">
+    <a class="phase" href="index.html"><img class="mark" src="media/brand/shoddy-icon.svg" alt="" width="23" height="23">Shoddy &middot; Fettler</a>
+    <span class="spacer"></span>
+    <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
+  </div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle-screening.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><a href="pick.html">Overview</a><a href="pick-workstation.html">Workstation</a><a href="pick-quickstart.html">Quick start</a><a href="pick-install.html">Install</a><a href="pick-setup.html">In a project</a><span class="here">Screening</span><a href="pick-models.html">Models</a><a href="pick-reference.html">Reference</a></nav></div>
+</div></div>
+<div class="wrap">
+<header class="mast">
+<p class="eyebrow">Shoddy &middot; Picker</p>
+<h1 id="screening">Screening</h1>
+<p class="kicker">Stop regulated rows leaving a database by accident. The first tier needs nothing installed and one line of configuration.</p>
+</header>
+
+<nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a href="pick-setup.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">In a Project</span></span></a><a class="next" href="pick-models.html"><span class="pnwrap"><span class="ttl">The Models</span><span class="dir">Next &rarr;</span></span></a></nav>
+
+<p>This page assumes pick is installed and a boundary is declared.
+That is <a href="pick-install.html">installing it</a> and
+<a href="pick-setup.html">in a project</a>, in that order. The screen
+is the last thing you switch on, and <b>many boundaries never switch it
+on at all</b> &mdash; the column scopes and the login already decide
+what can be asked for.</p>
+
+<div class="takeaway"><b>Read step 1 before you read anything else.</b>
+The screen refuses whole result sets. On a database it does not belong
+on, it will refuse a great deal of ordinary work &mdash; every customer
+table with an email column, to start with &mdash; and the way people
+get out of that is by turning it off, which leaves you worse off than
+never having switched it on. Put it on the databases that hold records
+about people, and on nothing else.</div>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code># 1. decide whether this database needs it     &lt;- many do not
+# 2. add "screen" to the database in .picker.json   &lt;- binds on the next call
+pick catalogs                                  # confirm what is screened
+pick select "SELECT TOP 5 * FROM Customers"    # confirm it refuses</code></pre></div>
+
+<p><b>That is the whole feature for most people who want it.</b> Names,
+addresses, conditions and free text need a model, which is a second
+program and a download you fetch yourself &mdash;
+<a href="pick-models.html">the models</a> is that half, and nothing on
+this page depends on it.</p>
+
+<h2 id="need">Do you need this?</h2>
+
+<p><b>Switch it on when a database holds records about people, and a
+person outside your team could read the transcript.</b> What a
+<code>select</code> returns goes into an assistant's context, then into
+a transcript, a log, and whatever ships those onward. The screen sits
+between the result set and that chain.</p>
+
+<table>
+<tr><th>The database holds</th><th>Switch it on?</th></tr>
+<tr><td>Patient records, encounter notes, lab results</td><td><b>Yes.</b> This is the case the screen was built for.</td></tr>
+<tr><td>Customer records with names, addresses, card or account numbers</td><td><b>Yes</b>, with <code>identifiers</code> at least &mdash; which catches the card and account numbers. The <em>names and addresses</em> need a model; see <a href="#categories">the categories</a>.</td></tr>
+<tr><td>Free-text columns nobody audits &mdash; notes, comments, support tickets</td><td><b>Yes.</b> A free-text column is exactly where an identifier turns up that no scope predicted.</td></tr>
+<tr><td>Reference data, lookups, catalogues, order lines with no personal columns</td><td><b>No</b> &mdash; and if such objects sit inside a screened database, give them a scope that turns the screen off. <a href="#carve">Carving out a scope</a> shows how.</td></tr>
+<tr><td>Anonymised or synthetic data</td><td><b>No.</b> A screen here refuses invented identifiers all day and protects nobody.</td></tr>
+</table>
+
+<p class="note"><span class="lab">Note</span> <b>Do not put
+<code>"screen": true</code> on a working database to see what
+happens.</b> One of the patterns matches any email address, and customer
+tables are full of them. Every <code>select</code> that returns one will
+refuse. That is the detector working correctly, on a database nobody
+meant to screen &mdash; the fix is the <a href="#carve">scope</a>, or
+not screening it at all.</p>
+
+<h3 id="verbs">What gets screened</h3>
+
+<p><b>The three verbs that disclose what a database holds:
+<code>select</code> results, <code>describe</code> answers and
+<code>objects</code> listings.</b> Each hands its payload to the screen
+before it is serialized, through one seam, so a verb added later that
+discloses anything has to come through the same door.
+<code>catalogs</code> and <code>doctor</code> report your own
+configuration and are not screened.</p>
+
+<p><b>It judges the payload leaving, never the table.</b> A table may
+hold clinical notes in row 40,000; a SELECT that discloses none of them
+is served. Judging the whole table would lock the very databases people
+most need help in, and the way out of that is to turn the screen
+off.</p>
+
+<p><b>A query is judged under the union of the scopes it read.</b> Join
+a screened table to an unscreened one and the response is screened: any
+scope the query read from that declares a screen covers the whole
+result set.</p>
+
+<h2 id="tier-one">Switch on the first tier</h2>
+
+<p><b>This needs nothing installed.</b> Add <code>"screen"</code> to the
+database that holds the records, in <code>.picker.json</code>:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>"Sales": {
+  "can": ["list", "select", "describe"],
+  "screen": ["identifiers"],
+  "scopes": [
+    { "object": "ref.*", "can": ["list", "select"], "screen": false }
+  ]
+}</code></pre></div>
+
+<p class="note"><span class="lab">Note</span> <b>No restart.</b> pick
+re-reads the boundary before every call, so an edit to
+<code>.picker.json</code> binds on the next request &mdash; where
+<code>fettle</code> reads its configuration at launch and needs the
+assistant restarted. This is the one place the two programs' behaviour
+differs on purpose, because a database boundary is edited far more
+often than a tree's.</p>
+
+<p>Three ways to write it, and one that is refused:</p>
+
+<table>
+<tr><th>You write</th><th>It screens</th></tr>
+<tr><td><code>"screen": true</code></td><td>All four categories. Forgetting to name one cannot go wrong this way.</td></tr>
+<tr><td><code>"screen": ["identifiers", "clinical"]</code></td><td>Only those two. A bare list includes.</td></tr>
+<tr><td><code>"screen": ["-scientific"]</code></td><td>Everything except <code>scientific</code>. A list of <code>-</code> words excludes.</td></tr>
+<tr><td><code>"screen": false</code></td><td>Nothing. This is also what a database that says nothing gets.</td></tr>
+<tr><td><code>"screen": ["identifiers", "-scientific"]</code></td><td><b>Refused when the file is read.</b> It reads either as "identifiers only" or as "everything but scientific", and those differ by two whole categories. Nothing here guesses which you meant.</td></tr>
+</table>
+
+<p>A misspelt category is refused too. <code>"lgal"</code> would quietly
+<em>subtract</em> a screen, and you would not find out until data left a
+database you believed was covered.</p>
+
+<p class="note"><span class="lab">Note</span> <b>Three
+regulation-shaped words are refused outright</b>, and the refusal says
+what to write instead. <code>phi</code>, <code>pii</code> and
+<code>sci</code> name a <em>regulation</em> rather than what actually
+runs, so each promises coverage that only arrives once a model is
+installed while reading as though it were there from the start.</p>
+
+<table>
+<tr><th>Refused</th><th>Write instead</th></tr>
+<tr><td><code>phi</code></td><td><code>identifiers</code> for the labelled patterns, <code>clinical</code> for model screening of clinical text &mdash; it does duty for both</td></tr>
+<tr><td><code>pii</code></td><td><code>identifiers</code></td></tr>
+<tr><td><code>sci</code></td><td><code>scientific</code></td></tr>
+</table>
+
+<h3 id="categories">The four categories</h3>
+
+<table>
+<tr><th>Word</th><th>Concern</th><th>What carries it</th><th>Which model</th></tr>
+<tr><td><code>identifiers</code></td><td>Structured identifiers, whoever they belong to</td><td><b>Six patterns, running inside <code>pick</code>.</b> The only category that works with nothing installed.</td><td>None, ever. It never crosses the sidecar's pipe and never asks for a model.</td></tr>
+<tr><td><code>clinical</code></td><td>Clinical text &mdash; the HIPAA concern</td><td><b>A model you install, and nothing until you do.</b></td><td>A de-identification fine-tune from the BioBERT or ClinicalBERT family; <a href="pick-models.html">the models page</a> is the walk-through.</td></tr>
+<tr><td><code>legal</code></td><td>Contract and consumer-report content</td><td><b>A model you install, and nothing until you do.</b></td><td>A contract-clause model trained on CUAD, or LegalBERT.</td></tr>
+<tr><td><code>scientific</code></td><td>Research and scientific data</td><td><b>A model you install, and nothing until you do.</b></td><td>A SciBERT entity-recognition fine-tune.</td></tr>
+</table>
+
+<div class="takeaway"><b><code>clinical</code>, <code>legal</code> and
+<code>scientific</code> screen nothing until you install a model.</b>
+None of the three has a pattern behind it. A database that names one of
+them and has no <code>models</code> directory declared is screened in
+name only &mdash; tier one is the whole screen, and a clean result means
+the patterns found nothing, not that a model looked.
+<a href="pick-models.html">Naming the directory</a> is the act that
+changes it.</div>
+
+<div class="takeaway"><b>The mirror of that, and the more important
+half: out of the box the screen catches structured
+<em>identifiers</em>.</b> A social security number, a Luhn-valid card,
+a formatted phone number, an email address, a labelled record number
+and a labelled date of birth. <b>Names, addresses, conditions and free
+text are caught only by a model you install.</b> A database screening
+<code>identifiers</code> alone is protected against the first list and
+nothing beyond it.</div>
+
+<h3 id="patterns">What the patterns catch</h3>
+
+<p>These run inside <code>pick</code> itself &mdash; no model, no second
+program, no new download. They are the same six detectors
+<code>fettle</code> runs, byte for byte, and a verifier in this
+repository holds the two programs' pattern sets equal.</p>
+
+<table>
+<tr><th>Detector</th><th>Matches</th><th>Deliberately not matched</th></tr>
+<tr><td><code>ssn</code></td><td>the hyphenated form, excluding every range the Social Security Administration does not issue</td><td>nine bare digits &mdash; an order number far more often than a person</td></tr>
+<tr><td><code>credit-card</code></td><td>13&ndash;19 digits in the groupings cards are written in, passing Luhn</td><td>the same shape failing Luhn, and bare digit runs &mdash; a column of reference numbers must not deny every page of the table</td></tr>
+<tr><td><code>phone</code></td><td>a leading <code>+</code>, or a separated grouping</td><td>ten bare digits</td></tr>
+<tr><td><code>email</code></td><td>the ordinary address shape</td><td>&mdash;</td></tr>
+<tr><td><code>medical-record-number</code></td><td>an identifier under its own label &mdash; <code>MRN:</code>, <code>patient id</code></td><td>bare identifier-shaped strings, which would refuse every part number in every table</td></tr>
+<tr><td><code>date-of-birth</code></td><td>a date under its own label &mdash; <code>DOB:</code>, <code>date of birth</code></td><td>bare dates, which a database is full of</td></tr>
+</table>
+
+<p><b>All six are one category, and that is the point of the name.</b>
+They are all identifiers with a shape somebody fixed or a label
+announcing them. None of them reads clinical language, and a refusal
+from any of them reports as <code>identifiers</code> &mdash; never as a
+judgement about what kind of table it came from.</p>
+
+<p><b>The patterns run over the serialized rows</b> &mdash; the payload
+exactly as it would leave &mdash; so a labelled <code>MRN:</code> line
+inside one <code>notes</code> cell is found the same way it would be in
+a document.</p>
+
+<h3 id="carve">Carving out the objects that do not need it</h3>
+
+<p>A scope's <code>screen</code> <b>replaces</b> the database's,
+exactly as its <code>can</code> does. That is what lets a scope take
+screening away from reference data inside a screened database:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>"Sales": {
+  "can": ["list", "select", "describe"],
+  "screen": true,
+  "scopes": [
+    { "object": "ref.*",     "can": ["list", "select"], "screen": false },
+    { "object": "dbo.Notes", "can": ["list", "select"], "screen": ["identifiers", "clinical"] }
+  ]
+}</code></pre></div>
+
+<ul>
+<li><b>A scope that says nothing about <code>screen</code>
+inherits.</b> Reading silence as "screen nothing here" would punch a
+hole in the first database anyone switched it on for.</li>
+<li><b><code>screen</code> is not a verb.</b> The grants are named
+after what may be asked of an object. A screen is a property of content
+leaving the boundary, and it sits beside <code>can</code>, not inside
+it.</li>
+<li><b>The screen is a net under the scopes, not a substitute for
+them.</b> A column somebody can <em>name</em> as sensitive belongs in a
+<a href="pick-setup.html#scopes">column exclusion</a>, where the
+boundary removes it deterministically &mdash; before the screen ever
+sees it. The screen exists for what nobody predicted: an SSN pasted
+into a notes column, an email in a free-text field.</li>
+</ul>
+
+<h3 id="check">Check it, then prove it</h3>
+
+<p>Ask for the catalogs &mdash; the edit already binds, no restart
+needed:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ pick catalogs
+warehouse  (connect: Server=db.internal;Database=Sales;...)
+  Sales: list select describe  [screen: identifiers]
+    ref.*: list select  [screen: nothing]
+source: /work/shoddy/.picker.json</code></pre></div>
+
+<p><b>The <code>[screen: &hellip;]</code> marker appears only where a
+screen is on</b>, and a scope shows one only where the scope itself
+states one. A scope with no marker is inheriting. A
+<code>models:</code> line appears once a models directory is declared
+&mdash; no line means no second tier, and the model-backed categories
+are screened in name only.</p>
+
+<h2 id="prove">Prove it refuses</h2>
+
+<p>The configuration being right and the screen <em>holding</em> are
+two different claims, and only the second matters. With synthetic rows
+&mdash; invented SSNs, fabricated customers, never real ones &mdash;
+select something you know carries an identifier:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ pick select "SELECT name, notes FROM dbo.Intake"
+refused: this response would disclose regulated data: 1 in identifiers. What was found
+is deliberately not quoted back, because a refusal that named it would put it in the
+log and the transcript, which is the disclosure being refused. Select fewer columns
+or rows, or take the screen off this scope if the content is not what it looks like.
+$ echo $LASTEXITCODE
+13</code></pre></div>
+
+<p><b>A category and a count, and never the value itself.</b> A refusal
+that named what it found would write it into the log and the transcript
+&mdash; the exact harm the screen exists to prevent, delivered by the
+screen. Every screening refusal answers <code>13</code>, and
+<b>no rows are trimmed</b>: a result set with the offending rows
+quietly removed would be a fabricated answer wearing a clean
+verdict.</p>
+
+<p>Then each line of this proves one edge:</p>
+
+<table>
+<tr><th>Select rows holding&hellip;</th><th>Exit</th><th>Because</th></tr>
+<tr><td>nothing regulated</td><td><b>0</b></td><td>screen on, and genuinely clean &mdash; the case people skip and the one that matters: a screen that refuses everything looks identical to a working one</td></tr>
+<tr><td>a synthetic SSN, <code>123-45-6789</code></td><td><b>13</b></td><td><code>1 in identifiers</code> &mdash; and the number itself appears nowhere in the refusal</td></tr>
+<tr><td>the same SSN, from a scope whose <code>screen</code> is <code>false</code></td><td><b>0</b></td><td>the scope's screen replaced the database's</td></tr>
+<tr><td>the same SSN, in a column the scope excludes</td><td><b>0</b></td><td>the exclusion removed it before the screen ever saw it &mdash; the boundary beat the net</td></tr>
+<tr><td>a screened table joined to an unscreened one</td><td><b>13</b></td><td>the union rule: any scope the query read from that screens, screens the whole response</td></tr>
+<tr><td>anything, while a screened model-backed category has no model</td><td><b>13</b></td><td>fail closed &mdash; see <a href="#closed">below</a>: the refusal names what could not run, not a finding</td></tr>
+<tr><td>clinical free text, with the clinical model installed</td><td><b>13</b></td><td><code>N in clinical</code> &mdash; no pattern matches prose; only the model can have refused it</td></tr>
+</table>
+
+<h2 id="trouble">When it refuses and you did not expect it</h2>
+
+<p><b>Every refusal names its own cause.</b> Read the first few words
+&mdash; they say whether something was <em>found</em>, or whether the
+screen could not <em>run</em>, and those are different problems:</p>
+
+<table>
+<tr><th>It says</th><th>Do this</th></tr>
+<tr><td><code>this response would disclose regulated data:</code></td>
+<td><b>Working as intended.</b> Select fewer columns or rows, or take the screen off that scope if the content is not what it looks like. The count tells you how many entities, and the category tells you which kind.</td></tr>
+<tr><td><code>this response could not be screened, so it is not being served:</code></td>
+<td><b>The second tier broke</b>, and what follows names the piece: the burler sidecar missing from beside <code>pick</code>, a model absent from the directory, a child that died or outran its clock. Nothing was checked, so nothing is served. <code>pick doctor</code> reports the two facts these depend on &mdash; whether the models directory exists and whether <code>burler</code> sits beside the program &mdash; and <a href="pick-models.html#byhand">driving burler by hand</a> shows the sidecar's own answer in full.</td></tr>
+</table>
+
+<h3 id="closed">Why every one of these refuses</h3>
+
+<p><b>Serving content because the check broke is the one outcome this
+must never produce.</b> A sidecar that will not start, a model that
+will not load, an answer nobody can parse, an inference that outran its
+clock, and even a tier-one pattern that ran out of time on a huge
+payload &mdash; every one refuses with exit <code>13</code> and says
+which. The one thing a served result can never mean is that nothing was
+checked.</p>
+
+<p>It reads as an outage, and that is the intended trade. A screen that
+quietly stopped screening would be worse in exactly the way that
+matters.</p>
+
+<h2 id="cost">What it costs</h2>
+
+<table>
+<tr><th>When</th><th>What happens</th></tr>
+<tr><td>Every screened response, always</td><td>The patterns run in <code>pick</code> itself. Each has a one-second ceiling, and in practice they are not measurable against a network round trip.</td></tr>
+<tr><td>The first model-screened response after a quiet spell</td><td>burler starts and loads a model. <b>Seconds</b>, and the wait is allowed up to 90 of them, because a timeout here would deny a disclosure that was going to be served.</td></tr>
+<tr><td>Every response after that</td><td><b>Tens of milliseconds.</b> The child is held warm. Thirty seconds is the point at which something is wrong rather than slow.</td></tr>
+<tr><td>Five minutes with nothing to screen</td><td>The child is killed and its memory released.</td></tr>
+<tr><td>A database screening <code>identifiers</code> alone</td><td><b>Never starts burler at all.</b> Tier one was the whole judgement, and it ran in process.</td></tr>
+</table>
+
+<h2 id="limits">What it does not do</h2>
+
+<div class="takeaway"><b>This is a safety net, not a boundary, and the
+difference is not a quibble.</b> Named-entity models miss entities.
+Patterns miss anything written a way they do not expect &mdash; an
+identifier split across two concatenated cells defeats every one of
+them. <b>A clean verdict is evidence of absence and never a certificate
+of it.</b> The boundary is the column scope, the grant and the
+least-privilege login; the screen is the net under them.</div>
+
+<table>
+<tr><th>It does not</th><th>Because</th></tr>
+<tr><td>Offer a confidence setting</td><td>Any detection refuses. A dial gets turned until the check is off.</td></tr>
+<tr><td>Trim, redact or mask rows</td><td>It refuses the whole response. A result set with holes in it would look like a safe copy of the answer, and would not be one.</td></tr>
+<tr><td>Judge what stays in the database</td><td>It reads the payload leaving, never the tables. A screened database is not a scanned database.</td></tr>
+<tr><td>Stop anything outside pick</td><td>SSMS, <code>sqlcmd</code>, a BI tool or a person with the connection string reads the same rows unscreened. The screen sits on pick's answers, and only there &mdash; <a href="pick-setup.html#login">the least-privilege login</a> is the wall that holds for every client.</td></tr>
+<tr><td>Certify a regulation</td><td>The categories name what runs &mdash; patterns and models &mdash; never a statute. Nothing here is "HIPAA compliance", and reading it that way is the misunderstanding this row exists to prevent.</td></tr>
+</table>
+
+<h3 id="more">Where the rest of it is written down</h3>
+
+<table>
+<tr><th>You want</th><th>Page</th></tr>
+<tr><td>Installing the models the second tier needs</td><td><a href="pick-models.html">The models</a></td></tr>
+<tr><td>Scopes, column exclusions and the grant grammar</td><td><a href="pick-setup.html#scopes">In a project</a></td></tr>
+<tr><td>Every exit code, including <code>13</code></td><td><a href="pick-reference.html#codes">The reference</a></td></tr>
+<tr><td>What pick defends against, and what it does not</td><td><a href="pick-reference.html#threat">The reference</a></td></tr>
+</table>
+
+<nav class="pagenav pagenav-bottom" aria-label="Picker, in order">
+  <a href="pick-setup.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">In a Project</span></span></a>
+  <a class="next" href="pick-models.html"><span class="pnwrap"><span class="ttl">The Models</span><span class="dir">Next &rarr;</span></span></a>
+</nav>
+<footer>Named for the shoddy mills of the West Riding: Useless Things Made
+Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>
+&copy; 2026 Stephen Vincent Foster</footer>
+</div>
+<script src="copy.js"></script>
+</body>
+</html>

@@ -65,10 +65,25 @@ enough to be worth resuming.
 | `Fettler/Mcp` | the MCP front end - stdio JSON-RPC over `System.Text.Json` |
 | `fettle` | the executable, and the whole of it is wiring |
 | `burler` | the disclosure screen's model host - a **second** executable |
+| `Picker/Core` | the SQL boundary: verbs, grants, columns, the resolver, the ScriptDom query gate, the screen twin |
+| `Picker/Cli` / `Picker/Mcp` | pick's two front ends, on Fettler's pattern |
+| `pick` | a **third** executable - SELECT and DESCRIBE inside declared SQL Server databases, its own MCP server |
 | `Fettler.Tests` | the proof; every item in R10 of the requirements is an assertion here |
 | `burler.Tests` | burler's own proof - its own project, so each side of the pipe asserts the wire independently |
+| `Picker.Tests` | Picker's proof - pure against a catalog of literals, plus LocalDB tests that skip with a reason |
 | `docs/` | the published site |
 | `scripts/` | the verifiers, all Node, all read-only except `verify-permissions` |
+
+**The project is Picker and the thing a person or a script types is
+`pick`** - the fettle/fettler arrangement, after the rag pickers who
+picked and graded the stock by hand and altered none of it. Its own
+configuration is `.picker.json` + `.picker.local.json`, its own
+requirements are `picker-enhancement.md` in the planning tree, and it
+shares the repository, the release and the version number with the rest
+- and nothing else: no ProjectReference in any direction, its own
+package allowlist (ScriptDom and Microsoft.Data.SqlClient, managed SNI
+pinned), its own copy of the burler wire and the tier-one screen
+patterns, proven equivalent by test.
 
 ## The invariants - do not quietly relax these
 
@@ -77,11 +92,13 @@ enough to be worth resuming.
   whole contract between those two, and each side carries its own copy of the
   shapes that cross it, proven equivalent by a protocol test on each side
   rather than by a shared assembly.
-- **A `PackageReference` only from the allowlist** in `Fettler.csproj`: today
-  `PdfPig` alone for `fettle`. Adding one means editing the csproj comment,
-  `FrontEndTests.Allowed`, `ci.yml`'s allowlist, `THIRD-PARTY-NOTICES.md`, and
-  `NOTICE` if its licence asks. `ci.yml` greps `NOTICE` for the literal string
-  `fettle alone`, so that wording is load-bearing.
+- **A `PackageReference` only from the allowlist** in the owning csproj:
+  `PdfPig` alone for `fettle`, and ScriptDom + `Microsoft.Data.SqlClient`
+  for `pick` (in `Picker.csproj`). Adding one means editing the csproj
+  comment, the lane's `FrontEndTests.Allowed`, `ci.yml`'s allowlist,
+  `THIRD-PARTY-NOTICES.md`, and `NOTICE` if its licence asks. `ci.yml`
+  greps `NOTICE` for the literal strings `fettle alone` and `pick alone`,
+  so both wordings are load-bearing.
 - **`Fettler.Core` may not name `System.Text.Json`, `System.Console` or an
   exit code.** A core that knows about a protocol has already stopped being
   one. This is asserted by test.
