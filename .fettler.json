@@ -6,27 +6,28 @@
     }
   },
   "tasks": {
-    "build":              { "run": "pwsh -File scripts/fettler-build.ps1 build",                     "cwd": "." },
-    "test":               { "run": "pwsh -File scripts/fettler-build.ps1 test",                      "cwd": "." },
-    "check":              { "run": "pwsh -File scripts/fettler-build.ps1 check",                     "cwd": "." },
-    "build-release":      { "run": "pwsh -File scripts/fettler-build.ps1 release",                   "cwd": "." },
-    "publish":            { "run": "pwsh -File scripts/fettler-build.ps1 publish {release-version}", "cwd": "." },
+    "build":              { "run": "bash scripts/fettler-build.sh build",                     "cwd": "." },
+    "test":               { "run": "bash scripts/fettler-build.sh test",                      "cwd": "." },
+    "check":              { "run": "bash scripts/fettler-build.sh check",                     "cwd": "." },
+    "build-release":      { "run": "bash scripts/fettler-build.sh release",                   "cwd": "." },
+    "publish":            { "run": "bash scripts/fettler-build.sh publish {release-version}", "cwd": "." },
 
-    "feature":            { "run": "pwsh -File scripts/fettler-branch.ps1 feature {feature-branch}", "cwd": "." },
-    "bug":                { "run": "pwsh -File scripts/fettler-branch.ps1 bug {bug-branch}",         "cwd": "." },
-    "sync":               { "run": "pwsh -File scripts/fettler-branch.ps1 sync",                     "cwd": "." },
-    "checkin":            { "run": "pwsh -File scripts/fettler-checkin.ps1 -Message {checkin-note}", "cwd": "." },
-    "pr":                 { "run": "pwsh -File scripts/fettler-pr.ps1",                              "cwd": "." },
-    "pr-draft":           { "run": "pwsh -File scripts/fettler-pr.ps1 -Draft",                       "cwd": "." },
-    "land":               { "run": "pwsh -File scripts/fettler-branch.ps1 land -Yes",                "cwd": "." },
+    "feature":            { "run": "bash scripts/fettler-branch.sh feature {feature-branch}", "cwd": "." },
+    "bug":                { "run": "bash scripts/fettler-branch.sh bug {bug-branch}",         "cwd": "." },
+    "sync":               { "run": "bash scripts/fettler-branch.sh sync",                     "cwd": "." },
+    "checkin":            { "run": "bash scripts/fettler-checkin.sh -Message {checkin-note}", "cwd": "." },
+    "pr":                 { "run": "bash scripts/fettler-pr.sh",                              "cwd": "." },
+    "pr-draft":           { "run": "bash scripts/fettler-pr.sh -Draft",                       "cwd": "." },
+    "land":               { "run": "bash scripts/fettler-branch.sh land -Yes",                "cwd": "." },
 
-    "verify-twins":       { "run": "node scripts/fettler-verify-twins.js",                           "cwd": "." },
-    "verify-permissions": { "run": "node scripts/fettler-verify-permissions.js",                     "cwd": "." },
-    "verify-docs":        { "run": "node scripts/fettler-verify-docs.js",                            "cwd": "." },
-    "verify-errors":      { "run": "node scripts/fettler-verify-errors.js",                          "cwd": "." },
+    "verify-twins":       { "run": "node scripts/fettler-verify-twins.js",                    "cwd": "." },
+    "verify-permissions": { "run": "node scripts/fettler-verify-permissions.js",              "cwd": "." },
+    "verify-docs":        { "run": "node scripts/fettler-verify-docs.js",                     "cwd": "." },
+    "verify-errors":      { "run": "node scripts/fettler-verify-errors.js",                   "cwd": "." },
 
-    "sitemap":            { "run": "pwsh -File scripts/fettler-make-sitemap.ps1",                    "cwd": "." },
+    "sitemap":            { "run": "bash scripts/fettler-make-sitemap.sh",                    "cwd": "." },
 
-    "ship":               { "run": "pwsh -File scripts/fettler-ship.ps1 {release-version} -Yes",     "cwd": "." }
+    "ship":               { "run": "bash scripts/fettler-ship.sh {release-version} -Yes",     "cwd": "." }
   }
+
 }
