@@ -1,7 +1,7 @@
 {
   "trees": {
     "scratch": {
-      "path": "C:/Users/foster/AppData/Local/Temp/claude/c--github-shoddy-fettler",
+      "path": "/private/tmp/claude-501/-Users-stephen-shoddy-Repos-shoddy-fettler/",
       "can": ["list", "read", "create", "update", "rename", "delete"]
     },
     "shoddy": {
@@ -20,8 +20,8 @@
     }
   },
   "replacements": {
-    "feature-branch":  "scott",
-    "bug-branch":      "scott01", 
+    "feature-branch":  "anderson",
+    "bug-branch":      "anderson01", 
     "release-version": "1.2.0",
     "checkin-note":     "Fettler now guards and screens SQL!"
   }
