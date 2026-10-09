@@ -4,10 +4,10 @@ This repository distributes three programs. This file is the
 developer-facing summary of what rides along inside each of them.
 
 **[`NOTICE`](NOTICE) is the file that matters legally**, and it is the one
-that travels: `scripts/fettler-build.ps1 publish` copies `NOTICE` and `LICENSE` into every
-archive, because an obligation that stops at the repository has not reached
-the person who downloaded a release. This file is a convenience for anyone
-reading the source; it does not ship.
+that travels. `scripts/fettler-build.ps1 publish` copies `NOTICE` and
+`LICENSE` into every archive, because an obligation that stops at the
+repository has not reached the person who downloaded a release. This file is
+a convenience for anyone reading the source. It does not ship.
 
 ## What is in each archive
 
@@ -19,27 +19,27 @@ reading the source; it does not ship.
 | [Microsoft.SqlServer.TransactSql.ScriptDom](https://github.com/microsoft/SqlScriptDOM) | 180.59.2 | MIT | `pick` | parses the one SELECT the query gate accepts |
 | [Microsoft.Data.SqlClient](https://github.com/dotnet/SqlClient) | 7.0.2 | MIT | `pick` | the connection to SQL Server |
 
-PdfPig has no transitive dependencies at all; the two `burler` packages
-bring only their own native runtime assets; ScriptDom brings nothing.
-**Microsoft.Data.SqlClient is the one wide closure in the repository** -
-the Microsoft.IdentityModel and Microsoft.Extensions families,
-`Microsoft.SqlServer.Server`, `Microsoft.Bcl.Cryptography` and a handful
-of `System.*` packages - accepted because a first-party SQL Server driver
-has no slimmer substitute, and every package in it is Microsoft-authored
-and MIT. Its native Windows SNI library is present in the dependency
-graph and **never used and never shipped**: `pick` pins the managed
-network path on all three operating systems, and its archive carries the
-single executable alone.
+PdfPig has no transitive dependencies at all. The two `burler` packages
+bring only their own native runtime assets. ScriptDom brings nothing.
+**Microsoft.Data.SqlClient is the one wide closure in the repository.** It
+brings the Microsoft.IdentityModel and Microsoft.Extensions families,
+`Microsoft.SqlServer.Server`, `Microsoft.Bcl.Cryptography` and a handful of
+`System.*` packages. That is accepted because a first-party SQL Server driver
+has no slimmer substitute, and every package in it is Microsoft-authored and
+MIT. Its native Windows SNI library is present in the dependency graph and
+**never used and never shipped**. `pick` pins the managed network path on
+all three operating systems, and its archive carries the single executable
+alone.
 
 ## The allowlists, and why they are short
 
 `pick` carries its own allowlist in `Picker.csproj`, in the same form and
-under the same tests as `fettle`'s: today it admits exactly the two
-packages in the table above, and its csproj comment records the
-managed-SNI pin and the fallback that would ever relax it.
+under the same tests as `fettle`'s. Today it admits exactly the two packages
+in the table above, and its csproj comment records the managed-SNI pin and
+the fallback that would ever relax it.
 
-`fettle` publishes **self-contained and single-file per operating system**, so
-a package with native assets does not merely complicate the build - it
+`fettle` publishes **self-contained and single-file per operating system**,
+so a package with native assets does not merely complicate the build. It
 produces an archive that is missing pieces. Every entry admitted to
 `Fettler.csproj` must meet all four of:
 
@@ -49,12 +49,13 @@ produces an archive that is missing pieces. Every entry admitted to
 - actively maintained.
 
 **The allowlist is enforced from outside the code**, in two places that fail
-the push rather than the release:
+the push rather than the release.
 
-- `FrontEndTests` reads the *built assemblies'* references, so a package that
-  arrives transitively is caught as surely as one written into the csproj.
-- `ci.yml` reads the *project files*, so a reference added and not yet built
-  is caught in the same push that adds it.
+- The front-end tests (`FrontEndTests`) read the *built assemblies'*
+  references, so a package that arrives transitively is caught as surely as
+  one written into the csproj.
+- The CI workflow (`ci.yml`) reads the *project files*, so a reference added
+  and not yet built is caught in the same push that adds it.
 
 Adding a package therefore means changing a test on purpose, rather than
 watching one quietly stop failing. That is the point.
@@ -64,7 +65,7 @@ watching one quietly stop failing. That is the point.
 ONNX Runtime ships native per-RID binaries, which the allowlist above
 disqualifies. Rather than widen a rule that has a stated reason, the
 inference lives in a **second executable** that `fettle` talks to over a
-pipe. Neither program references the other, in either direction; the wire
+pipe. Neither program references the other, in either direction. The wire
 format is the whole contract between them, and each side carries its own
 copy of the shapes that cross it, proven equivalent by a protocol test on
 each side rather than by a shared assembly.

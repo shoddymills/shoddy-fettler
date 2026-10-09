@@ -265,7 +265,7 @@ public static class Archives
             total += read;
             if (total > MaxTotalBytes)
                 throw new InvalidDataException(
-                    $"the content passed {MaxTotalBytes} bytes uncompressed, which is where this stops");
+                    $"the content is more than {MaxTotalBytes} bytes uncompressed, which is the limit");
             into.Write(buffer, 0, read);
         }
 

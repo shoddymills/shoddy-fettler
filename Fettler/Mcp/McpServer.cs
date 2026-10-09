@@ -268,20 +268,18 @@ public sealed class McpServer : IDisposable
     /// directory at all, so there is nothing for the habit to be for.</para>
     /// </summary>
     public const string Instructions =
-        "File, search and edit operations over a bounded set of declared trees. "
-        + "Paths resolve against those trees, never against a working directory: "
-        + "there is no current directory here, changing directory does nothing, and "
-        + "reaching for one is a sign the wrong tool is being used. "
-        + "Paths are written name:path when more than one tree is open. "
-        + "Call roots FIRST to see the trees, what each grants, and which one an "
-        + "unqualified path lands in - rather than discovering the boundary by being refused. "
-        + "A tree may be read-only, and a scope inside it may grant more or less than the tree does. "
-        + "Read returns a hash; pass it back as expect on an edit to prove the file has not moved. "
-        + $"Declared tasks come from the \"tasks\" object in the {RootsFile.FileName} that declared "
-        + "the trees, and running one needs that tree to grant execute, which is never granted by default. "
-        + $"{RootsFile.FileName} and {RootsFile.LocalFileName} are the files that say "
-        + "what this tool may do, and this tool does not write them - a person edits those. "
-        + "An edit to them binds on the next request: serve re-reads both before every call.";
+        "File, search and edit operations over declared trees. "
+        + "There is no working directory: paths resolve against the declared trees, "
+        + "and changing directory does nothing. "
+        + "When more than one tree is open, write a path as name:path. "
+        + "Call roots first. It lists the trees, what each allows, and which tree an "
+        + "unqualified path lands in. "
+        + "A tree may be read-only, and a scope inside a tree may allow more or less than the tree. "
+        + "read returns a hash; pass it as expect on an edit, and the edit is refused if the file changed. "
+        + $"Tasks come from the \"tasks\" object in {RootsFile.FileName}. "
+        + "Running one needs the tree to grant execute, which is never a default. "
+        + $"{RootsFile.FileName} and {RootsFile.LocalFileName} say what this tool may do. "
+        + "The tool does not write them; a person edits them, and an edit applies on the next call.";
 
     static string Describe(Failure failure) =>
         $"{ExitCodes.NameOf(failure.Outcome)}: {failure.Message}"

@@ -3,29 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="A workstation hardened by Fettler, drawn twice &mdash; the disk a developer really has with every way on and off it, and the three boundaries that produce that result.">
+<meta name="description" content="A workstation hardened by Fettler, drawn twice: the disk a developer has, with every way on and off it, and the three boundaries that produce that result.">
 <title>The Fettled Workstation | Fettler</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="favicon.ico" sizes="48x48">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
-/* The workstation figures, this page's own component. Each drawing lives in
-   media/ as a standalone .svg and is referenced here rather than pasted in.
-
-   THAT IS DELIBERATE, and it is the whole reason the figures moved out. The
-   README shows the same two drawings, and two copies of one diagram drift:
-   the page gets restyled, the README goes on showing last year's picture,
-   and nothing says so. One file, referenced twice, cannot.
-
-   The cost, stated: an <img> cannot inherit this sheet's custom properties,
-   so each .svg carries its own copy of the palette. Restyle the site and the
-   figures keep the old colours until somebody re-exports them. That is a
-   smaller and far more visible problem than a diagram whose CONTENT is
-   stale.
-
-   What stays here is the frame: the card, the caption, and the button that
-   hands the figure the whole screen. */
+/* The workstation figures. Each drawing lives in media/ as a standalone
+   .svg and is referenced here rather than pasted in. The README shows the
+   same two drawings, and two copies of one diagram drift apart; one file
+   referenced twice cannot. The cost: an <img> cannot inherit this sheet's
+   custom properties, so each .svg carries its own copy of the palette.
+   What stays here is the frame: the card, the caption, and the button
+   that shows the figure full screen. */
 .wsfig{position:relative; background:var(--card); border:1px solid var(--line);
   border-radius:.6rem; padding:2.6rem .6rem .6rem}
 .wsfig img{display:block; width:100%; height:auto}
@@ -54,36 +45,16 @@ figure.wsdiag figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .
 <header class="mast">
 <p class="eyebrow">Shoddy &middot; Fettler</p>
 <h1 id="workstation">The Fettled Workstation</h1>
-<p class="kicker">Two pictures &mdash; the disk a developer actually has, and the three boundaries that make it look that way.</p>
+<p class="kicker">Two pictures: the disk a developer has, and the three boundaries that make it look that way.</p>
 </header>
 
 <nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="fettle.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Fettle, for the files</span></span></a><a class="next" href="fettle-quickstart.html"><span class="pnwrap"><span class="ttl">Quick Start</span><span class="dir">Next &rarr;</span></span></a></nav>
 
-<p>This page states no rule of its own. It draws the whole arrangement
-twice. <b>The first picture is the disk</b> &mdash; the directories a
-developer really has, which of them the assistant may enter, and every
-way off the machine. <b>The second is the mechanism</b> that produces
-that result. One answers <em>what can it reach</em>; the other answers
-<em>how is that held</em>, and it is worth seeing the answer before the
-machinery.</p>
+<p>This page states no rule of its own. It draws the whole arrangement twice. <b>The first picture is the disk:</b> the directories a developer has, which of them the assistant may enter, and every way off the machine. <b>The second is the mechanism</b> that produces that result. The first answers <em>what can it reach</em>. The second answers <em>how is that held</em>.</p>
 
-<p><b>No command produced this arrangement.</b> Every line of it was
-written by hand into two short files at the top of the project &mdash; a
-checked-in <code>.fettler.json</code> and an uncommitted
-<code>.fettler.local.json</code> beside it. Both are printed in full
-directly under the map, so every block can be read back to the line that
-put it there. <code>fettle setup claude-code --local</code> writes the
-client&#8217;s deny list and the registration and nothing else: it never
-declares a tree, a scope or a task, and it could not have drawn any of
-this.</p>
+<p><b>No command produced this arrangement.</b> A person wrote every line of it into two short files at the top of the project: a checked-in <code>.fettler.json</code> and an uncommitted <code>.fettler.local.json</code> beside it. Both are printed in full under the map, so every block can be traced to the line that put it there. <code>fettle setup claude-code --local</code> writes the client's deny list and the registration and nothing else. It never declares a tree, a scope or a task.</p>
 
-<p>The pages after this one build it piece by piece:
-<a href="fettle-quickstart.html">the quick start</a> turns it on,
-<a href="fettle-install.html">installing it</a> is the machine-level
-reference, <a href="fettle-setup.html#declare">in a project</a> is
-the reference behind the two files below, and
-<a href="fettle-screening.html">screening</a> is the one feature with a
-page of its own.</p>
+<p>The pages after this one build the arrangement piece by piece. <a href="fettle-quickstart.html">The quick start</a> turns it on. <a href="fettle-install.html">Installing it</a> is the machine-level reference. <a href="fettle-setup.html#declare">In a project</a> is the reference behind the two files below. <a href="fettle-screening.html">Screening</a> is the one feature with a page of its own.</p>
 
 <figure class="wsdiag">
 <div class="wsfig" id="dmfig">
@@ -91,21 +62,10 @@ page of its own.</p>
 <img src="media/disk-map.svg" width="1280" height="990"
   alt="A map of a developer's disk and the network beyond it. The machine is one hatched area meaning out of bounds by default. On the left, the code folder holds a sibling project that is out of bounds, a planning repository that grants nothing at its root but opens two folders by name while keeping two others invisible, and the shoddy project which is fully in bounds apart from a sealed pocket holding its own configuration files. On the right, the user's folder holds one permitted scratch directory and several refused ones: keys and credentials, Documents which contains a Dropbox folder, browser profiles, and the operating system. Below the machine is the network: two sanctioned exits lead from the shoddy project to github.com and nuget.org, every other address has no route, and the Dropbox folder has its own continuous sync door to dropbox.com that no task opens and nothing here can close.">
 </div>
-<figcaption><b>The disk, and every way off it.</b> The hatched ground is the
-whole machine, and it is the default; the lit blocks are the entire list, not a
-summary of it. A repository can be opened at one folder and shut at the next,
-so <code>requirements\completed</code> is invisible while its sibling is
-writable. The files that define the boundary are sealed inside the very tree
-that grants everything else. And the two exits open from one room only, because
-that is the single place permitted to run anything at all. <b>Then there is
-Dropbox</b> &mdash; a way off the machine that no task opens and nothing here
-can close, which is why sealing that folder is not about privacy but about
-shutting a route that would bypass every other line on the map.</figcaption>
+<figcaption><b>The disk, and every way off it.</b> The hatched ground is the whole machine, and it is the default. The lit blocks are the entire list of what is reachable. A repository can be opened at one folder and shut at the next, so <code>requirements\completed</code> is invisible while its sibling is writable. The files that define the boundary are sealed inside the tree that grants everything else. The two network exits open from one room only, because that is the one place allowed to run anything. <b>Then there is Dropbox</b>, a way off the machine that no task opens and nothing here can close. Sealing that folder is not about privacy. It shuts a route that would bypass every other line on the map.</figcaption>
 </figure>
 
-<p id="config"><b>And here is what drew it.</b> Two files, sitting at the
-top of the project. Read them beside the map: every lit block above is a
-line below, and every dark one is dark because no line mentions it.</p>
+<p id="config"><b>Here is what drew it.</b> Two files at the top of the project. Read them beside the map: every lit block above is a line below, and every dark block is dark because no line mentions it.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>// .fettler.json - checked in, travels with the project
 {
@@ -143,26 +103,22 @@ line below, and every dark one is dark because no line mentions it.</p>
   }
 }</code></pre></div>
 
-<p>Correlating the two &mdash; including the three things on the map that
-no line in either file could have put there:</p>
+<p>The table matches the map to the files, including the three things on the map that no line in either file could have put there.</p>
 
 <table>
 <tr><th>On the map</th><th>What says so</th></tr>
-<tr><td><code>c:\github\shoddy</code>, and the two exits below it</td><td>the <code>work</code> tree &mdash; the only <code>can</code> list ending in <code>execute</code>, so the only room on the machine a task may run in</td></tr>
-<tr><td><code>github.com</code> and <code>nuget.org</code>, and no other address</td><td>the four declared tasks: <code>feature</code> and <code>ship</code> run git, <code>build</code> and <code>test</code> restore packages. Nothing names a third host, so there is no third route</td></tr>
-<tr><td>Scratch is writable, but <b>nothing may be executed there</b></td><td>the <code>scratch</code> tree&#8217;s <code>can</code>, which stops one word short of <code>execute</code></td></tr>
+<tr><td><code>c:\github\shoddy</code>, and the two exits below it</td><td>the <code>work</code> tree. It is the only <code>can</code> list ending in <code>execute</code>, so it is the only room on the machine where a task may run</td></tr>
+<tr><td><code>github.com</code> and <code>nuget.org</code>, and no other address</td><td>the four declared tasks: <code>feature</code> and <code>ship</code> run git, and <code>build</code> and <code>test</code> restore packages. Nothing names a third host, so there is no third route</td></tr>
+<tr><td>Scratch is writable, but <b>nothing may be executed there</b></td><td>the <code>scratch</code> tree's <code>can</code> list, which stops one word short of <code>execute</code></td></tr>
 <tr><td><code>shoddy-planning</code> grants nothing at its root</td><td><code>"can": []</code> on the <code>requirements</code> tree</td></tr>
-<tr><td><code>backlog</code> and <code>inprogress</code> writable, yet <b>nothing there can be deleted</b></td><td>those two scopes&#8217; <code>can</code>, which omits <code>delete</code></td></tr>
-<tr><td><code>completed</code> and <code>cancelled</code> sealed, and not even listed</td><td><code>"can": []</code> on each &mdash; a scope <em>replaces</em> what its tree grants rather than adding to it, so an empty one grants nothing at all</td></tr>
-<tr><td><code>shoddy-devilsdust</code>, <code>Documents</code>, <code>.ssh</code>, <code>AppData\Roaming</code>, the whole of <code>C:\</code></td><td><b>no line at all.</b> Out of bounds is the default; these two files are the list of exceptions to it, and whatever is absent stays dark</td></tr>
-<tr><td>The sealed pocket inside <code>shoddy</code></td><td><b>no line, and no line could.</b> The eight governed names are refused by every write path at every permission level &mdash; <a href="#tool">the tool boundary</a> lists them</td></tr>
-<tr><td>Dropbox syncing out to <code>dropbox.com</code></td><td><b>neither file&#8217;s doing.</b> That door belongs to another program, which is precisely why the folder it watches is one of the ones left dark</td></tr>
+<tr><td><code>backlog</code> and <code>inprogress</code> writable, yet <b>nothing there can be deleted</b></td><td>those two scopes' <code>can</code> lists, which leave out <code>delete</code></td></tr>
+<tr><td><code>completed</code> and <code>cancelled</code> sealed, and not even listed</td><td><code>"can": []</code> on each. A scope <em>replaces</em> what its tree grants rather than adding to it, so an empty one grants nothing</td></tr>
+<tr><td><code>shoddy-devilsdust</code>, <code>Documents</code>, <code>.ssh</code>, <code>AppData\Roaming</code>, the whole of <code>C:\</code></td><td><b>no line at all.</b> Out of bounds is the default. These two files list the exceptions, and whatever is absent stays dark</td></tr>
+<tr><td>The sealed pocket inside <code>shoddy</code></td><td><b>no line, and no line could.</b> The eight governed names are refused by every write path at every permission level. <a href="#tool">The tool boundary</a> lists them</td></tr>
+<tr><td>Dropbox syncing out to <code>dropbox.com</code></td><td><b>neither file's doing.</b> That door belongs to another program, which is why the folder it watches is one of the ones left dark</td></tr>
 </table>
 
-<p><b>And here is how it is held.</b> The same arrangement again, drawn as
-the three boundaries that produce it: what the assistant is, the one process
-between it and the disk, and the filesystem as the declared trees present
-it.</p>
+<p><b>Here is how it is held.</b> The same arrangement again, drawn as the three boundaries that produce it: what the assistant is, the one process between it and the disk, and the filesystem as the declared trees present it.</p>
 
 <figure class="wsdiag">
 <div class="wsfig" id="wsfig">
@@ -170,72 +126,28 @@ it.</p>
 <img src="media/workstation.svg" width="1570" height="1180" loading="lazy"
   alt="Component diagram of three boundaries. First, the model, Claude in VS Code, whose eleven built-in tools are every one of them struck through as denied: the six file tools Read, Write, Edit, NotebookEdit, Grep and Glob; then the three shells Bash, PowerShell and Monitor, Monitor being a shell because it runs the command it is handed in the same environment Bash does; and last the two output readers BashOutput and TaskOutput, which start nothing and write nothing but hand back the output of work already done, bytes that reached the model without passing the tree boundary, the secret scan or the disclosure screen. Second, the Fettler MCP server, whose boundary comes from .fettler.json and which refuses to write the files that govern it or the model. Third, the filesystem, visible only as the declared trees, with everything else refused as nonexistent.">
 </div>
-<figcaption><b>A workstation in fine fettle.</b> The client denies all eleven of its
-own built-ins &mdash; the six file tools, the three shells, and the two output
-readers &mdash; so the Fettler server is the only route to disk. <b><code>Monitor</code>
-is a shell</b>, running what it is handed in the same environment <code>Bash</code>
-does, so denying <code>Bash</code> and leaving it open would deny the word and not
-the thing. <b><code>BashOutput</code> and <code>TaskOutput</code> are readers</b>:
-they start nothing and write nothing, but they hand back the output of work already
-done, and those bytes reached the model without passing the tree boundary, the secret
-scan or the disclosure screen. The server takes its
-boundary from <code>.fettler.json</code> at launch, and refuses to write any file that
-governs it <em>or</em> the model. And the filesystem exists only as the declared trees
-&mdash; everything else answers exit&nbsp;4, whether or not it is there. The diagram
-fits the page; <b>Full screen</b> shows it at reading size.</figcaption>
+<figcaption><b>A workstation in fine fettle.</b> The client denies all eleven of its own built-in tools: the six file tools, the three shells, and the two output readers. The Fettler server is then the only route to disk. <b><code>Monitor</code> is a shell.</b> It runs what it is handed in the same environment <code>Bash</code> does, so denying <code>Bash</code> and leaving <code>Monitor</code> open would deny the word and not the thing. <b><code>BashOutput</code> and <code>TaskOutput</code> are readers.</b> They start nothing and write nothing, but they hand back the output of work already done, and those bytes reach the model without passing the tree boundary, the secret scan or the disclosure screen. The server takes its boundary from <code>.fettler.json</code> at launch, and refuses to write any file that governs it <em>or</em> the model. The filesystem exists only as the declared trees. Everything else answers exit&nbsp;4, whether or not it is there. <b>Full screen</b> shows the diagram at reading size.</figcaption>
 </figure>
 
 <h2 id="reading">1. How to read it</h2>
 
 <ul>
-<li><b>The model boundary holds the persuasion and the enforcement.</b>
-The instruction files persuade; <code>permissions.deny</code> enforces.
-The eleven built-in tools are denied by name, and the Fettler tools have
-different names &mdash; denying <code>Read</code> does not deny
-<code>mcp__fettler__read</code>. That routes the assistant rather than
-disarming it. <a href="fettle-install.html#exclusions">The exclusion
-list</a> is the reference.</li>
-<li><b>The tool boundary is fixed before the model says anything.</b>
-<code>serve</code> learns its trees from <code>.fettler.json</code> at
-launch. No tool schema carries a root or config flag. And the six files
-that govern the tool and the model alike are refused by every write
-path &mdash; <a href="fettle-reference.html#rules">the rule that makes every
-other rule hold</a>.</li>
-<li><b>The filesystem boundary is what remains.</b> The trees are
-<a href="fettle-setup.html#declare">the worked example</a>: one
-writable tree with a declared task, one read-only tree whose
-<code>backlog</code> may be reorganised but never destroyed, a hidden
-scope no search can surface, and the scratch overlay. Outside them
-there is nothing, and it is refused identically whether or not it
-exists.</li>
+<li><b>The model boundary holds the persuasion and the enforcement.</b> The instruction files persuade. <code>permissions.deny</code> enforces. The eleven built-in tools are denied by name, and the Fettler tools have different names: denying <code>Read</code> does not deny <code>mcp__fettler__read</code>. That routes the assistant rather than disarming it. <a href="fettle-install.html#exclusions">The exclusion list</a> is the reference.</li>
+<li><b>The tool boundary is fixed before the model says anything.</b> <code>serve</code> learns its trees from <code>.fettler.json</code> at launch. No tool schema carries a root or config flag. The files that govern the tool and the model are refused by every write path. That is <a href="fettle-reference.html#rules">the rule that makes every other rule hold</a>.</li>
+<li><b>The filesystem boundary is what remains.</b> The trees are <a href="fettle-setup.html#declare">the worked example</a>: one writable tree with a declared task, one read-only tree whose <code>backlog</code> may be reorganised but never destroyed, a hidden scope no search can surface, and the scratch overlay. Outside them there is nothing, and it is refused in the same words whether or not it exists.</li>
 </ul>
 
 <h2 id="model">2. The model boundary</h2>
 
-<p><b>Two levels of configuration reach the model, and the diagram
-shows both.</b> The deny list &mdash; the settings entry that blocks
-the assistant's built-in file, shell and output tools &mdash; appears at
-each level.</p>
+<p><b>Two levels of configuration reach the model, and the diagram shows both.</b> The deny list appears at each level. The deny list is the settings entry that blocks the assistant's built-in file, shell and output tools.</p>
 
 <ul>
-<li><b>Machine level</b> (<code>C:\Users\you\.claude</code>) &mdash;
-the global <code>CLAUDE.md</code> carries the standing instruction, and
-<code>~/.claude.json</code> registers the server for every project. The
-machine-wide deny list is written only when asked for out loud
-(<a href="fettle-install.html#global"><code>--global --deny</code></a>).</li>
-<li><b>Repo level</b> &mdash; <code>.mcp.json</code> launches the
-server, and <code>.claude/settings.json</code> holds the deny list.
-Both are <b>governed</b>: Fettler refuses to write them at every
-permission level.</li>
-<li><b>The deny is by tool name</b>, and the Fettler tools have
-different names. The shell is denied by name too, because no blocklist
-of writing commands can close it &mdash; <code>echo x &gt; file</code>
-turns any command into a writer.
-<a href="fettle-install.html#shell">The shell section</a> has the
-argument in full.</li>
+<li><b>Machine level</b> (<code>C:\Users\you\.claude</code>). The global <code>CLAUDE.md</code> carries the standing instruction, and <code>~/.claude.json</code> registers the server for every project. The machine-wide deny list is written only when asked for with <a href="fettle-install.html#global"><code>--global --deny</code></a>.</li>
+<li><b>Repo level.</b> <code>.mcp.json</code> launches the server, and <code>.claude/settings.json</code> holds the deny list. Both are <b>governed</b>: Fettler refuses to write them at every permission level.</li>
+<li><b>The deny is by tool name</b>, and the Fettler tools have different names. The shell is denied by name too, because no list of writing commands can close it. <code>echo x &gt; file</code> turns any command into a writer. <a href="fettle-install.html#shell">The shell section</a> has the full argument.</li>
 </ul>
 
-<p>The deny list <code>fettle setup claude-code --local</code> writes, verbatim:</p>
+<p>The deny list <code>fettle setup claude-code --local</code> writes, as written:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>{
   "permissions": {
@@ -253,9 +165,7 @@ argument in full.</li>
   }
 }</code></pre></div>
 
-<p>And the opt-in <a href="fettle-install.html#hooks">session hook</a>
-(<code>--hooks</code>), which runs <code>doctor</code> at the start of
-each session &mdash; the moment a diagnostic will actually be read:</p>
+<p>And the opt-in <a href="fettle-install.html#hooks">session hook</a> (<code>--hooks</code>), which runs <code>doctor</code> at the start of each session:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>{
   "hooks": {
@@ -269,86 +179,56 @@ each session &mdash; the moment a diagnostic will actually be read:</p>
 
 <h2 id="tool">3. The tool boundary</h2>
 
-<p><b>The server learns its trees once, at launch, from files it can never
-write.</b></p>
+<p><b>The server learns its trees at launch, from files it can never write.</b></p>
 
 <ul>
-<li><b>No tool schema carries a root or config flag.</b> The model
-cannot point the boundary anywhere, and <code>--root</code> on a
-command line can only ever grant <code>list read</code>.</li>
-<li><b>Eight governed names</b>, refused by every write path at every
-permission level (exit&nbsp;11): <code>.fettler.json</code>,
-<code>.fettler.local.json</code>, <code>.mcp.json</code>,
-<code>.picker.json</code>, <code>.picker.local.json</code>,
-<code>.claude/settings.json</code>,
-<code>.claude/settings.local.json</code>,
-<code>.vscode/mcp.json</code>. The <code>.picker</code> pair is the
-boundary of the assistant&#8217;s SQL tool &mdash; a fettle that could
-write it would hand that boundary over through the side door.</li>
-<li><b><code>setup</code> is the one verb a model is never offered.</b>
-<code>doctor</code> is offered, because a model diagnosing its own
-wiring beats asking somebody to open a terminal for it.</li>
-<li><b>The threat is inadvertent assistant action, not a determined
-person.</b> Whoever owns the machine edits <code>.fettler.json</code>
-in an ordinary editor. That is the design, not a hole.
-<a href="fettle-reference.html#threat">What this defends against</a> draws the
-bound.</li>
+<li><b>No tool schema carries a root or config flag.</b> The model cannot point the boundary anywhere, and <code>--root</code> on a command line can only ever grant <code>list read</code>.</li>
+<li><b>Eight governed names</b> are refused by every write path at every permission level (exit&nbsp;11): <code>.fettler.json</code>, <code>.fettler.local.json</code>, <code>.mcp.json</code>, <code>.picker.json</code>, <code>.picker.local.json</code>, <code>.claude/settings.json</code>, <code>.claude/settings.local.json</code> and <code>.vscode/mcp.json</code>. The <code>.picker</code> pair is the boundary of the assistant's SQL tool. A fettle that could write it would hand that boundary over through a side door.</li>
+<li><b><code>setup</code> is the one verb a model is never offered.</b> <code>doctor</code> is offered, because a model that can diagnose its own wiring saves somebody opening a terminal.</li>
+<li><b>The threat is inadvertent assistant action, not a determined person.</b> Whoever owns the machine edits <code>.fettler.json</code> in an ordinary editor. That is the design. <a href="fettle-reference.html#threat">What this defends against</a> draws the line.</li>
 </ul>
 
-<p>The two files that say all of this are
-<a href="#config">printed under the map</a> at the top of the page: the
-checked-in <code>.fettler.json</code> naming the project tree and its
-tasks, and the uncommitted overlay adding this machine&#8217;s
-<a href="fettle-setup.html#scratch">scratch tree</a> and its
-<a href="fettle-setup.html#declare">scoped</a> planning tree. Neither can
-be written by the thing it governs &mdash; which is what a refusal looks
-like when the boundary is asked to cross itself:</p>
+<p>The two files that say all of this are <a href="#config">printed under the map</a>: the checked-in <code>.fettler.json</code> naming the project tree and its tasks, and the uncommitted overlay adding this machine's <a href="fettle-setup.html#scratch">scratch tree</a> and its <a href="fettle-setup.html#declare">scoped</a> planning tree. Neither can be written by the thing it governs. This is what the refusal looks like:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle write .fettler.json --text "{}" --overwrite
-refused: .fettler.json is one of the files that tell this tool what it
-may do, and it does not edit those. Change it with an editor.
+refused: .fettler.json is a file that says what this tool and the assistant may do.
+Fettler does not write those files. Change it with an editor. The files are:
+.fettler.json, .fettler.local.json, .mcp.json, .picker.json, .picker.local.json,
+.claude/settings.json, .claude/settings.local.json, .vscode/mcp.json
 $ echo $LASTEXITCODE
 11
 
 $ fettle read ../secrets.txt
-refused: the path is outside every declared tree; ask for the roots to
-see the boundary
+refused: the path is outside every declared tree. Run roots to see the trees
 $ echo $LASTEXITCODE
 4</code></pre></div>
 
 <h2 id="filesystem">4. The filesystem boundary</h2>
 
-<p><b>Seven permission words, combined per tree and per folder, say everything
-the diagram colours.</b> <a href="fettle-reference.html#permissions">The seven
-permissions</a> defines each in full.</p>
+<p><b>Seven permission words, combined per tree and per folder, say everything the diagram colours.</b> <a href="fettle-reference.html#permissions">The seven permissions</a> defines each in full.</p>
 
 <table>
 <tr><th>Verb</th><th>Grants</th></tr>
-<tr><td><code>list</code></td><td>appears in <code>find</code> and <code>search</code> &mdash; <b>absent means hidden</b>, not merely unreadable</td></tr>
+<tr><td><code>list</code></td><td>appears in <code>find</code> and <code>search</code>. <b>Absent means hidden</b>, not merely unreadable</td></tr>
 <tr><td><code>read</code></td><td>content may be read</td></tr>
 <tr><td><code>create</code></td><td>a file or directory that is not there may be made</td></tr>
-<tr><td><code>update</code></td><td>an existing file&#8217;s content may be changed</td></tr>
-<tr><td><code>rename</code></td><td>renamed or moved within this scope, or into a descendant</td></tr>
-<tr><td><code>delete</code></td><td>removed &mdash; <em>and</em> moved out of this scope, which from here is the same thing</td></tr>
-<tr><td><code>execute</code></td><td>a declared task may run here &mdash; never granted by default, anywhere</td></tr>
+<tr><td><code>update</code></td><td>an existing file's content may be changed</td></tr>
+<tr><td><code>rename</code></td><td>may be renamed or moved within this scope, or into a folder below it</td></tr>
+<tr><td><code>delete</code></td><td>may be removed, <em>and</em> moved out of this scope, which from here is the same thing</td></tr>
+<tr><td><code>execute</code></td><td>a declared task may run here. Never a default, anywhere</td></tr>
 </table>
 
-<p><b>Prove it, don&#8217;t trust it.</b> The wiring being drawn
-correctly and the boundary holding are two different claims, and only
-the second one matters. Ask the assistant to try each of these, and
-watch what comes back.
-<a href="fettle-setup.html#verify">Verifying the guardrails</a> is the
-same checklist where the setup steps live:</p>
+<p><b>Prove it. Do not trust it.</b> The wiring being drawn correctly and the boundary holding are two different claims, and only the second one matters. Ask the assistant to try each of these, and watch what comes back. <a href="fettle-setup.html#verify">Verifying the guardrails</a> is the same checklist, beside the setup steps.</p>
 
 <table>
 <tr><th>Ask it to&hellip;</th><th>A correct setup&hellip;</th></tr>
-<tr><td>read <code>C:\Windows\win.ini</code></td><td>refuses &mdash; outside every tree, exit&nbsp;4, identically whether or not the file exists</td></tr>
-<tr><td>write <code>.fettler.json</code></td><td>refuses &mdash; governed, exit&nbsp;11, whatever the tree grants</td></tr>
-<tr><td>write <code>.claude/settings.json</code></td><td>refuses &mdash; governed, exit&nbsp;11: a model does not edit the file naming its tools</td></tr>
-<tr><td>write a file holding an AWS key</td><td>refuses &mdash; credential, exit&nbsp;12, naming the line but never the secret</td></tr>
-<tr><td>run a task with no <code>execute</code> grant</td><td>refuses &mdash; exit&nbsp;8, naming the missing grant</td></tr>
-<tr><td>edit with the built-in editor</td><td>is denied by the client &mdash; and reaches for Fettler instead</td></tr>
-<tr><td>stage a file in its scratch directory</td><td>writes &mdash; because the overlay declared that tree; if this fails, that was the skipped step</td></tr>
+<tr><td>read <code>C:\Windows\win.ini</code></td><td>refuses: outside every tree, exit&nbsp;4, in the same words whether or not the file exists</td></tr>
+<tr><td>write <code>.fettler.json</code></td><td>refuses: governed, exit&nbsp;11, whatever the tree grants</td></tr>
+<tr><td>write <code>.claude/settings.json</code></td><td>refuses: governed, exit&nbsp;11. A model does not edit the file naming its tools</td></tr>
+<tr><td>write a file holding an AWS key</td><td>refuses: credential, exit&nbsp;12, naming the line but never the secret</td></tr>
+<tr><td>run a task with no <code>execute</code> grant</td><td>refuses: exit&nbsp;8, naming the missing grant</td></tr>
+<tr><td>edit with the built-in editor</td><td>is denied by the client, and reaches for Fettler instead</td></tr>
+<tr><td>stage a file in its scratch directory</td><td>writes, because the overlay declared that tree. If this fails, that was the skipped step</td></tr>
 </table>
 
 <nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
@@ -362,8 +242,7 @@ Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>
 <script src="copy.js"></script>
 <script>
 (function () {
-  // Every figure on the page, rather than one by id: there are two now,
-  // and a second diagram should not need a second copy of this.
+  // Every figure on the page, so a second diagram needs no second copy.
   var figs = document.querySelectorAll(".wsfig");
   Array.prototype.forEach.call(figs, function (fig) {
     var btn = fig.querySelector(".wsfs");

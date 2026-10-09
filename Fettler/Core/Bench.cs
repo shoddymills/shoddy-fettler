@@ -386,9 +386,8 @@ public sealed class Bench : IDisposable
         // images at all - and says so, rather than implying it checked.
         if (slice.Kind == FileKind.Image)
             return new Failure(Outcome.Screened,
-                "this scope is screened, and this is an image - which the screen cannot read. "
-                + "It is refused rather than served unchecked: a screen that passed everything "
-                + "it could not see into would not be one.", path.Display);
+                "this scope is screened, and the screen cannot read an image. The image is "
+                + "refused rather than served unchecked.", path.Display);
 
         return Disclosure.Check(slice.Text, path.Screen, screener, path.Display);
     }
@@ -441,7 +440,7 @@ public sealed class Bench : IDisposable
         {
             if (kind != FileKind.Archive)
                 return Result<ReadSlice>.Fail(Outcome.Invalid,
-                    "--member names an entry inside an archive, and this is not one", path.Display);
+                    "--member reads an entry inside an archive, and this file is not an archive", path.Display);
 
             unpacked = Archives.Member(path, wanted);
         }
@@ -642,8 +641,8 @@ public sealed class Bench : IDisposable
 
             if (members.Value.Count > Archives.MaxMembers)
                 return Result<Unpacked>.Fail(Outcome.Refused,
-                    $"this archive names {members.Value.Count} members, past the {Archives.MaxMembers} "
-                    + "this will unpack in one go", source.Value.Display);
+                    $"this archive has {members.Value.Count} members; the limit for one extract is "
+                    + $"{Archives.MaxMembers}", source.Value.Display);
 
             long total = 0;
             var targets = new Dictionary<string, ContainedPath>(StringComparer.Ordinal);
@@ -652,9 +651,8 @@ public sealed class Bench : IDisposable
             {
                 if (member.IsLink)
                     return Result<Unpacked>.Fail(Outcome.Refused,
-                        $"'{member.Name}' is a link, and this does not create links - a link inside "
-                        + "an archive is the one member that can point out of the tree after every "
-                        + "path check has passed, so the archive is refused rather than part-unpacked",
+                        $"'{member.Name}' is a link, and extract does not create links. "
+                        + "The whole archive is refused",
                         source.Value.Display);
 
                 if (member.IsDirectory) continue;
@@ -663,7 +661,7 @@ public sealed class Bench : IDisposable
                 if (total > Archives.MaxTotalBytes)
                     return Result<Unpacked>.Fail(Outcome.Refused,
                         $"this archive unpacks to more than {Archives.MaxTotalBytes} bytes, which is "
-                        + "where this stops rather than filling the disk", source.Value.Display);
+                        + "the limit", source.Value.Display);
 
                 // Resolved through the boundary exactly like a path a
                 // caller typed, which is what makes an escaping member an
@@ -684,13 +682,12 @@ public sealed class Bench : IDisposable
                 // is not where the caller said to put it.
                 if (!Roots.IsWithin(destination.Value.Full, target.Value.Full))
                     return Result<Unpacked>.Fail(Outcome.Refused,
-                        $"'{member.Name}' would land outside {into}, which is where this was told to "
-                        + "put things; the archive is refused rather than part-unpacked",
+                        $"'{member.Name}' would land outside {into}. The whole archive is refused",
                         source.Value.Display);
 
                 if (!overwrite && File.Exists(target.Value.Full))
                     return Result<Unpacked>.Fail(Outcome.TargetExists,
-                        $"'{member.Name}' is already there; pass --overwrite to replace what is",
+                        $"'{member.Name}' is already there; pass overwrite to replace it",
                         target.Value.Display);
 
                 targets[member.Name] = target.Value;
@@ -743,7 +740,7 @@ public sealed class Bench : IDisposable
         Mutating(() =>
         {
             if (find.Length == 0)
-                return Result<ReplaceAnswer>.Fail(Outcome.Invalid, "replace was given nothing to look for");
+                return Result<ReplaceAnswer>.Fail(Outcome.Invalid, "replace has an empty find text");
 
             Result<string> rootName = RootNamed(root);
             if (!rootName.IsOk) return rootName.Carry<ReplaceAnswer>();
@@ -850,7 +847,7 @@ public sealed class Bench : IDisposable
             if (declared.Equals(name, Roots.PathComparison)) return Result<string>.Ok(declared);
 
         return Result<string>.Fail(Outcome.Invalid,
-            $"no root called '{name}'; the roots are: {string.Join(", ", Roots.Names)}");
+            $"no tree called '{name}'. The trees are: {string.Join(", ", Roots.Names)}");
     }
 
     static Excludes ExcludesFor(bool includeGenerated, IReadOnlyList<string>? extra)

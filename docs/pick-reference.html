@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Pick, the reference &mdash; the query gate refusal by refusal, column scoping everywhere it binds, what DESCRIBE will and will not say, the caps, and the exit codes.">
+<meta name="description" content="Pick, the reference: the query gate refusal by refusal, column scoping everywhere it binds, what DESCRIBE will and will not say, the caps, and the exit codes.">
 <title>Reference | Picker</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -23,10 +23,7 @@
 <header class="mast">
 <p class="eyebrow">Shoddy &middot; Picker</p>
 <h1 id="pickreference">Reference</h1>
-<p class="kicker">The query gate refusal by refusal, column scoping
-everywhere it binds, what DESCRIBE will and will not say, the caps, and
-the exit codes. <a href="pick-screening.html">The screen</a> has a page
-of its own.</p>
+<p class="kicker">The query gate refusal by refusal, column scoping everywhere it binds, what DESCRIBE will and will not say, the caps, and the exit codes. <a href="pick-screening.html">The screen</a> has a page of its own.</p>
 </header>
 
 <nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a href="pick-models.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">The Models</span></span></a></nav>
@@ -34,179 +31,94 @@ of its own.</p>
 <h2 id="resolution">How a name resolves</h2>
 
 <ul>
-<li><b>A three-part name</b> &mdash; <code>Sales.dbo.Customers</code>
-&mdash; resolves against the declared databases and nothing else. A
-database the file does not declare answers exactly as a table that does
-not exist.</li>
-<li><b>A two-part or bare name</b> &mdash; <code>dbo.Customers</code>,
-<code>Customers</code> &mdash; is searched for across the declared
-databases; the connection's own default database is never consulted. If
-two declared databases both hold a match, the query is refused as
-ambiguous, naming both, and the fix is to qualify.</li>
-<li><b>A name defined by a CTE in the same query wins</b> over a
-declared object of the same bare name &mdash; the standard T-SQL
-precedence, kept.</li>
-<li><b>A four-part name is refused outright</b> &mdash; a linked server
-is a second server wearing a prefix.</li>
-<li><b>Hidden is absent, everywhere.</b> An object with no
-<code>list</code> grant is missing from <code>objects</code>, excluded
-from bare-name search <em>and its ambiguity</em>, and refused as
-nonexistent when named directly &mdash; one wording, one factory in the
-code, so the refusals cannot drift apart and be told apart.</li>
-<li><b>Listed but not granted is refused honestly instead</b>, naming
-what the scope does grant &mdash; because the listing already disclosed
-that the object exists.</li>
-<li><b>One server per statement.</b> A query may join across declared
-databases on the same server; it may not span servers.</li>
+<li><b>A three-part name</b>, such as <code>Sales.dbo.Customers</code>, resolves against the declared databases and nothing else. A database the file does not declare answers exactly as a table that does not exist.</li>
+<li><b>A two-part or bare name</b>, such as <code>dbo.Customers</code> or <code>Customers</code>, is searched for across the declared databases. The connection's own default database is never consulted. If two declared databases both hold a match, the query is refused as ambiguous, naming both, and the fix is to qualify.</li>
+<li><b>A name defined by a CTE in the same query wins</b> over a declared object of the same bare name. That is the standard T-SQL precedence, kept.</li>
+<li><b>A four-part name is refused outright.</b> A linked server is a second server with a prefix.</li>
+<li><b>Hidden is absent, everywhere.</b> An object with no <code>list</code> grant is missing from <code>objects</code>, excluded from bare-name search <em>and its ambiguity</em>, and refused as nonexistent when named directly. One wording, one factory in the code, so the refusals cannot drift apart and be told apart.</li>
+<li><b>Listed but not granted is refused plainly instead</b>, naming what the scope does grant, because the listing already disclosed that the object exists.</li>
+<li><b>One server per statement.</b> A query may join across declared databases on the same server. It may not span servers.</li>
 </ul>
 
 <h2 id="verbs">The verbs, in detail</h2>
 
-<p>Five verbs, identical through the CLI and the MCP server &mdash; the
-MCP answer is byte-for-byte the CLI's <code>--json</code> output.
-<code>--config PATH</code> names a configuration explicitly; otherwise
-the nearest <code>.picker.json</code> upward from the current directory
-governs.</p>
+<p>Five verbs, identical through the CLI and the MCP server. The MCP answer is byte-for-byte the CLI's <code>--json</code> output. <code>--config PATH</code> names a configuration explicitly. Otherwise the nearest <code>.picker.json</code> upward from the current directory governs.</p>
 
 <table>
 <tr><th>Verb</th><th>Takes</th><th>Answers</th></tr>
-<tr><td><code>catalogs</code></td><td>nothing</td><td>the declared servers, databases, verbs, screens and scopes &mdash; the boundary itself, with no connection opened</td></tr>
-<tr><td><code>objects</code></td><td>an optional pattern &mdash; <code>schema.object</code> or a bare name, <code>*</code> inside a segment</td><td>the tables and views whose scope grants <code>list</code>, capped at 500 with the cap stated; never a hidden one</td></tr>
-<tr><td><code>select</code></td><td>one statement as the argument, or <code>--stdin</code>; <code>--limit N</code> for the row cap</td><td>the rows, typed, with the column list; or the gate's refusal</td></tr>
-<tr><td><code>describe</code></td><td>an object name</td><td>columns with types and nullability, indexes, foreign keys, and a shape hash &mdash; so a caller can tell when an object changed underneath it</td></tr>
-<tr><td><code>doctor</code></td><td>nothing</td><td>whether the configuration loads, whether each server answers a bounded knock, the models directory, and burler's presence &mdash; never printing a credential</td></tr>
+<tr><td><code>catalogs</code></td><td>nothing</td><td>the declared servers, databases, verbs, screens and scopes. This is the boundary itself, with no connection opened</td></tr>
+<tr><td><code>objects</code></td><td>an optional pattern, <code>schema.object</code> or a bare name, with <code>*</code> inside a segment</td><td>the tables and views whose scope grants <code>list</code>, capped at 500 with the cap stated. Never a hidden one</td></tr>
+<tr><td><code>select</code></td><td>one statement as the argument, or <code>--stdin</code>. <code>--limit N</code> for the row cap</td><td>the rows, typed, with the column list, or the gate's refusal</td></tr>
+<tr><td><code>describe</code></td><td>an object name</td><td>columns with types and nullability, indexes, foreign keys, and a shape hash, so a caller can tell when an object changed underneath it</td></tr>
+<tr><td><code>doctor</code></td><td>nothing</td><td>whether the configuration loads, whether each server answers a bounded knock, the models directory, and burler's presence. It never prints a credential</td></tr>
 </table>
 
 <h2 id="gate">The query gate</h2>
 
-<p>Every statement is parsed to a syntax tree before anything touches a
-connection, and the tree is walked against an <b>allowlist</b> of
-constructs the gate understands. Anything the walk does not recognise
-refuses the whole statement &mdash; fail closed, so a T-SQL feature
-added next year arrives refused rather than unexamined.</p>
+<p>Every statement is parsed to a syntax tree before anything touches a connection. The tree is walked against an <b>allowlist</b> of constructs the gate understands. Anything the walk does not recognise refuses the whole statement. It fails closed, so a T-SQL feature added next year arrives refused rather than unexamined.</p>
 
 <table>
 <tr><th>Refused</th><th>Why</th></tr>
 <tr><td>anything but one <code>SELECT</code></td><td><code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>MERGE</code>, <code>EXEC</code>, <code>DECLARE</code>, <code>USE</code>, transactions, and a second statement in the batch are each refused with their own stated reason</td></tr>
-<tr><td><code>SELECT &hellip; INTO</code></td><td>a write wearing a SELECT's clothes</td></tr>
-<tr><td><code>OPENROWSET</code>, <code>OPENQUERY</code>, <code>OPENDATASOURCE</code></td><td>each is a connection string in a query &mdash; a whole second boundary smuggled into one function call</td></tr>
+<tr><td><code>SELECT &hellip; INTO</code></td><td>a write dressed as a SELECT</td></tr>
+<tr><td><code>OPENROWSET</code>, <code>OPENQUERY</code>, <code>OPENDATASOURCE</code></td><td>each is a connection string in a query, a whole second boundary smuggled into one function call</td></tr>
 <tr><td>user-defined functions</td><td>a function body is code the gate cannot see through</td></tr>
-<tr><td>variables and table hints</td><td>outside the closed surface; refused by name rather than by the generic arm</td></tr>
-<tr><td>four-part names</td><td>a linked server is a second server wearing a prefix</td></tr>
-<tr><td><code>sys.*</code>, <code>INFORMATION_SCHEMA</code>, <code>OBJECT_DEFINITION</code> and relatives</td><td>the catalog answers questions the scopes exist to govern; <code>describe</code> answers them governed</td></tr>
+<tr><td>variables and table hints</td><td>outside the closed surface. Refused by name rather than by the generic arm</td></tr>
+<tr><td>four-part names</td><td>a linked server is a second server with a prefix</td></tr>
+<tr><td><code>sys.*</code>, <code>INFORMATION_SCHEMA</code>, <code>OBJECT_DEFINITION</code> and relatives</td><td>the catalog answers questions the scopes exist to govern. <code>describe</code> answers them governed</td></tr>
 </table>
 
-<p>What passes is <b>rewritten before it runs</b>. Every table and view
-reference is rewritten to its full bracket-quoted three-part name, so
-the statement that reaches the server can only mean what the gate
-approved. <code>SELECT *</code> is expanded to the columns this caller
-is actually permitted &mdash; the star never reaches the server &mdash;
-and the answer states the column list it chose. CTEs, subqueries,
-derived tables, <code>APPLY</code> and set operations are walked the
-same way; a query is approved whole or refused whole.</p>
+<p>What passes is <b>rewritten before it runs</b>. Every table and view reference is rewritten to its full bracket-quoted three-part name, so the statement that reaches the server can only mean what the gate approved. <code>SELECT *</code> is expanded to the columns this caller is permitted. The star never reaches the server, and the answer states the column list it chose. CTEs, subqueries, derived tables, <code>APPLY</code> and set operations are walked the same way. A query is approved whole or refused whole.</p>
 
 <h2 id="columns">Column scoping, everywhere a column can appear</h2>
 
-<p>A scope may grant every column, name the columns it includes, or
-name the ones it excludes &mdash;
-<a href="pick-setup.html#scopes">the grammar</a> lives with the
-configuration. Enforcement is the reference's half:</p>
+<p>A scope may grant every column, name the columns it includes, or name the ones it excludes. <a href="pick-setup.html#scopes">The grammar</a> lives with the configuration. Enforcement is the reference's half:</p>
 
 <ul>
-<li><b>A hidden column is checked everywhere</b>: the select list,
-<code>WHERE</code>, <code>ON</code>, <code>GROUP BY</code>,
-<code>ORDER BY</code>, inside expressions, inside subqueries.
-<code>WHERE ssn = &hellip;</code> would let a caller reconstruct a
-column it cannot read, one predicate at a time, so it is refused.</li>
-<li><b>Refused in the same words as a column that does not exist</b>,
-naming no table &mdash; so the refusal cannot be used to learn that the
-column is there. Hidden and absent are one answer, deliberately.</li>
-<li><b><code>SELECT *</code> is never an escape.</b> The star expands
-to the permitted columns before the server sees it, and the answer
-states the list, so what was left out is a fact about the grant rather
-than a surprise in the rows.</li>
+<li><b>A hidden column is checked everywhere</b>: the select list, <code>WHERE</code>, <code>ON</code>, <code>GROUP BY</code>, <code>ORDER BY</code>, inside expressions, inside subqueries. <code>WHERE ssn = &hellip;</code> would let a caller reconstruct a column it cannot read, one predicate at a time, so it is refused.</li>
+<li><b>Refused in the same words as a column that does not exist</b>, naming no table, so the refusal cannot be used to learn that the column is there. Hidden and absent are one answer, deliberately.</li>
+<li><b><code>SELECT *</code> is never an escape.</b> The star expands to the permitted columns before the server sees it, and the answer states the list. What was left out is a fact about the grant rather than a surprise in the rows.</li>
 </ul>
 
 <h2 id="describe">DESCRIBE, and what a view will not say</h2>
 
-<p><code>describe</code> answers from the catalog: columns with their
-types and nullability, indexes, and foreign keys &mdash; never by
-running the object. Hidden columns are absent from all of it, and an
-index or key that involves a hidden column is left out whole, because a
-summary that says "one column not shown" says a hidden column exists.
-Every answer carries a shape hash, so a caller can tell when an
-object changed underneath it.</p>
+<p><code>describe</code> answers from the catalog: columns with their types and nullability, indexes, and foreign keys. It never runs the object. Hidden columns are absent from all of it, and an index or key that involves a hidden column is left out whole, because a summary that says "one column not shown" says a hidden column exists. Every answer carries a shape hash, so a caller can tell when an object changed underneath it.</p>
 
-<p><b>A view answers its columns and never its definition.</b> View
-text embeds the tables underneath, their join logic and their filters
-&mdash; exactly the structure the scopes may be hiding &mdash; so the
-stored <code>CREATE VIEW</code> text is denied in full rather than
-summarised. No opportunities to leak.</p>
+<p><b>A view answers its columns and never its definition.</b> View text embeds the tables underneath, their join logic and their filters, which is the structure the scopes may be hiding. So the stored <code>CREATE VIEW</code> text is denied in full rather than summarised. There is nothing to leak.</p>
 
 <h2 id="limits">Caps, stated in the answer</h2>
 
 <ul>
-<li><b>100 rows</b> by default (<code>--limit N</code> raises or lowers
-it); a capped result states how many rows were withheld.</li>
-<li><b>2,000 characters per cell, 40,000 per answer</b> &mdash;
-truncation is announced, never silent.</li>
-<li><b>30 seconds per query</b>; a query that outruns it is
-<code>timed-out</code>, its own outcome, never dressed as anything
-else.</li>
+<li><b>100 rows</b> by default (<code>--limit N</code> raises or lowers it). A capped result states how many rows were withheld.</li>
+<li><b>2,000 characters per cell, 40,000 per answer.</b> Truncation is announced, never silent.</li>
+<li><b>30 seconds per query.</b> A query that runs past it is <code>timed-out</code>, its own outcome, never dressed as anything else.</li>
 </ul>
 
 <h2 id="codes">Exit codes</h2>
 
-<p>Each distinct failure class gets its own code, so a script can
-branch on <code>$LASTEXITCODE</code> without parsing text. The numbers
-are <b>fettle's numbers where the words match</b>, so a script driving
-both tools branches one way; the gaps in the sequence are fettle's
-outcomes this tool cannot produce (a stale hash, a governed file), and
-they stay gaps rather than being reused for different words. A verifier
-in this repository holds the table below to the source, row by row, and
-holds the alignment itself.</p>
+<p>Each distinct failure class gets its own code, so a script can branch on <code>$LASTEXITCODE</code> without parsing text. The numbers are <b>fettle's numbers where the words match</b>, so a script driving both tools branches one way. The gaps in the sequence are fettle's outcomes this tool cannot produce (a stale hash, a governed file), and they stay gaps rather than being reused for different words. A verifier in this repository holds the table below to the source, row by row, and holds the alignment itself.</p>
 
 <table>
 <tr><th>Code</th><th>Outcome</th><th>Meaning</th></tr>
 <tr><td>0</td><td><code>ok</code></td><td>it worked</td></tr>
 <tr><td>1</td><td>&mdash;</td><td>an unexpected internal fault</td></tr>
-<tr><td>2</td><td><code>invalid</code></td><td>the request did not make sense &mdash; an unknown flag, a missing value, a malformed configuration</td></tr>
-<tr><td>3</td><td><code>not-found</code></td><td>not there, or not there as far as anyone can learn &mdash; an object outside the grant answers exactly as one that does not exist</td></tr>
-<tr><td>8</td><td><code>refused</code></td><td><b>pick declined</b>, for a stated reason &mdash; a verb the grant withholds, a query the gate will not pass</td></tr>
-<tr><td>9</td><td><code>denied</code></td><td><b>the server, the network or the OS declined</b>, which is not pick declining &mdash; a login without rights, a connection that will not open</td></tr>
-<tr><td>10</td><td><code>timed-out</code></td><td>the query outran its 30 seconds and was cancelled</td></tr>
-<tr><td>13</td><td><code>screened</code></td><td>the response would have <b>disclosed</b> regulated data out of a screened scope &mdash; or the screen that would have judged it could not run. See <a href="pick-screening.html">screening</a></td></tr>
+<tr><td>2</td><td><code>invalid</code></td><td>the request did not make sense: an unknown flag, a missing value, a malformed configuration</td></tr>
+<tr><td>3</td><td><code>not-found</code></td><td>not there, or not there as far as anyone can learn. An object outside the grant answers exactly as one that does not exist</td></tr>
+<tr><td>8</td><td><code>refused</code></td><td><b>pick declined</b>, for a stated reason: a verb the grant withholds, a query the gate will not pass</td></tr>
+<tr><td>9</td><td><code>denied</code></td><td><b>the server, the network or the OS declined</b>, which is not pick declining: a login without rights, a connection that will not open</td></tr>
+<tr><td>10</td><td><code>timed-out</code></td><td>the query ran past its 30 seconds and was cancelled</td></tr>
+<tr><td>13</td><td><code>screened</code></td><td>the response would have <b>disclosed</b> regulated data out of a screened scope, or the screen that would have judged it could not run. See <a href="pick-screening.html">screening</a></td></tr>
 </table>
 
-<p><code>denied</code> and <code>refused</code> are kept apart on
-purpose: a login failure reported as a gate refusal sends the caller to
-debug a boundary that is working.</p>
+<p><code>denied</code> and <code>refused</code> are kept apart on purpose. A login failure reported as a gate refusal sends the caller to debug a boundary that is working.</p>
 
 <h2 id="threat">What this defends against, and what it does not</h2>
 
 <ul>
-<li><b>The threat is inadvertent assistant action, not a determined
-person.</b> Whoever owns the machine edits <code>.picker.json</code> in
-an ordinary editor and holds the real credentials. That is the design,
-not a hole &mdash; the same bound Fettler draws.</li>
-<li><b>The statement that reaches the server is never the caller's
-string.</b> It is the gate's rewrite of a parsed tree: three-part
-bracket-quoted names, the star already expanded, every construct one
-the allowlist recognised. What the parser cannot parse never leaves
-the process, and what it parses to something outside the allowlist is
-refused whole.</li>
-<li><b>The login is the second wall, and it is the server's.</b> pick
-enforces its boundary in pick; a login granted only <code>SELECT</code>
-and <code>VIEW DEFINITION</code> means even a fault in pick has
-nothing wider to spend. Declaring a database grants the login nothing
-&mdash; <code>doctor</code> reports a refused knock rather than letting
-the declaration imply access.</li>
-<li><b>What it does not defend against</b>: a hostile server
-administrator, a poisoned catalog answering false metadata, or data a
-permitted column legitimately holds &mdash; that last is
-<a href="pick-screening.html">the screen's</a> territory, and the
-screen is a safety net rather than a boundary. A clean verdict is
-evidence, never a certificate.</li>
+<li><b>The threat is inadvertent assistant action, not a determined person.</b> Whoever owns the machine edits <code>.picker.json</code> in an ordinary editor and holds the real credentials. That is the design, not a hole. It is the same bound Fettler draws.</li>
+<li><b>The statement that reaches the server is never the caller's string.</b> It is the gate's rewrite of a parsed tree: three-part bracket-quoted names, the star already expanded, every construct one the allowlist recognised. What the parser cannot parse never leaves the process, and what it parses to something outside the allowlist is refused whole.</li>
+<li><b>The login is the second wall, and it is the server's.</b> pick enforces its boundary in pick. A login granted only <code>SELECT</code> and <code>VIEW DEFINITION</code> means even a fault in pick has nothing wider to spend. Declaring a database grants the login nothing. <code>doctor</code> reports a refused knock rather than letting the declaration imply access.</li>
+<li><b>What it does not defend against</b>: a hostile server administrator, a poisoned catalog answering false metadata, or data a permitted column legitimately holds. That last is <a href="pick-screening.html">the screen's</a> territory, and the screen is a safety net rather than a boundary. A clean verdict is evidence, never proof.</li>
 </ul>
 
 <nav class="pagenav pagenav-bottom" aria-label="Picker, in order">

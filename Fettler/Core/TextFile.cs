@@ -132,7 +132,7 @@ public static class TextIo
         for (int i = bomLength; i < sniff; i++)
             if (raw[i] == 0x00 && !name.StartsWith("utf-16") && !name.StartsWith("utf-32"))
                 return Result<TextFile>.Fail(Outcome.Refused,
-                    "this is a binary file: it carries a NUL byte, and read, write and edit are text operations (R4.5)",
+                    "this is a binary file (it has a NUL byte). read, write and edit work on text only",
                     path.Display);
 
         string text;
@@ -143,7 +143,7 @@ public static class TextIo
         catch (DecoderFallbackException)
         {
             return Result<TextFile>.Fail(Outcome.Refused,
-                "this is a binary file: it does not decode as UTF-8 and carries no byte-order mark (R4.14)",
+                "this is a binary file: it is not valid UTF-8 and has no byte-order mark",
                 path.Display);
         }
 

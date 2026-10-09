@@ -82,7 +82,7 @@ public static class Command
         IReadOnlyList<string> missing = args.FlagsMissingAValue;
         if (missing.Count > 0)
             return Failed(new Failure(Outcome.Invalid,
-                $"{string.Join(", ", missing)} needs a value, and nothing followed it"), json);
+                $"{string.Join(", ", missing)} needs a value"), json);
 
         try
         {
@@ -94,7 +94,7 @@ public static class Command
                 "describe" => await Describe(bench, args, json, cancel).ConfigureAwait(false),
                 "doctor" => Doctor(bench, args, json),
                 _ => Failed(new Failure(Outcome.Invalid,
-                    $"no verb called '{args.Verb}'; try: pick help"), json),
+                    $"no verb called '{args.Verb}'. Run pick help for the list"), json),
             };
         }
         catch (OperationCanceledException)
@@ -234,7 +234,7 @@ public static class Command
 
         if (string.IsNullOrWhiteSpace(sql))
             return Failed(new Failure(Outcome.Invalid,
-                "select needs the SQL: pick select \"SELECT ...\" - or --stdin to read it"), json);
+                "select needs the SQL: pick select \"SELECT ...\", or --stdin"), json);
 
         int? limit = args.Has("limit") ? args.Int("limit", SqlData.DefaultRowCap) : null;
 
@@ -448,8 +448,8 @@ public static class Command
 
         string burler = Sidecar.Executable();
         lines.Add(("burler", File.Exists(burler),
-            File.Exists(burler) ? burler : $"not installed (expected at {burler}); "
-                + "only model-backed screening needs it"));
+            File.Exists(burler) ? burler : $"not installed (expected at {burler}). "
+                + "Only model-backed screening needs it"));
 
         if (json)
             return Ok(Json(w =>
@@ -477,29 +477,29 @@ public static class Command
     // ---- rendering ----
 
     static string Help() => """
-        pick - SELECT and DESCRIBE inside declared databases, and nothing else
+        pick - SELECT and DESCRIBE inside declared SQL Server databases
 
         Verbs
-          catalogs                     the declared servers and databases, and what each grants
-          objects [PATTERN]            tables and views, filtered by the grant; PATTERN is
+          catalogs                     list the declared servers and databases, and what each allows
+          objects [PATTERN]            list tables and views the grant allows; PATTERN is
                                        schema.object or a bare object name, * inside a segment
-          select "SQL" [--limit N]     run one SELECT through the gate (--stdin reads the SQL)
-          describe NAME                columns, keys and indexes - never a view's stored text
-          doctor                       does the configuration load, do the servers answer
-          version                      the version and nothing else
+          select "SQL" [--limit N]     run one SELECT (--stdin reads the SQL from stdin)
+          describe NAME                list columns, keys and indexes; never a view's definition
+          doctor                       check the configuration, the servers and the screening pieces
+          version                      print the version
 
         Global flags
-          --config PATH                the .picker.json to open; otherwise the nearest one governs
+          --config PATH                use this .picker.json; otherwise the nearest one applies
           --json                       machine-readable answers on stdout, failures included
 
-        The configuration is declared in .picker.json and .picker.local.json,
-        and this tool does not write them - a person edits those.
+        .picker.json and .picker.local.json say what pick may do. pick does not
+        write them; a person edits them.
 
         """ + Environment.NewLine;
 
     static CliResult Unknown(IReadOnlyList<string> unknown, bool json) =>
         Failed(new Failure(Outcome.Invalid,
-            $"no such flag: {string.Join(", ", unknown)} - try: pick help"), json);
+            $"no such flag: {string.Join(", ", unknown)}. Run pick help for the list"), json);
 
     static CliResult Failed(Failure failure, bool json)
     {

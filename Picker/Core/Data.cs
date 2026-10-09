@@ -61,7 +61,7 @@ public sealed class SqlData : ICatalogSource, IQuerySource, IConstraintSource
             // The connection string itself is never in the message - the
             // server's declared name is the only name a report gets.
             return Result<SqlConnection>.Fail(Outcome.Denied,
-                $"the server '{server.Name}' would not open a connection: {Trimmed(e)}",
+                $"could not connect to server '{server.Name}': {Trimmed(e)}",
                 server.Name);
         }
     }
@@ -79,10 +79,10 @@ public sealed class SqlData : ICatalogSource, IQuerySource, IConstraintSource
     static Failure Declined(ServerDecl server, SqlException e) =>
         e.Number == -2
             ? new Failure(Outcome.TimedOut,
-                $"the query outran its timeout on '{server.Name}'; narrow it, or raise "
-                + "the timeout if the wait is real", server.Name)
+                $"the query did not finish within the timeout on '{server.Name}'. Narrow it, "
+                + "or raise the timeout", server.Name)
             : new Failure(Outcome.Denied,
-                $"the server '{server.Name}' declined: {Trimmed(e)}", server.Name);
+                $"server '{server.Name}' refused the query: {Trimmed(e)}", server.Name);
 
     // ---- the catalog ----
 

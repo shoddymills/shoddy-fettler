@@ -185,8 +185,8 @@ public static class Binder
 
                 default:
                     return Result<IReadOnlyList<string?>>.Fail(Outcome.Refused,
-                        $"this query uses {query.GetType().Name}, a shape this gate does "
-                        + "not know how to check - and what is not checked does not run");
+                        $"this query uses {query.GetType().Name}, which this gate does not "
+                        + "check, so it does not run");
             }
         }
 
@@ -338,8 +338,8 @@ public static class Binder
 
                 default:
                     return new Failure(Outcome.Refused,
-                        $"this query reads from {reference.GetType().Name}, a source this "
-                        + "gate does not know how to check - and what is not checked does not run");
+                        $"this query reads from {reference.GetType().Name}, which this gate "
+                        + "does not check, so it does not run");
             }
         }
 
@@ -351,8 +351,7 @@ public static class Binder
             {
                 string typed = string.Join(".", name.Identifiers.Select(i => i.Value));
                 return new Failure(Outcome.Refused,
-                    $"'{typed}' has four parts, and a four-part name leaves the declared "
-                    + "surface: a linked server is not reachable from here", typed);
+                    $"'{typed}' has four parts. A linked server is not reachable here", typed);
             }
 
             var parts = new List<string>();
@@ -446,7 +445,7 @@ public static class Binder
 
                 if (targets.Count == 0)
                     return new Failure(Outcome.Refused,
-                        "SELECT * with nothing in FROM selects nothing this gate can name");
+                        "SELECT * needs a FROM");
 
                 int before = rewritten.Count;
 
@@ -463,8 +462,8 @@ public static class Binder
                     {
                         if (column is null)
                             return new Failure(Outcome.Refused,
-                                $"selecting * over {entry.Display} needs every column named; "
-                                + "give the unnamed expression a name (AS ...) first");
+                                $"selecting * over {entry.Display} needs every column named. "
+                                + "Give the unnamed expression a name with AS");
                         rewritten.Add(Column(entry, column));
                     }
                 }
@@ -606,7 +605,7 @@ public static class Binder
 
             return new Failure(Outcome.Refused,
                 $"'{string.Join(".", qualifier)}' does not name anything in this query's "
-                + $"FROM, so '{word}' cannot be checked - and what is not checked does not run");
+                + $"FROM, so '{word}' cannot be checked");
         }
 
         // ---- functions ----
@@ -631,16 +630,14 @@ public static class Binder
         {
             if (function.CallTarget is not null)
                 return new Failure(Outcome.Refused,
-                    "a schema-qualified call is a user function, and a user function reads "
-                    + "with the LOGIN's eyes rather than through this grant; only builtin "
-                    + "functions run here");
+                    "a schema-qualified call is a user function. User functions are not "
+                    + "allowed here; only built-in functions run");
 
             string name = function.FunctionName.Value;
             if (CatalogFunctions.Contains(name))
                 return new Failure(Outcome.Refused,
-                    $"{name.ToUpperInvariant()} reaches the system catalog, which is not "
-                    + "queryable here: it would disclose objects the grant does not list. "
-                    + "The objects and describe verbs answer metadata questions under the grant");
+                    $"{name.ToUpperInvariant()} reads the system catalog, which is not "
+                    + "queryable here. Use objects and describe instead");
 
             return null;
         }

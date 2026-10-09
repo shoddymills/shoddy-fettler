@@ -1,7 +1,7 @@
 # Contributing to Fettler
 
-Thanks for your interest in improving Fettler. Contributions of all sizes —
-bug reports, docs, tests, and tool work — are welcome.
+Thanks for your interest in improving Fettler. Contributions of all sizes
+are welcome: bug reports, docs, tests, and tool work.
 
 ## License of contributions
 
@@ -36,26 +36,26 @@ that license (see the [Developer Certificate of Origin](https://developercertifi
    ```
 
 Every script has a `.sh` twin taking the same arguments, flags included.
-**Run the `.ps1` on Windows** - it is the half that actually ships there, and
-the twin that goes unexercised is the twin that rots.
+**Run the `.ps1` on Windows.** It is the half that ships there, and the twin
+that goes unexercised is the twin that rots.
 
 ## Three constraints that are not style preferences
 
 Each is asserted by a test *and* by CI, so breaking one fails the push. If
-your change needs to relax one, say so in the issue first — each was written
-down after the thing it prevents actually happened.
+your change needs to relax one, say so in the issue first. Each was written
+down after the thing it prevents happened.
 
 - **No `ProjectReference` that leaves this repository**, and none between
   `Fettler` and `burler` in either direction. The wire format is the whole
-  contract between those two, and each side carries its own copy of the shapes
-  that cross it, proven equivalent by a protocol test on each side rather than
-  by a shared assembly.
-- **A `PackageReference` only from the allowlist** in `Fettler.csproj` — today
-  `PdfPig` alone. `fettle` publishes self-contained and single-file per OS, so
-  a package with native assets produces an archive that is missing pieces.
-  Adding one means editing the csproj comment, `FrontEndTests.Allowed`,
-  `ci.yml`'s allowlist, `THIRD-PARTY-NOTICES.md`, and `NOTICE` if its licence
-  asks.
+  contract between those two. Each side carries its own copy of the shapes
+  that cross it, proven equivalent by a protocol test on each side rather
+  than by a shared assembly.
+- **A `PackageReference` only from the allowlist** in `Fettler.csproj`.
+  Today that is `PdfPig` alone. `fettle` publishes self-contained and
+  single-file per OS, so a package with native assets produces an archive
+  that is missing pieces. Adding one means editing the csproj comment,
+  `FrontEndTests.Allowed`, `ci.yml`'s allowlist, `THIRD-PARTY-NOTICES.md`,
+  and `NOTICE` if its licence asks.
 - **`Fettler.Core` may not name `System.Text.Json`, `System.Console` or an
   exit code.** A core that knows about a protocol has already stopped being
   one.
@@ -63,32 +63,41 @@ down after the thing it prevents actually happened.
 ## A few things worth knowing
 
 - **Every script ships twice**, `.ps1` and `.sh`, and the two must offer the
-  same verbs with the same spellings — flags included. `fettler-verify-twins.js`
-  checks it, because the twin nobody runs is the twin that rots.
+  same verbs with the same spellings, flags included. The twins verifier,
+  `fettler-verify-twins.js`, checks it, because the twin nobody runs is the
+  twin that rots.
 - **Scripts are prefixed `fettler-`, and no task or script is named with a
-  bare git word** — the committing task is `checkin`, not `commit`. An
+  bare git word.** The committing task is `checkin`, not `commit`. An
   assistant's permission layer reads these names, and a bare git word can be
   refused as if it were the raw command it resembles. Keep the prefix when
   adding a script or a declared task.
-- **Scripts need their executable bit set in git's index.** `./scripts/fettler-build.ps1
-  check` stages the fix for you; a filesystem `chmod` will not do, because a
-  checkout with `core.filemode=false` makes one invisible to git.
+- **Scripts need their executable bit set in git's index.**
+  `./scripts/fettler-build.ps1 check` stages the fix for you. A filesystem
+  `chmod` will not do, because a checkout with `core.filemode=false` makes
+  one invisible to git.
 
 ## Documentation
 
-The site under `docs/` is checked against the source: `fettler-verify-docs.js`
-asserts that every internal link and fragment resolves, that every page
-carries the same nav bar, and that the disclosure screen's section names every
-category the code has. `fettler-verify-errors.js` asserts that every outcome and exit
-code the tool can raise appears in the table that promises to list them.
+The site under `docs/` is written in plain language, and
+`fettler-survey-readability.js` measures every page against the house
+standard: short sentences, short paragraphs, no em dashes, ASCII source. Run
+it before you open a pull request that touches a page.
 
-**Neither check names the page it looks on.** Both find it - the page with
-the screen section, the page with the exit-code table - and fail if there is
+The site is also checked against the source. The docs verifier,
+`fettler-verify-docs.js`, asserts four things. Every internal link and
+fragment resolves. Every page carries the same nav bar. The disclosure
+screen's section names every category the code has. No page carries a
+character outside ASCII. The errors verifier, `fettler-verify-errors.js`,
+asserts that every outcome and exit code the tool can raise appears in the
+table that promises to list them.
+
+**Neither check names the page it looks on.** Both find it (the page with
+the screen section, the page with the exit-code table) and fail if there is
 more than one, because two copies of a table drift apart in silence. So
 moving a section between pages is a documentation decision, not a build
 failure, and a gate is never edited to suit the pages.
 
-A new page means adding it to the nav on every other page — that is what the
+A new page means adding it to the nav on every other page. That is what the
 nav check is for.
 
 ## Code of Conduct

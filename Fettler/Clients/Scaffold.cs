@@ -61,7 +61,7 @@ public static class Scaffold
     {
         if (!Places.Clients.Contains(options.Client))
             return Result<Scaffolding>.Fail(Outcome.Invalid,
-                $"no client called '{options.Client}'; they are: {string.Join(", ", Places.Clients)}");
+                $"no client called '{options.Client}'. The clients are: {string.Join(", ", Places.Clients)}");
 
         var changes = new List<Change>();
         var notes = new List<string>();
@@ -71,12 +71,12 @@ public static class Scaffold
         if (options.Command is null && Doctor.Resolve("fettle") is { } onPath)
         {
             command = "fettle";
-            notes.Add($"fettle is on PATH at {onPath}, so the registration names it plainly");
+            notes.Add($"fettle is on PATH at {onPath}; the registration uses the name 'fettle'");
         }
         else if (options.Command is null)
         {
-            notes.Add($"fettle is not on PATH, so the registration names this binary by its "
-                + $"absolute path: {command}. Put fettle on PATH and re-run to make it portable");
+            notes.Add($"fettle is not on PATH, so the registration uses the full path {command}. "
+                + "Put fettle on PATH and run setup again to register the name instead");
         }
 
         IReadOnlyList<Place> places =
@@ -84,7 +84,7 @@ public static class Scaffold
 
         if (places.Count == 0)
             return Result<Scaffolding>.Fail(Outcome.Invalid,
-                $"{options.Client} has nothing at the {options.Level.ToString().ToLowerInvariant()} level");
+                $"{options.Client} has no configuration at the {options.Level.ToString().ToLowerInvariant()} level");
 
         // 3.4: a tree that has no configuration gets one, naming the tree
         // the command was run in. Creating where none exists is
@@ -103,9 +103,9 @@ public static class Scaffold
             // Saying so here is the difference between a first-time setup
             // that works and one that reports success and then refuses
             // every command afterwards.
-            notes.Add("this is the machine level and declares no tree; each project still needs its "
-                + "own .fettler.json - run `fettle setup " + options.Client + " --local` in the tree, "
-                + "which creates one declaring that folder as 'work'");
+            notes.Add("the machine level declares no tree. In each project, run: fettle setup "
+                + options.Client + " --local. That creates a .fettler.json declaring the project "
+                + "folder as 'work'");
         }
 
         foreach (Place place in places)
@@ -171,14 +171,14 @@ public static class Scaffold
 
         if (replacing && !options.Force && !options.DryRun)
             return Result<Change?>.Fail(Outcome.TargetExists,
-                $"'{Places.ServerName}' is already registered here and says something different; "
-                + "pass --force to replace it, or --dry-run to see what it would become",
+                $"'{Places.ServerName}' is already registered here with a different command. "
+                + "Pass --force to replace it, or --dry-run to see the change",
                 place.Path);
 
         if (replacing && !options.Force)
             return Result<Change?>.Ok(new Change(place.Path,
-                $"REPLACE the existing '{Places.ServerName}' registration with "
-                + $"command {command} - needs --force, and would not happen without it",
+                $"replace the existing '{Places.ServerName}' registration with "
+                + $"command {command} (needs --force)",
                 false));
 
         servers[Places.ServerName] = wanted;
@@ -196,24 +196,21 @@ public static class Scaffold
             ## Working on files here
 
             Use the Fettler tools (`mcp__fettler__*`) for every file operation: find,
-            search, read, write, edit, move, copy, delete. They are the route, not an
-            option, and the built-in Read, Write, Edit, NotebookEdit, Grep and Glob are
-            denied so that habit cannot quietly take over.
+            search, read, write, edit, move, copy and delete. The built-in Read, Write,
+            Edit, NotebookEdit, Grep and Glob are denied.
 
-            **There is no working directory.** Paths resolve against declared trees, so
-            `cd` and `Set-Location` do nothing for Fettler and reaching for one is a sign
-            the wrong tool is being used. Ask `roots` first: it says which trees are open,
-            what may be done in each, and which one an unqualified path lands in.
+            **There is no working directory.** Paths resolve against the declared trees.
+            `cd` and `Set-Location` do nothing for Fettler. Call `roots` first. It lists
+            the trees, what each allows, and which tree an unqualified path lands in.
 
-            **A tree may be read-only**, and a scope inside it may grant more or less than
-            the tree does. Running a declared task needs `execute`, which is never granted
-            by default.
+            **A tree may be read-only.** A scope inside a tree may allow more or less
+            than the tree does. Running a declared task needs `execute`, which is never
+            a default.
 
-            `.fettler.json` and `.fettler.local.json` say what this tool may do - the
-            trees it may touch and the tasks it may run - and it does not write them.
-            A person edits those.
+            `.fettler.json` and `.fettler.local.json` say what Fettler may do. Fettler
+            does not write them. A person edits them.
 
-            Run `fettle doctor` if anything here looks wrong.
+            If something looks wrong, run `fettle doctor`.
             {BlockClose}
             """;
 
@@ -326,13 +323,13 @@ public static class Scaffold
             }
 
             if (conflicting.Count > 0)
-                notes.Add($"these allow entries in {place.Path} grant the very tools being denied, and "
-                    + $"are LEFT ALONE because they are yours to remove: {string.Join(", ", conflicting)}");
+                notes.Add($"allow entries in {place.Path} grant tools that are now denied: "
+                    + $"{string.Join(", ", conflicting)}. Setup does not remove them; remove them yourself");
         }
 
         if (adding.Count > 0 && !write)
             notes.Add($"not written: {string.Join(", ", adding)} would be denied in {place.Path}. "
-                + "Changing how the assistant works in every project needs --deny said out loud");
+                + "Pass --deny to write the deny list at the global level");
 
         bool denying = write && adding.Count > 0;
         if (denying) foreach (string tool in adding) deny.Add(tool);
@@ -343,9 +340,9 @@ public static class Scaffold
         // knowable. So say it, rather than leaving somebody to discover
         // it at the first command after a run that reported success.
         if (denying && adding.Any(tool => Doctor.Shell.Contains(tool, StringComparer.Ordinal)))
-            notes.Add("the shell is denied too, so every command through it now stops. Allow back "
-                + "only what this project needs - \"allow\": [\"Bash(git status:*)\"] and the like "
-                + "- or declare them as tasks in .fettler.json, which run inside the boundary. "
+            notes.Add("the shell is denied too, so build and git commands through it now stop. "
+                + "Allow back only the commands this project needs, for example "
+                + "\"allow\": [\"Bash(git status:*)\"], or declare them as tasks in .fettler.json. "
                 + "Never allow a command that writes files");
 
         // The hook is asked for by --hooks and by nothing else, so it must
@@ -365,7 +362,7 @@ public static class Scaffold
         {
             (true, true) => $"deny the built-in {string.Join(", ", adding)}, and add fettle doctor --hook to SessionStart",
             (true, false) => $"deny the built-in {string.Join(", ", adding)}",
-            _ => "add fettle doctor --hook to SessionStart (appended, nothing replaced)",
+            _ => "add fettle doctor --hook to SessionStart",
         };
 
         return Save(machine, place.Path, root, options.DryRun, what);
@@ -455,7 +452,7 @@ public static class Scaffold
     {
         if (!Places.Allows(machine, path))
             return Result<JsonObject>.Fail(Outcome.Refused,
-                "that is not one of the configuration files this may write", path);
+                "setup does not write this file", path);
 
         if (!File.Exists(path)) return Result<JsonObject>.Ok([]);
 
@@ -486,7 +483,7 @@ public static class Scaffold
             // file setup must not overwrite, because overwriting it
             // throws away whatever it holds.
             return Result<JsonObject>.Fail(Outcome.Invalid,
-                "this will not parse, and setup will not overwrite what it cannot read: " + e.Message, path);
+                "this file is not valid JSON, so setup will not overwrite it: " + e.Message, path);
         }
     }
 
@@ -504,7 +501,7 @@ public static class Scaffold
     {
         if (!Places.Allows(machine, path))
             return Result<Change?>.Fail(Outcome.Refused,
-                "that is not one of the configuration files this may write", path);
+                "setup does not write this file", path);
 
         if (dryRun) return Result<Change?>.Ok(new Change(path, what, false));
 

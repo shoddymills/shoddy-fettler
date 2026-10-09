@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Fettler quick start &mdash; install it, register it for the machine, turn it on in a project, check it. Four commands, five minutes, on Windows, macOS or Linux.">
+<meta name="description" content="Fettler quick start: install it, register it for the machine, turn it on in a project, check it. Four commands, five minutes, on Windows, macOS or Linux.">
 <title>Quick Start | Fettler</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -23,20 +23,16 @@
 <header class="mast">
 <p class="eyebrow">Shoddy &middot; Fettler</p>
 <h1 id="quickstart">Quick Start</h1>
-<p class="kicker">Install it, register it, turn it on in a project, check it. Four steps, one command each. The pages after this one are the detail behind them.</p>
+<p class="kicker">Install it, register it, turn it on in a project, check it. Four steps, one command each. The pages after this one give the detail.</p>
 </header>
 
 <nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="fettle-workstation.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">The Fettled Workstation</span></span></a><a class="next" href="fettle-install.html"><span class="pnwrap"><span class="ttl">Installing It</span><span class="dir">Next &rarr;</span></span></a></nav>
 
-<div class="takeaway"><b>You need two things before you start:</b> the
-archive for your platform from the latest release, and a project folder
-to turn this on in. Everything else is below.</div>
+<div class="takeaway"><b>You need two things before you start:</b> the archive for your platform from the latest release, and a project folder to turn Fettler on in.</div>
 
 <h2 id="install">1. Install it</h2>
 
-<p>One file. No .NET runtime, no installer, nothing else from this
-repository. <code>X.Y.Z</code> below is whatever version you
-downloaded.</p>
+<p>Fettler is one file. It needs no .NET runtime and no installer. In the commands below, <code>X.Y.Z</code> is the version you downloaded.</p>
 
 <div class="plat win"><span class="os">Windows &middot; PowerShell</span><div class="body">
 
@@ -59,98 +55,63 @@ xattr -d com.apple.quarantine ~/.local/bin/fettle   # macOS only</code></pre></d
 
 </div></div>
 
-<p>Those commands also put the folder on <code>PATH</code> &mdash; the
-list of folders your terminal searches when you type a command.
-<b>Now open a new terminal</b>, because the one you just used still has
-the old <code>PATH</code>. Then check it:</p>
+<p>Those commands also put the folder on <code>PATH</code>. <code>PATH</code> is the list of folders your terminal searches when you type a command. <b>Now open a new terminal</b>, because the one you used still has the old <code>PATH</code>. Then check it:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle --version
 fettle 1.0.0</code></pre></div>
 
-<div class="note"><b>If that says <em>not recognised</em> or <em>command
-not found</em></b>, the usual cause is the terminal &mdash; open a new
-one. The second cause is a typo in the directory. Nothing later on this
-page works until this line does. The long version, with the reasons, is
-<a href="fettle-install.html#path">putting it on
-<code>PATH</code></a>.</div>
+<div class="note"><b>If that says <em>not recognised</em> or <em>command not found</em></b>, the usual cause is the terminal. Open a new one. The second cause is a typo in the directory. Nothing later on this page works until this line does. The long version is <a href="fettle-install.html#path">putting it on <code>PATH</code></a>.</div>
 
 <h2 id="machine">2. Register it once for this machine</h2>
 
-<p>Registering tells your assistant that Fettler exists, so it can
-launch it. Do this once per account, not once per project.
-<code>--all</code> means every assistant client this machine actually
-has; ones that are not installed are skipped rather than created.
-<b><code>--dry-run</code> prints exactly what the real run would do and
-writes nothing. Run it first, every time:</b></p>
+<p>Registering tells your assistant that Fettler exists, so the assistant can launch it. Do this once per account, not once per project. <code>--all</code> means every assistant client installed on this machine; clients that are not installed are skipped. <b><code>--dry-run</code> prints what the real run would do and writes nothing. Run it first, every time.</b></p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle setup --all --global --dry-run
 fettle setup --all --global</code></pre></div>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>changed:
   C:\Users\you\.claude.json  register fettler under mcpServers
-note: fettle is on PATH at C:\Users\you\AppData\Local\Programs\fettle\fettle.exe, so the
-      registration names it plainly
-note: this is the machine level and declares no tree; each project still needs its own
-      .fettler.json - run `fettle setup claude-code --local` in the tree, which creates one
-      declaring that folder as 'work'
+note: fettle is on PATH at C:\Users\you\AppData\Local\Programs\fettle\fettle.exe; the
+      registration uses the name 'fettle'
+note: the machine level declares no tree. In each project, run: fettle setup claude-code
+      --local. That creates a .fettler.json declaring the project folder as 'work'
 note: not written: Read, Write, Edit, NotebookEdit, Grep, Glob, Bash, PowerShell, Monitor,
-      BashOutput, TaskOutput would be denied in C:\Users\you\.claude\settings.json. Changing
-      how the assistant works in every project needs --deny said out loud</code></pre></div>
+      BashOutput, TaskOutput would be denied in C:\Users\you\.claude\settings.json. Pass
+      --deny to write the deny list at the global level</code></pre></div>
 
-<div class="takeaway"><b>A global run registers, and stops there.</b> It
-declares no tree, so it writes no <code>.fettler.json</code>. And it
-only <em>offers</em> the deny list &mdash; the settings entry that
-blocks the assistant's built-in file tools, so Fettler becomes the only
-route. Adding <code>--deny</code> writes that too, for every project
-this account ever opens. Leave it off for now; step 3 writes it where
-you can see it.</div>
+<div class="takeaway"><b>A global run registers Fettler and stops there.</b> It declares no tree, so it writes no <code>.fettler.json</code>. It only <em>offers</em> the deny list. The deny list is the settings entry that blocks the assistant's built-in file tools, so that Fettler becomes the only route to files. Adding <code>--deny</code> writes it for every project this account opens. Leave it off for now. Step 3 writes it in one project, where you can see it.</div>
 
 <h2 id="project">3. Turn it on in a project</h2>
 
-<p>Change to your project folder and run this. Same
-<code>--dry-run</code> habit:</p>
+<p>Change to your project folder and run this. Use the same <code>--dry-run</code> habit:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle setup claude-code --local --dry-run
 fettle setup claude-code --local</code></pre></div>
 
-<p>Four files, and that is the whole of it:</p>
+<p>It writes four files:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>changed:
   C:\work\myproject\.fettler.json  created, declaring this folder as 'work'
   C:\work\myproject\.mcp.json  register fettler under mcpServers
   C:\work\myproject\.claude\settings.json  deny the built-in Read, Write, Edit, NotebookEdit, Grep, Glob, Bash, PowerShell, Monitor, BashOutput, TaskOutput
   C:\work\myproject\CLAUDE.md  add a Fettler instruction block
-note: the shell is denied too, so every command through it now stops. Allow back only what
-      this project needs - "allow": ["Bash(git status:*)"] and the like - or declare them as
-      tasks in .fettler.json, which run inside the boundary. Never allow a command that writes files</code></pre></div>
+note: the shell is denied too, so build and git commands through it now stop. Allow back
+      only the commands this project needs, for example "allow": ["Bash(git status:*)"], or
+      declare them as tasks in .fettler.json. Never allow a command that writes files</code></pre></div>
 
 <table>
 <tr><th>File</th><th>What it does</th></tr>
-<tr><td><code>.fettler.json</code></td><td><b>The boundary.</b> Declares this folder as a tree called <code>work</code>. Fettler will touch nothing outside it.</td></tr>
+<tr><td><code>.fettler.json</code></td><td><b>The boundary.</b> Declares this folder as a tree called <code>work</code>. Fettler touches nothing outside it.</td></tr>
 <tr><td><code>.mcp.json</code></td><td>Tells the assistant to launch Fettler.</td></tr>
-<tr><td><code>.claude/settings.json</code></td><td>Denies the built-in file tools <b>and the shell</b>, so Fettler is the route rather than one option among several.</td></tr>
-<tr><td><code>CLAUDE.md</code></td><td>Tells the assistant, in words, to use it.</td></tr>
+<tr><td><code>.claude/settings.json</code></td><td>Denies the built-in file tools <b>and the shell</b>, so Fettler is the only route rather than one option.</td></tr>
+<tr><td><code>CLAUDE.md</code></td><td>Tells the assistant, in words, to use Fettler.</td></tr>
 </table>
 
-<div class="takeaway"><b><code>setup</code> and <code>doctor</code> are
-the only two verbs that run before <code>.fettler.json</code>
-exists.</b> That is why this step is one command and not two:
-<code>--local</code> writes the very file every other verb requires.
-Every other verb in an undeclared folder refuses, and says so.</div>
+<div class="takeaway"><b><code>setup</code> and <code>doctor</code> are the only two verbs that run before <code>.fettler.json</code> exists.</b> That is why this step is one command: <code>--local</code> writes the file every other verb needs. Every other verb refuses in a folder with no <code>.fettler.json</code>, and says so.</div>
 
-<div class="note"><b>Your build and test commands stop working at this
-point. That is the deny doing its job.</b> A shell is a complete way
-round the boundary, so it is closed by default, and you open only what
-you need. Either put the command in <code>.fettler.json</code> as a
-task, or name it in <code>allow</code> &mdash;
-<code>"allow": ["Bash(git status:*)"]</code>. Never allow one that
-writes files. The reasoning is
-<a href="fettle-install.html#shell">the shell section</a>.</div>
+<div class="note"><b>Your build and test commands stop working at this point. That is the deny doing its job.</b> A shell is a complete way round the boundary, so it is closed by default, and you open only what you need. Either put the command in <code>.fettler.json</code> as a task, or name it in <code>allow</code>, for example <code>"allow": ["Bash(git status:*)"]</code>. Never allow a command that writes files. <a href="fettle-install.html#shell">The shell section</a> explains why.</div>
 
-<p>To use another client instead of <code>claude-code</code>:
-<code>claude-desktop</code>, <code>vscode-copilot</code>,
-<code>github-copilot</code>, or <code>--all</code> for every one this
-machine has.</p>
+<p>To use another client instead of <code>claude-code</code>, name it: <code>claude-desktop</code>, <code>vscode-copilot</code> or <code>github-copilot</code>. <code>--all</code> covers every client this machine has.</p>
 
 <h2 id="check">4. Check it</h2>
 
@@ -158,71 +119,49 @@ machine has.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle 1.0.0  C:\Users\you\AppData\Local\Programs\fettle\fettle.exe
 on PATH: C:\Users\you\AppData\Local\Programs\fettle\fettle.exe
-tool inventory drawn 2026-08-20; check 2.8 says nothing about a tool added to the client since
+tool inventory dated 2026-08-20. Check 2.8 does not know tools added to the client since then
 
-claude-code     global  healthy   registered and launchable as ...fettle.exe
+claude-code     global  healthy   registered; runs ...fettle.exe
                         C:\Users\you\.claude.json
-claude-code     repo    healthy   registered and launchable as ...fettle.exe
+claude-code     repo    healthy   registered; runs ...fettle.exe
                         C:\work\myproject\.mcp.json
-claude-desktop  repo    n/a       this client has no project scope, so there is nothing to configure here
+claude-desktop  repo    n/a       this client has no project level
 
-what could let the assistant go round the boundary:
-  - 2.8  nothing denies the built-in Read, Write, Edit, NotebookEdit, Grep, Glob, Bash,
-         PowerShell, Monitor, BashOutput, TaskOutput, so Fettler is an option rather than
-         the route; `fettle setup claude-code --local` writes the denies
+ways past Fettler on this machine:
+  - 2.8  deny does not list the built-in Read, Write, Edit, NotebookEdit, Grep, Glob, Bash,
+         PowerShell, Monitor, BashOutput, TaskOutput. Run: fettle setup claude-code --local
       C:\Users\you\.claude\settings.json</code></pre></div>
 
-<p>The block after the rows is the second half of the report, and it is
-the half worth reading. The finding shown here is the expected one. Step
-2 registered the machine and deliberately did not touch its deny list,
-so the <em>global</em> settings file still has nothing in it. Your
-project is covered; every other project on this account is not.</p>
+<p>The block after the rows is the second half of the report, and the half worth reading. The finding shown here is expected. Step 2 registered the machine and did not touch its deny list, so the <em>global</em> settings file still has nothing in it. Your project is covered. Every other project on this account is not.</p>
 
 <table>
 <tr><th>Word</th><th>Meaning</th><th>Exit</th></tr>
-<tr><td><code>healthy</code></td><td>registered, and the command it names actually launches</td><td>0</td></tr>
-<tr><td><code>n/a</code></td><td>nothing to configure at that level for that client &mdash; not a fault</td><td>0</td></tr>
-<tr><td><code>absent</code></td><td>the client is here; Fettler is not registered with it</td><td>1</td></tr>
-<tr><td><code>broken</code></td><td>registered and wrong &mdash; usually the command does not resolve</td><td>2</td></tr>
+<tr><td><code>healthy</code></td><td>registered, and the command it names starts</td><td>0</td></tr>
+<tr><td><code>n/a</code></td><td>nothing to configure at that level for that client. Not a fault.</td><td>0</td></tr>
+<tr><td><code>absent</code></td><td>the client is installed, and Fettler is not registered with it</td><td>1</td></tr>
+<tr><td><code>broken</code></td><td>registered and wrong. Usually the command does not resolve.</td><td>2</td></tr>
 </table>
 
-<p><b>Then restart your assistant.</b> A client reads its server list at
-launch. A session already running does not have Fettler and will not
-notice it appear.</p>
+<p><b>Then restart your assistant.</b> A client reads its server list when it starts. A session that is already running does not have Fettler and will not notice it appear.</p>
 
 <h3 id="notclean">If doctor does not come back clean</h3>
 
-<p>The report is two halves, and they are fixed in different places. The
-<b>wiring</b> is one row per client per level, ending in a verdict. The
-<b>findings</b> come after it, under <em>what could let the assistant go
-round the boundary</em>. Each finding is numbered, and each is a route
-past Fettler rather than a broken registration.</p>
+<p>The report has two halves, and each is fixed in a different place. The <b>wiring</b> is one row per client per level, ending in a verdict. The <b>findings</b> come after it, under <em>ways past Fettler on this machine</em>. Each finding is numbered, and each is a route past Fettler rather than a broken registration.</p>
 
 <table>
 <tr><th>What you see</th><th>What to do</th></tr>
-<tr><td><code>on PATH: no</code></td><td>Step 1 did not take. <a href="fettle-install.html#path">Putting it on <code>PATH</code></a> &mdash; and open a new terminal. Nothing else works until this does.</td></tr>
-<tr><td><code>absent</code></td><td>Run step 2 or step 3 for that client and level. <a href="fettle-reference.html#findings">The wiring table</a> gives the exact command per row.</td></tr>
-<tr><td><code>broken</code></td><td>The registration is there, and its command does not resolve. Re-run <code>setup</code> with <code>--command</code> naming the binary, and <code>--force</code> to overwrite an entry that says something else. <a href="fettle-reference.html#findings">Details</a>.</td></tr>
-<tr><td>A numbered finding &mdash; <code>2.6</code>, <code>2.8</code>, <code>B.17</code>&hellip;</td><td><a href="fettle-reference.html#findings">Everything doctor can report, and how to clear it</a> has a row per check: what it found, and the edit that clears it.</td></tr>
+<tr><td><code>on PATH: no</code></td><td>Step 1 did not take. <a href="fettle-install.html#path">Put it on <code>PATH</code></a> and open a new terminal. Nothing else works until this does.</td></tr>
+<tr><td><code>absent</code></td><td>Run step 2 or step 3 for that client and level. <a href="fettle-reference.html#findings">The wiring table</a> gives the command per row.</td></tr>
+<tr><td><code>broken</code></td><td>The registration is there, and its command does not resolve. Run <code>setup</code> again with <code>--command</code> naming the binary, and <code>--force</code> to overwrite an entry that says something else. <a href="fettle-reference.html#findings">Details</a>.</td></tr>
+<tr><td>A numbered finding: <code>2.6</code>, <code>2.8</code>, <code>B.17</code>&hellip;</td><td><a href="fettle-reference.html#findings">Everything doctor can report, and how to clear it</a> has a row per check: what it found, and the edit that clears it.</td></tr>
 <tr><td>Exit <b>1</b> with no finding you recognise</td><td>Warnings only, nothing broken. <a href="fettle-setup.html#verdicts">The four verdicts</a> says which rows count as what.</td></tr>
 </table>
 
-<div class="note"><b>The commonest three, on a first run.</b>
-<code>2.15</code> &mdash; your assistant's scratch directory (the
-staging folder it writes drafts into) is outside every tree, which
-matters now that <code>Write</code> is denied. Declare it, per
-<a href="fettle-setup.html#scratch">step 2 of setting up a
-project</a>. <code>2.8</code> at the global level &mdash; expected,
-since step 2 deliberately left the machine-wide deny list alone. And
-<code>2.17</code> if you run any other MCP server, which most people
-do: reported as a fact rather than a fault, because the deny list
-closes <em>names</em> and another server's tools are not called
-<code>Read</code>.</div>
+<div class="note"><b>The three commonest findings on a first run.</b> <code>2.15</code>: your assistant's scratch directory (the staging folder it writes drafts into) is outside every tree. That matters now that <code>Write</code> is denied. Declare it, as <a href="fettle-setup.html#scratch">step 2 of setting up a project</a> shows. <code>2.8</code> at the global level: expected, since step 2 left the machine-wide deny list alone. <code>2.17</code>: you run another MCP server, which most people do. It is reported as a fact, not a fault, because the deny list closes <em>names</em> and another server's tools are not called <code>Read</code>.</div>
 
-<h2 id="prove">Proving it, in three commands</h2>
+<h2 id="prove">Prove it, in three commands</h2>
 
-<p>Worth doing once, because the guardrail is the reason to install this
-at all. Run these in the project you just set up.</p>
+<p>Do this once, because the guardrail is the reason to install Fettler. Run these in the project you just set up.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle roots</code></pre></div>
 
@@ -235,31 +174,29 @@ declared by C:\work\myproject\.fettler.json</code></pre></div>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle read C:\Windows\win.ini</code></pre></div>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>refused: the path is outside every declared tree; ask for the roots to see the boundary</code></pre></div>
+<div class="promptbox"><button class="copy">Copy</button><pre><code>refused: the path is outside every declared tree. Run roots to see the trees</code></pre></div>
 
-<p>Exit 4. And the file that grants the permissions cannot be edited by
-the thing they are granted to:</p>
+<p>Exit 4. And the file that grants the permissions cannot be edited by the thing they are granted to:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle write .fettler.json --text "x"</code></pre></div>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>refused: .fettler.json is one of the files that say what this tool and the
-assistant driving it may do, and it does not edit those. Change it with an
-editor.</code></pre></div>
+<div class="promptbox"><button class="copy">Copy</button><pre><code>refused: .fettler.json is a file that says what this tool and the assistant may do.
+Fettler does not write those files. Change it with an editor. The files are:
+.fettler.json, .fettler.local.json, .mcp.json, .picker.json, .picker.local.json,
+.claude/settings.json, .claude/settings.local.json, .vscode/mcp.json</code></pre></div>
 
-<p>Exit 11. Both refusals are the same whether a person or an assistant
-asks. The boundary is read at launch, from a file neither of them can
-write.</p>
+<p>Exit 11. Both refusals are the same whether a person or an assistant asks. The boundary is read at launch, from a file neither of them can write.</p>
 
 <h2 id="next">Where to go next</h2>
 
 <table>
 <tr><th>You want</th><th>Page</th></tr>
-<tr><td>To widen the tree, add a second one, or hide a folder from the assistant entirely</td><td><a href="fettle-setup.html#declare">Step 1, declaring your trees</a></td></tr>
+<tr><td>To widen the tree, add a second one, or hide a folder from the assistant</td><td><a href="fettle-setup.html#declare">Step 1, declaring your trees</a></td></tr>
 <tr><td>The scratch directory an assistant stages work in, which needs declaring before <code>Write</code> is denied</td><td><a href="fettle-setup.html#scratch">Step 2, declaring the scratch</a></td></tr>
 <tr><td>Every flag <code>setup</code> takes</td><td><a href="fettle-setup.html#flags">In a project</a></td></tr>
 <tr><td>Every exit code a script can branch on</td><td><a href="fettle-reference.html#codes">The reference</a></td></tr>
 <tr><td>To stop a tree of health or customer records leaving in a transcript</td><td><a href="fettle-screening.html">Screening</a></td></tr>
-<tr><td>What the permissions mean and why the defaults are what they are</td><td><a href="fettle-reference.html#permissions">Fettler</a></td></tr>
+<tr><td>What the permissions mean and why the defaults are what they are</td><td><a href="fettle-reference.html#permissions">The reference</a></td></tr>
 <tr><td>To run it from a script instead of an assistant, or to register it by hand</td><td><a href="fettle-install.html#mcp">The MCP front end</a></td></tr>
 </table>
 

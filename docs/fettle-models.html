@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="The disclosure screen's second tier &mdash; installing burler, choosing model checkpoints and their licences, exporting and quantising them, and naming the directory that makes them load-bearing.">
+<meta name="description" content="The disclosure screen's second tier: installing burler, choosing model checkpoints and their licences, exporting and quantising them, and naming the directory that puts them to work.">
 <title>The Models | Fettler</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -28,35 +28,15 @@
 
 <nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="fettle-screening.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Screening</span></span></a><a class="next" href="fettle-reference.html"><span class="pnwrap"><span class="ttl">Reference</span><span class="dir">Next &rarr;</span></span></a></nav>
 
-<p class="note"><span class="lab">Note</span> <b>None of this is needed
-for the first tier.</b> <code>identifiers</code> runs inside
-<code>fettle</code> with nothing installed &mdash;
-<a href="fettle-screening.html">switching it on</a> is one line. This page is
-the other three categories: <code>clinical</code>, <code>legal</code> and
-<code>scientific</code>, each of which needs a model.
-
-</p>
+<p class="note"><span class="lab">Note</span> <b>None of this is needed for the first tier.</b> <code>identifiers</code> runs inside <code>fettle</code> with nothing installed. <a href="fettle-screening.html">Switching it on</a> is one line. This page covers the other three categories, <code>clinical</code>, <code>legal</code> and <code>scientific</code>, each of which needs a model.</p>
 
 <h2 id="install">Install burler, the model host</h2>
 
-<p><b>burler is a second program, in its own archive.</b> It is the
-trade's word for the person who picks the faults out of finished cloth
-before it leaves the mill, which is this job exactly. It hosts the
-named-entity models; <code>fettle</code> talks to it over a pipe and
-they share no code.</p>
+<p><b>burler is a second program, in its own archive.</b> The name is the mill trade's word for the person who picks the faults out of finished cloth before it leaves the mill. That is this program's job. It hosts the named-entity models. <code>fettle</code> talks to it over a pipe, and the two share no code.</p>
 
-<p><b>It is separate because of what the models need.</b> Running them
-needs ONNX Runtime, which ships native binaries for each operating
-system. <code>fettle</code> is built from a short list of packages that
-admits none of those, so that it can stay a single file you copy onto a
-machine. Folding the models in would make every download pay for a
-feature most trees never use.</p>
+<p><b>It is separate because of what the models need.</b> Running them needs ONNX Runtime, which ships native binaries for each operating system. <code>fettle</code> is built from a short list of packages that admits none of those, so that it stays a single file you copy onto a machine. Folding the models in would make every download pay for a feature most trees never use.</p>
 
-<div class="takeaway"><b>Unpack it into the same directory as
-<code>fettle</code>.</b> That is the only place it is looked for.
-It is deliberately <em>not</em> searched for on <code>PATH</code>: a
-program that decides what may leave your tree should not be one an
-environment variable can substitute.</div>
+<div class="takeaway"><b>Unpack it into the same directory as <code>fettle</code>.</b> That is the only place it is looked for. It is deliberately <em>not</em> searched for on <code>PATH</code>. A program that decides what may leave your tree should not be one an environment variable can swap out.</div>
 
 <div class="plat win"><span class="os">Windows &middot; PowerShell</span><div class="body">
 
@@ -75,118 +55,69 @@ ls -l ~/.local/bin/burler                           # beside fettle</code></pre>
 
 </div></div>
 
-<p>Archives are published per platform, the same four as
-<code>fettle</code>: <code>win-x64</code>, <code>linux-x64</code>,
-<code>osx-x64</code> and <code>osx-arm64</code>. Take the one matching
-the <code>fettle</code> you already installed &mdash; the two are
-started as one process pair and must be built for the same machine.</p>
+<p>Archives are published per platform, the same four as <code>fettle</code>: <code>win-x64</code>, <code>linux-x64</code>, <code>osx-x64</code> and <code>osx-arm64</code>. Take the one matching the <code>fettle</code> you already installed. The two run as one process pair and must be built for the same machine.</p>
 
-<p><b>Nothing happens yet.</b> burler with no models does nothing at
-all, and Fettler will not even start it until a models directory is
-named in <a href="#name">the last step</a>. Installing it early is harmless.</p>
+<p><b>Nothing happens yet.</b> burler with no models does nothing, and Fettler will not even start it until a models directory is named in <a href="#name">the last step</a>. Installing it early is harmless.</p>
 
 <h2 id="models">Choose the models</h2>
 
-<div class="takeaway"><b>Nothing here ships a model, and nothing here
-downloads one for you.</b> Quantised, they come to a few hundred
-megabytes against a <code>fettle</code> download measured in
-single-digit ones &mdash; and there are three of them at most, because
-<code>identifiers</code> never takes a model. More to the point, several of the useful checkpoints carry
-terms that would forbid this project redistributing them. So you fetch
-them, you read their licence, and you decide.</div>
+<div class="takeaway"><b>Nothing here ships a model, and nothing here downloads one for you.</b> Quantised, the models come to a few hundred megabytes, against a <code>fettle</code> download measured in single-digit megabytes. There are three of them at most, because <code>identifiers</code> never takes a model. Several of the useful checkpoints also carry terms that would forbid this project redistributing them. So you fetch them, you read their licence, and you decide.</div>
 
 <h3 id="kind">What kind of model this wants</h3>
 
-<p><b>A named-entity model: one that labels each word of a sentence.</b>
-It is handed a piece of text and answers which words are a person, a
-date, an identifier, and so on. burler reads those labels, works out
-where each entity starts and stops, and reports how many it found.</p>
+<p><b>A named-entity model: one that labels each word of a sentence.</b> It is handed a piece of text and answers which words are a person, a date, an identifier, and so on. burler reads those labels, works out where each entity starts and stops, and reports how many it found.</p>
 
-<p><b>A base checkpoint is not one of these.</b> This is the trap worth
-knowing before you start downloading. BioBERT and SciBERT are
-<em>bases</em> &mdash; models that understand clinical or scientific
-language but have not been taught to label anything. What you need is a
-<em>fine-tune</em>: a base that somebody has further trained on a
-labelling task, such as clinical de-identification. Look for a model
-card that names a task, not only a vocabulary.</p>
+<p><b>A base checkpoint is not one of these.</b> This is the trap to know about before you download anything. BioBERT and SciBERT are <em>bases</em>: models that understand clinical or scientific language but have not been taught to label anything. What you need is a <em>fine-tune</em>, a base that somebody has trained further on a labelling task, such as clinical de-identification. Look for a model card that names a task, not only a vocabulary.</p>
 
-<p>Anything in the BERT family works, as long as it is a token
-classifier and exports to ONNX. Nothing here is tied to one
-checkpoint.</p>
+<p>Anything in the BERT family works, as long as it is a token classifier and exports to ONNX. Nothing here is tied to one checkpoint.</p>
 
 <h3 id="where">Where to start looking, per category</h3>
 
 <table>
 <tr><th>Category</th><th>Family</th><th>What to look for</th></tr>
-<tr><td><code>clinical</code></td><td>BioBERT, ClinicalBERT</td><td>A de-identification fine-tune. The i2b2 and n2c2 shared tasks are the usual training data, and models trained on them are the ones that label patient names, dates and record numbers &mdash; <b>none of which any pattern here finds</b>.</td></tr>
+<tr><td><code>clinical</code></td><td>BioBERT, ClinicalBERT</td><td>A de-identification fine-tune. The i2b2 and n2c2 shared tasks are the usual training data, and models trained on them label patient names, dates and record numbers, <b>none of which any pattern here finds</b>.</td></tr>
 <tr><td><code>scientific</code></td><td>SciBERT</td><td>Again a fine-tune, not the base. Entity-recognition models over scientific text.</td></tr>
-<tr><td><code>legal</code></td><td>A permissively licensed general model, or LegalBERT</td><td>Contract-clause models trained on CUAD are the readiest. LegalBERT is stronger and has a licence condition &mdash; see the table below.</td></tr>
+<tr><td><code>legal</code></td><td>A permissively licensed general model, or LegalBERT</td><td>Contract-clause models trained on CUAD are the readiest. LegalBERT is stronger and has a licence condition. See the table below.</td></tr>
 </table>
 
-<p><b>There is no row for <code>identifiers</code>, and there cannot
-be.</b> It is the pattern tier; it takes no model and no directory. If
-you want person and place names caught, that is a model under one of the
-three categories above &mdash; not an addition to this one.</p>
+<p><b>There is no row for <code>identifiers</code>, and there cannot be.</b> It is the pattern tier. It takes no model and no directory. If you want person and place names caught, that is a model under one of the three categories above, not an addition to this one.</p>
 
 <h3 id="licences">Read the licence at the source, every time</h3>
 
-<p><b>This is a gate, not a footnote.</b> Some clinical weights carry
-data-use terms that forbid passing them on, and a model directory you
-share with a colleague is passing them on. Two rules make the rest
-simple:</p>
+<p><b>This is a gate, not a footnote.</b> Some clinical weights carry data-use terms that forbid passing them on, and a model directory you share with a colleague is passing them on. Two rules make the rest simple:</p>
 
 <ul>
-<li><b>A licence must exist at the source.</b> No tag anywhere means no
-grant. Wide use is not a licence, and neither is a mirror somebody
-uploaded.</li>
-<li><b>A mirror with no tag is not a model with no licence.</b> Model
-hosts often lose the tag in copying. Go to the project's own repository
-and read the licence file there &mdash; then record <em>that</em> as the
-model's provenance.</li>
+<li><b>A licence must exist at the source.</b> No tag anywhere means no grant. Wide use is not a licence, and neither is a mirror somebody uploaded.</li>
+<li><b>A mirror with no tag is not a model with no licence.</b> Model hosts often lose the tag in copying. Go to the project's own repository and read the licence file there. Then record <em>that</em> as the model's provenance.</li>
 </ul>
 
-<p>These were checked against the live model cards and source
-repositories on 20 August 2026. Check again before you rely on them:
-terms change, and this table is a starting point rather than legal
-advice.</p>
+<p>These were checked against the live model cards and source repositories on 20 August 2026. Check again before you rely on them. Terms change, and this table is a starting point rather than legal advice.</p>
 
 <table>
 <tr><th>Checkpoint</th><th>What was found</th><th>What that means for you</th></tr>
 <tr><td>BioBERT</td><td>Apache-2.0, in the licence file of <code>dmis-lab/biobert</code> on GitHub. The model-host mirrors carry no tag.</td><td>Usable. Record the GitHub repository as provenance, not the mirror you downloaded from.</td></tr>
 <tr><td>SciBERT</td><td>Apache-2.0, on <code>allenai/scibert</code>. Same untagged-mirror situation.</td><td>Usable, same provenance rule.</td></tr>
 <tr><td>ClinicalBERT, and the i2b2 de-identification fine-tunes</td><td>Tagged MIT by the groups that held the underlying data-use agreements.</td><td>Usable on that grant. Record the revision as well as the source, because the grant is theirs and attaches to what they published.</td></tr>
-<tr><td>LegalBERT</td><td>CC-BY-SA-4.0 &mdash; a share-alike licence.</td><td>Usable as your own add-on. <b>Do not use it as a base to fine-tune from</b>, because share-alike carries into whatever you build on it.</td></tr>
-<tr><td>Anything with no licence anywhere</td><td>&mdash;</td><td><b>Do not adopt it.</b> However good the scores.</td></tr>
+<tr><td>LegalBERT</td><td>CC-BY-SA-4.0, a share-alike licence.</td><td>Usable as your own add-on. <b>Do not use it as a base to fine-tune from</b>, because share-alike carries into whatever you build on it.</td></tr>
+<tr><td>Anything with no licence anywhere</td><td>none</td><td><b>Do not adopt it.</b> However good the scores.</td></tr>
 </table>
 
 <h2 id="prepare">Prepare them</h2>
 
-<p>burler runs models in the ONNX format, which is a portable way of
-saving a trained model so that programs other than the one that trained
-it can run it. Most published checkpoints are not in that format yet, so
-you convert them once.</p>
+<p>burler runs models in the ONNX format, a portable way of saving a trained model so that programs other than the one that trained it can run it. Most published checkpoints are not in that format yet, so you convert them once.</p>
 
 <h3 id="export">Export to ONNX</h3>
 
-<p>Hugging Face's <code>optimum</code> tool does this in one command. The
-task matters: <code>token-classification</code> is the name for a model
-that labels each word.</p>
+<p>Hugging Face's <code>optimum</code> tool does this in one command. The task matters: <code>token-classification</code> is the name for a model that labels each word.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>pip install optimum[onnxruntime]
 optimum-cli export onnx --model ORG/CHECKPOINT --task token-classification out/</code></pre></div>
 
-<p><b>Quantising afterwards is optional and worth it.</b> Quantisation
-stores the model's numbers less precisely &mdash; typically 8 bits
-instead of 32. It cuts the file to roughly a quarter of its size and
-makes it several times faster, at a small cost in accuracy.
-<code>optimum</code> can do this too. The figures quoted on this page
-are for <em>quantised</em> models; unquantised, expect roughly four
-times that.</p>
+<p><b>Quantising afterwards is optional and worth it.</b> Quantisation stores the model's numbers less precisely, typically 8 bits instead of 32. It cuts the file to roughly a quarter of its size and makes it several times faster, at a small cost in accuracy. <code>optimum</code> can do this too. The figures quoted on this page are for <em>quantised</em> models. Unquantised, expect roughly four times that.</p>
 
 <h3 id="layout">Lay the files out</h3>
 
-<p>One directory per category, named for the category, under one
-parent:</p>
+<p>One directory per category, named for the category, under one parent:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>screening-models/
   clinical/
@@ -200,23 +131,17 @@ parent:</p>
     labels.json
     manifest.json</code></pre></div>
 
-<p><b>Only the categories you screen need a directory.</b> A category you
-never name in any tree is never looked for. Models load one at a time,
-when first wanted, so a tree screening only <code>clinical</code> loads
-one model rather than three. <code>identifiers</code> never needs a
-directory at all.</p>
+<p><b>Only the categories you screen need a directory.</b> A category you never name in any tree is never looked for. Models load one at a time, when first wanted, so a tree screening only <code>clinical</code> loads one model rather than three. <code>identifiers</code> never needs a directory.</p>
 
 <table>
 <tr><th>File</th><th>What it is</th></tr>
 <tr><td><code>model.onnx</code></td><td>The exported model.</td></tr>
-<tr><td><code>vocab.txt</code></td><td>The vocabulary that came with the checkpoint &mdash; the list of word pieces it was trained on. Take the one from the same checkpoint; a mismatched vocabulary produces confident nonsense.</td></tr>
-<tr><td><code>labels.json</code></td><td>A JSON array of label names, one per class, <b>in order</b>. The position in the array is the class number. An object mapping numbers to names is refused, because a gap in the numbering would need a rule and a gap means a broken export.</td></tr>
-<tr><td><code>manifest.json</code></td><td>What the model says about itself. Required &mdash; see below.</td></tr>
+<tr><td><code>vocab.txt</code></td><td>The vocabulary that came with the checkpoint, the list of word pieces it was trained on. Take the one from the same checkpoint. A mismatched vocabulary produces confident nonsense.</td></tr>
+<tr><td><code>labels.json</code></td><td>A JSON array of label names, one per class, <b>in order</b>. The position in the array is the class number. An object mapping numbers to names is refused, because a gap in the numbering means a broken export.</td></tr>
+<tr><td><code>manifest.json</code></td><td>What the model says about itself. Required. See below.</td></tr>
 </table>
 
-<p>A directory missing any of the first three is refused by name, so you
-find out which file is absent rather than that something did not
-work.</p>
+<p>A directory missing any of the first three is refused by name, so you find out which file is absent rather than that something did not work.</p>
 
 <h3 id="manifest">Write the manifest</h3>
 
@@ -230,39 +155,23 @@ work.</p>
 }</code></pre></div>
 
 <ul>
-<li><b>It is required because a manifest that may be absent is one that
-will be.</b> Six months on, nobody remembers which mirror a model came
-from or under what terms. Writing it down at the moment you fetch it
-costs a minute.</li>
-<li><b><code>provenance</code> is where the licence was read</b>, which is
-often not where the file was downloaded. That is the whole point of
-recording both.</li>
-<li><b>Editing any field invalidates every answer that model has
-given.</b> burler remembers recent verdicts, and it keys them on a hash
-of the whole manifest file. Change the manifest and the remembered
-answers are dropped &mdash; which is the honest behaviour when the thing
-that did the judging has changed.</li>
+<li><b>It is required because an optional manifest is one that nobody writes.</b> Six months on, nobody remembers which mirror a model came from or under what terms. Writing it down when you fetch the model costs a minute.</li>
+<li><b><code>provenance</code> is where the licence was read</b>, which is often not where the file was downloaded. That is why both are recorded.</li>
+<li><b>Editing any field invalidates every answer that model has given.</b> burler remembers recent verdicts, and it keys them on a hash of the whole manifest file. Change the manifest and the remembered answers are dropped, which is the right behaviour when the thing that did the judging has changed.</li>
 </ul>
 
 <h2 id="name">Name the directory</h2>
 
-<p><b>Put it in the personal overlay, not the checked-in file.</b> Where
-several hundred megabytes of models sit is a fact about a disk, not
-about a project, and
-<code>.fettler.local.json</code> is kept out of source control:</p>
+<p><b>Put it in the personal overlay, not the checked-in file.</b> Where several hundred megabytes of models sit is a fact about a disk, not about a project, and <code>.fettler.local.json</code> is kept out of source control:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>// .fettler.local.json  - beside .fettler.json, kept out of source control
 {
   "models": "C:/models/screening"
 }</code></pre></div>
 
-<p>It is spelled like every other declared path: forward slashes, and
-relative paths resolve against the file they are written in. If the
-check-in file also names one, the overlay wins.</p>
+<p>It is spelled like every other declared path: forward slashes, and relative paths resolve against the file they are written in. If the checked-in file also names one, the overlay wins.</p>
 
-<p>With the directory named and a model in it, <code>roots</code> stops
-reporting the tier as inactive and names what is doing the judging
-instead:</p>
+<p>With the directory named and a model in it, <code>roots</code> stops reporting the tier as inactive and names what is doing the judging instead:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle roots
 records       /work/records
@@ -272,35 +181,17 @@ records       /work/records
 
 declared by /work/shoddy/.fettler.json</code></pre></div>
 
-<p><b>The checkpoint and the revision, read from the manifest.</b> A
-category whose directory holds no model says <code>no model installed -
-reads here will refuse</code> instead, which is the state worth catching
-before a read does. The model is never hidden behind the category word:
-wherever the tiers are listed, the thing doing the judging is named.</p>
+<p><b>The checkpoint and the revision, read from the manifest.</b> A category whose directory holds no model says <code>no model installed; reads here are refused</code> instead, which is the state worth catching before a read does. The model is never hidden behind the category word. Wherever the tiers are listed, the thing doing the judging is named.</p>
 
-<div class="takeaway"><b>Naming this directory is the act that makes the
-models load-bearing, and it changes what a failure means.</b>
-<b>Before</b>, the patterns are the whole screen and a clean payload is
-served &mdash; nobody has claimed a model is installed, so there is no
-second tier to have failed. <b>After</b>, a screened category with no
-model <em>refuses</em>, because somebody has now said they expect it to
-be there.</div>
+<div class="takeaway"><b>Naming this directory is the act that puts the models to work, and it changes what a failure means.</b> <b>Before</b>, the patterns are the whole screen and a clean payload is served. Nobody has claimed a model is installed, so there is no second tier to have failed. <b>After</b>, a screened category with no model <em>refuses</em>, because somebody has now said they expect it to be there.</div>
 
-<p>That is why the directory's absence is not checked when the
-configuration is read. A configuration opened on a machine without the
-models is not malformed, and refusing the whole boundary over it would
-take the tree away rather than the screen. The refusal arrives at the
-disclosure instead, where it can name the category that wanted the
-model.</p>
+<p>That is why the directory's absence is not checked when the configuration is read. A configuration opened on a machine without the models is not malformed, and refusing the whole boundary over it would take the tree away rather than the screen. The refusal arrives at the disclosure instead, where it can name the category that wanted the model.</p>
 
-<p><b>Restart the assistant.</b> Then read something. The first screened
-read starts burler and loads a model, which takes seconds; every read
-after that is tens of milliseconds.</p>
+<p><b>Restart the assistant.</b> Then read something. The first screened read starts burler and loads a model, which takes seconds. Every read after that is tens of milliseconds.</p>
 
 <h2 id="byhand">Driving burler by hand</h2>
 
-<p>When the model tier is the part in doubt, run burler yourself. It
-reads one request per line and answers one line:</p>
+<p>When the model tier is the part in doubt, run burler yourself. It reads one request per line and answers one line:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>$ burler --models C:/models/screening
 {"op":"screen","categories":["clinical"],"payload":"the weather was fine"}
@@ -317,9 +208,7 @@ reads one request per line and answers one line:</p>
 <tr><td>Nothing at all, and it exits</td><td>Check the message on the error stream. Started with no <code>--models</code>, it says <code>burler needs --models DIRECTORY, naming where the screening models are.</code> and exits <code>2</code>.</td></tr>
 </table>
 
-<p><b>An empty <code>findings</code> array means it checked and found
-nothing. A missing one is a fault.</b> The two are never spelled the
-same way, on either side of the pipe.</p>
+<p><b>An empty <code>findings</code> array means it checked and found nothing. A missing one is a fault.</b> The two are never spelled the same way, on either side of the pipe.</p>
 
 <h2 id="optional">Optional extras</h2>
 
@@ -332,32 +221,18 @@ same way, on either side of the pipe.</p>
     cuad-clauses/       model.onnx, vocab.txt, labels.json, manifest.json
     legalbert-ner/      model.onnx, vocab.txt, labels.json, manifest.json</code></pre></div>
 
-<p><b>Their findings add together.</b> Any detection by any of them
-refuses, so a second model can only ever make the screen stricter. That
-is what lets you run a permissive default alongside a stronger add-on
-rather than choosing between them.</p>
+<p><b>Their findings add together.</b> Any detection by any of them refuses, so a second model can only ever make the screen stricter. That is what lets you run a permissive default alongside a stronger add-on rather than choosing between them.</p>
 
-<p>burler decides which shape a category is by looking for
-<code>model.onnx</code> directly inside it. Found there, that is the one
-model. Not found, every subdirectory holding one is loaded.</p>
+<p>burler decides which shape a category is by looking for <code>model.onnx</code> directly inside it. Found there, that is the one model. Not found, every subdirectory holding one is loaded.</p>
 
 <h3 id="shared">A shared models directory</h3>
 
-<p>Nothing stops <code>"models"</code> naming a network share, and for a
-team it saves everyone the download. Know what you are trusting
-when you do:</p>
+<p>Nothing stops <code>"models"</code> naming a network share, and for a team it saves everyone the download. Know what you are trusting when you do:</p>
 
 <ul>
-<li><b>Whoever can write that share chooses what judges your
-disclosures.</b> A model swapped for one that finds nothing turns the
-second tier off silently, and nothing here would report that as a
-failure &mdash; a model that finds nothing looks exactly like a clean
-payload.</li>
-<li><b>A share that goes away is a refusal, not a fallback.</b> Once the
-directory is named, an unreachable one refuses every screened read. That
-is the fail-closed rule working, and it will look like an outage.</li>
-<li><b>Read the manifests you did not write.</b> They are the only
-record of what those weights are and under what terms.</li>
+<li><b>Whoever can write that share chooses what judges your disclosures.</b> A model swapped for one that finds nothing turns the second tier off silently, and nothing here would report that as a failure. A model that finds nothing looks the same as a clean payload.</li>
+<li><b>A share that goes away is a refusal, not a fallback.</b> Once the directory is named, an unreachable one refuses every screened read. That is the fail-closed rule working, and it will look like an outage.</li>
+<li><b>Read the manifests you did not write.</b> They are the only record of what those weights are and under what terms.</li>
 </ul>
 
 <nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">

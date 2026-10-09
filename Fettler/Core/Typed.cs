@@ -149,7 +149,7 @@ public static class Typed
 
         if (mime.Length == 0)
             return Result<ImageFacts>.Fail(Outcome.Refused,
-                "the extension says this is an image and the bytes do not agree", path.Display);
+                "the name says image, but the bytes are not an image format this reads", path.Display);
 
         return Result<ImageFacts>.Ok(new ImageFacts(mime, width, height, b.Length, b));
     }
@@ -251,7 +251,7 @@ public static class Typed
         catch (Exception e) when (e is JsonException or DecoderFallbackException)
         {
             return Result<string>.Fail(Outcome.Refused,
-                "this is named as a notebook and is not readable as one: " + e.Message, path.Display);
+                "this is named as a notebook but is not valid notebook JSON: " + e.Message, path.Display);
         }
 
         using (doc)

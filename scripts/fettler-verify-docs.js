@@ -3,7 +3,7 @@
 //   node scripts/fettler-verify-docs.js        (run from anywhere; finds the repo from its own path)
 //
 // Rebuilds ground truth from the tree on every run rather than comparing the
-// pages against a list somebody has to remember to update. Six checks:
+// pages against a list somebody has to remember to update. Seven checks:
 //
 //   navigation - every page carries the same nav bar, AND no page's bar
 //                links to the page it is sitting on. Adding a page means
@@ -38,6 +38,14 @@
 //                such check. Nothing else notices: the damage sits in
 //                comments and prose, so the compiler and the tests are all
 //                perfectly satisfied.
+//   ascii      - a docs page, a docs SVG and a root Markdown file carry no
+//                character above 0x7F. Every special character is written
+//                as an entity (&mdash; &rsquo; &#9654;), which is plain
+//                ASCII and survives any console, editor or pipeline. The
+//                mojibake check above catches one round trip and no other;
+//                this rule needs no signature. The same opt-out marker
+//                applies. C# sources stay out of scope, and so does
+//                Markdown below the root (release notes).
 //
 // Exit 0 and "THE SITE MATCHES THE SOURCES" is the pass. Any mismatch prints
 // what it found against what it wanted, and exits 1.
@@ -339,6 +347,36 @@ for (const p of pages) {
         }
     }
   })(root);
+}
+
+// ---- ascii: no character above 0x7F in a page, a docs SVG or a root .md ----
+{
+  const MARKER = "verify-docs: mojibake is the subject here";
+  const files = [];
+  for (const p of pages) files.push("docs/" + p);
+  (function svgs(dir) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) { svgs(full); continue; }
+      if (entry.name.endsWith(".svg"))
+        files.push(path.relative(root, full).split(path.sep).join("/"));
+    }
+  })(docs);
+  for (const entry of fs.readdirSync(root))
+    if (entry.endsWith(".md")) files.push(entry);
+
+  for (const rel of files) {
+    const text = read(rel);
+    if (text.includes(MARKER)) continue;
+    text.split("\n").forEach((line, i) => {
+      const m = line.match(/[^\x00-\x7f]/u);
+      if (m) {
+        const cp = m[0].codePointAt(0).toString(16).toUpperCase().padStart(4, "0");
+        fail(rel + ":" + (i + 1) + ": character U+" + cp +
+             " - write it as an entity; the docs are ASCII");
+      }
+    });
+  }
 }
 
 if (bad === 0) {

@@ -158,7 +158,7 @@ public sealed class ArgumentTests
         CliResult said = await Run(box, "read", "build.log", "--tail", "2", "--from", "1");
 
         Assert.Equal(ExitCodes.Invalid, said.ExitCode);
-        Assert.Contains("one or the other", said.Stdout + said.Stderr);
+        Assert.Contains("cannot be combined with --from", said.Stdout + said.Stderr);
     }
 
     [Fact]
@@ -170,7 +170,7 @@ public sealed class ArgumentTests
         CliResult said = await Run(box, "read", "build.log", "--tail", "0");
 
         Assert.Equal(ExitCodes.Invalid, said.ExitCode);
-        Assert.Contains("at least 1", said.Stdout + said.Stderr);
+        Assert.Contains("1 or more", said.Stdout + said.Stderr);
     }
 
     /// <summary>

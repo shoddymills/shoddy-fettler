@@ -1,7 +1,7 @@
 {
   "trees": {
     "scratch": {
-      "path": "/private/tmp/claude-501/-Users-stephen-shoddy-Repos-shoddy-fettler/",
+      "path": "C:/Users/foster/AppData/Local/Temp/claude/c--github-shoddy-fettler",
       "can": ["list", "read", "create", "update", "rename", "delete"]
     },
     "shoddy": {
@@ -10,7 +10,7 @@
     },
     "requirements": {
       "path": "../shoddy-planning/requirements",
-      "can": [],
+      "can": ["list", "read"],
       "scopes": {
         "backlog":    { "can": ["list", "read", "create", "update", "rename"] },
         "inprogress": { "can": ["list", "read", "create", "update", "rename"] },

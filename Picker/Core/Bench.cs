@@ -217,7 +217,7 @@ public sealed class Bench : IDisposable
 
         if (source is not IQuerySource queries)
             return Result<SelectAnswer>.Fail(Outcome.Invalid,
-                "this bench has no server behind it, so a SELECT has nowhere to run");
+                "no server is connected, so a SELECT cannot run");
 
         // One server per statement: the rewrite made every reference
         // three-part, and three parts name a database on ONE server.
@@ -227,9 +227,8 @@ public sealed class Bench : IDisposable
 
         if (servers.Count > 1)
             return Result<SelectAnswer>.Fail(Outcome.Refused,
-                "one server per statement: this query reaches "
-                + string.Join(" and ", servers.Select(s => s.Name))
-                + ", and a connection speaks to one of them");
+                "one server per statement; this query reaches "
+                + string.Join(" and ", servers.Select(s => s.Name)));
 
         ServerDecl on = servers.Count == 1 ? servers[0] : boundary.Servers[0];
 

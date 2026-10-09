@@ -135,7 +135,7 @@ sealed class Capped(Stream inner, long cap) : Stream
 
         if (read > cap)
             throw new InvalidDataException(
-                $"a part of this file unpacks past {cap} bytes, which is where this stops reading");
+                $"a part of this file unpacks to more than {cap} bytes, which is the limit");
 
         return got;
     }
@@ -207,7 +207,7 @@ sealed class XlsxReader : IDocumentReader
             XElement? workbook = Ooxml.Tree(zip, "xl/workbook.xml");
             if (workbook is null)
                 return Result<Rendering>.Fail(Outcome.Refused,
-                    "this has the name of a workbook but no xl/workbook.xml inside it, so it is not one",
+                    "this is named as a workbook but has no xl/workbook.xml inside it",
                     path.Display);
 
             IReadOnlyList<Sheet> sheets = SheetsOf(zip, workbook);
@@ -723,7 +723,7 @@ sealed class DocxReader : IDocumentReader
             XElement? document = Ooxml.Tree(zip, "word/document.xml");
             if (document is null)
                 return Result<Rendering>.Fail(Outcome.Refused,
-                    "this has the name of a document but no word/document.xml inside it, so it is not one",
+                    "this is named as a document but has no word/document.xml inside it",
                     path.Display);
 
             XElement body = document.Elements().FirstOrDefault(e => e.Name.LocalName == "body") ?? document;
@@ -749,8 +749,8 @@ sealed class DocxReader : IDocumentReader
 
         if (sink.Lines.Count == 0)
             return Result<Rendering>.Fail(Outcome.Refused,
-                "this document holds no text at all, so there is nothing here to read; if it is "
-                + "pictures of text, nothing here does character recognition", path.Display);
+                "this document has no text. If it is pictures of text, Fettler does not do "
+                + "character recognition", path.Display);
 
         var text = new StringBuilder();
         foreach (string line in sink.Lines) text.Append(line).Append('\n');

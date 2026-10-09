@@ -48,7 +48,7 @@ public static class FileOps
 
         if (File.Exists(p.Value.Full) || Directory.Exists(p.Value.Full))
             return Result<MadeReport>.Fail(Outcome.TargetExists,
-                "something is already there; new never truncates", p.Value.Display);
+                "a file is already there; new does not replace it", p.Value.Display);
 
         string? parent = Path.GetDirectoryName(p.Value.Full);
         if (parent is null || !Directory.Exists(parent))
@@ -259,7 +259,7 @@ public static class FileOps
         {
             if (!recursive)
                 return Result<CopyReport>.Fail(Outcome.Refused,
-                    "that is a directory; pass recursive to copy a tree", source.Value.Display);
+                    "that is a directory; pass recursive to copy it", source.Value.Display);
 
             // A recursive copy reads everything below the source without
             // naming any of it, so a hidden scope inside would be copied

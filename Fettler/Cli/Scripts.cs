@@ -105,7 +105,7 @@ public static class EditScript
         {
             string[] parts = lines.Split(["..", "-", ":"], StringSplitOptions.RemoveEmptyEntries);
             if (!int.TryParse(parts[0], out int from))
-                return Result<Edit>.Fail(Outcome.Invalid, $"--delete wants a line or a range like 150-151 (got '{lines}')");
+                return Result<Edit>.Fail(Outcome.Invalid, $"--delete needs a line number or a range like 150-151; got '{lines}'");
 
             int to = parts.Length > 1 && int.TryParse(parts[1], out int t) ? t : from;
             return Result<Edit>.Ok(new Edit.DeleteLines(from, to));
@@ -128,8 +128,7 @@ public static class EditScript
 
         if (find.Value is null)
             return Result<Edit>.Fail(Outcome.Invalid,
-                "edit needs --replace (or --replace-file, or --replace-stdin), "
-                + "or --insert-after, or --delete, or --script FILE");
+                "edit needs one of --replace, --insert-after, --delete or --script FILE");
 
         Result<string?> with = supply.Read("with");
         if (!with.IsOk) return with.Carry<Edit>();
@@ -152,7 +151,7 @@ public static class EditScript
             string[] parts = between.Split(["..", "-", ":"], StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length != 2 || !int.TryParse(parts[0], out int a) || !int.TryParse(parts[1], out int b))
                 return Result<(int?, int?)>.Fail(Outcome.Invalid,
-                    $"--between wants two line numbers like 120-140 (got '{between}')");
+                    $"--between needs two line numbers like 120-140; got '{between}'");
 
             return Result<(int?, int?)>.Ok((a, b));
         }
@@ -248,7 +247,7 @@ public static class EditScript
             }
 
             return Result<IReadOnlyList<Edit>>.Fail(Outcome.Invalid,
-                $"edit {index} is none of replace, insertAfter or deleteFrom");
+                $"edit {index} needs one of replace, insertAfter or deleteFrom");
         }
 
         return Result<IReadOnlyList<Edit>>.Ok(built);
@@ -396,7 +395,7 @@ public static class BatchScript
 
             default:
                 return Result<string>.Fail(Outcome.Invalid,
-                    $"no operation called '{op}'; batch does mkdir, new, write, move, copy, delete and exec");
+                    $"no operation called '{op}'. The operations are: mkdir, new, write, move, copy, delete, exec");
         }
     }
 

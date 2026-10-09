@@ -217,8 +217,7 @@ public sealed class Sidecar : IScreener, IDisposable
             if (!doc.RootElement.TryGetProperty("findings", out JsonElement findings)
                 || findings.ValueKind != JsonValueKind.Array)
                 return Result<IReadOnlyList<ScreenFinding>>.Fail(Outcome.Screened,
-                    "the screening sidecar answered success with no findings array; an empty "
-                    + "array is how it says it found nothing, and a missing one is a fault");
+                    "the screening sidecar answered success without a findings array");
 
             var found = new List<ScreenFinding>();
 
@@ -312,9 +311,8 @@ public sealed class Sidecar : IScreener, IDisposable
 
         if (!File.Exists(executable))
             return Result<bool>.Fail(Outcome.Screened,
-                $"this scope is screened and the screening sidecar is not installed - "
-                + $"burler was expected beside this program, at {executable}. Install it, "
-                + $"or take \"screen\" off the scope");
+                $"this scope is screened, but burler, the screening sidecar, is not installed. "
+                + $"It was expected at {executable}. Install it, or take \"screen\" off the scope");
 
         var info = new ProcessStartInfo(executable)
         {

@@ -193,7 +193,7 @@ public sealed class TypedReadTests
         CliResult read = await Run(box, "read", "lying.png");
 
         Assert.NotEqual(ExitCodes.Ok, read.ExitCode);
-        Assert.Contains("do not agree", read.Stderr);
+        Assert.Contains("not an image format", read.Stderr);
     }
 
     /// <summary>
@@ -456,7 +456,7 @@ public sealed class TypedReadTests
         // --to for more" is bad advice when the range was never the
         // constraint.
         CliResult human = await Run(box, "read", "wide.txt");
-        Assert.Contains("answer budget", human.Stdout);
+        Assert.Contains("limit for one call", human.Stdout);
     }
 
     /// <summary>

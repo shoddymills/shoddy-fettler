@@ -217,19 +217,17 @@ public sealed class McpServer : IDisposable
     /// at the moment a tool is chosen, shipping with the tool.
     /// </summary>
     public const string Instructions =
-        "SELECT and DESCRIBE over a bounded set of declared SQL Server databases. "
+        "SELECT and DESCRIBE over declared SQL Server databases. "
         + "There is no default database and no USE: names resolve against the declared "
-        + "databases, never against a connection's current catalog, and an object outside "
-        + "them does not exist as far as any caller can tell. "
-        + "Call catalogs FIRST to see the servers and databases, what each grants, and "
-        + "what is screened - rather than discovering the boundary by being refused. "
-        + "The only verbs are select (one SELECT statement, tables and views only) and "
-        + "describe (columns, keys and indexes - never a view's stored text); objects "
-        + "lists what is here. Columns may be individually scoped: a hidden column does "
-        + "not exist, anywhere, and SELECT * expands to the columns that do. "
-        + $"{ConfigFile.FileName} and {ConfigFile.LocalFileName} are the files that say "
-        + "what this tool may do, and this tool does not write them - a person edits "
-        + "those. An edit binds on the next request: serve re-reads both before every call.";
+        + "databases only, and an object outside them does not exist to any caller. "
+        + "Call catalogs first. It lists the servers and databases, what each grants, "
+        + "and what is screened. "
+        + "The verbs are select (one SELECT statement, tables and views only), "
+        + "describe (columns, keys and indexes; never a view's definition text) and "
+        + "objects (what is here). A column can be hidden; a hidden column does not "
+        + "exist, and SELECT * expands to the columns that do. "
+        + $"{ConfigFile.FileName} and {ConfigFile.LocalFileName} say what this tool may do. "
+        + "The tool does not write them; a person edits them, and an edit applies on the next call.";
 
     static string Describe(Failure failure) =>
         $"{ExitCodes.NameOf(failure.Outcome)}: {failure.Message}"

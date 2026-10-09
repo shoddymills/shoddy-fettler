@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Pick's quick start &mdash; from nothing to a first bounded SELECT: the executable, a server, the two configuration files, doctor, the first refusals, and the client wiring.">
+<meta name="description" content="Pick's quick start: from nothing to a first bounded SELECT. The executable, a server, the two configuration files, doctor, the first refusals, and the client wiring.">
 <title>Quick Start | Picker</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -23,23 +23,16 @@
 <header class="mast">
 <p class="eyebrow">Shoddy &middot; Picker</p>
 <h1 id="quickstart">Quick Start</h1>
-<p class="kicker">Install it, point it at a server, declare one
-database, check it, refuse something. Five steps, and the refusals are
-the part worth watching.</p>
+<p class="kicker">Install it, point it at a server, declare one database, check it, refuse something. Five steps, and the refusals are the part worth watching.</p>
 </header>
 
 <nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a href="pick-workstation.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">The Picked Workstation</span></span></a><a class="next" href="pick-install.html"><span class="pnwrap"><span class="ttl">Installing It</span><span class="dir">Next &rarr;</span></span></a></nav>
 
-<div class="takeaway"><b>You need two things before you start:</b> the
-<code>pick</code> archive for your platform from the latest release, and
-a SQL Server with a database in it &mdash; and if you have neither
-server nor database, step 2 conjures both from nothing on a Windows
-machine. Everything else is below.</div>
+<div class="takeaway"><b>You need two things before you start:</b> the <code>pick</code> archive for your platform from the latest release, and a SQL Server with a database in it. If you have neither server nor database, step 2 creates both from nothing on a Windows machine. Everything else is below.</div>
 
 <h2 id="install">1. Install it</h2>
 
-<p>One file. No .NET runtime, no installer. <code>X.Y.Z</code> is
-whatever version you downloaded.</p>
+<p>One file. No .NET runtime, no installer. <code>X.Y.Z</code> is whatever version you downloaded.</p>
 
 <div class="plat win"><span class="os">Windows &middot; PowerShell</span><div class="body">
 
@@ -62,36 +55,24 @@ xattr -d com.apple.quarantine ~/.local/bin/pick   # macOS only</code></pre></div
 
 </div></div>
 
-<p><b>Open a new terminal</b> &mdash; the one you just used still has
-the old <code>PATH</code> &mdash; then check it:</p>
+<p><b>Open a new terminal.</b> The one you just used still has the old <code>PATH</code>. Then check it:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>pick version</code></pre></div>
 
-<div class="note"><b>If that says <em>not recognised</em> or <em>command
-not found</em></b>, open a new terminal first, then re-check the
-directory. Nothing later on this page works until this line does.
-<a href="pick-install.html#path">Putting it on <code>PATH</code></a> is
-the long version.</div>
+<div class="note"><b>If that says <em>not recognised</em> or <em>command not found</em></b>, open a new terminal first, then re-check the directory. Nothing later on this page works until this line does. <a href="pick-install.html#path">Putting it on <code>PATH</code></a> is the long version.</div>
 
 <h2 id="server">2. Have a server</h2>
 
-<p>Any SQL Server you can already reach works &mdash; skip to step 3
-with its connection string, ideally for
-<a href="pick-setup.html#login">a login granted only SELECT and VIEW
-DEFINITION</a>. With nothing at hand, LocalDB is the zero-install
-instance on a Windows development machine:</p>
+<p>Any SQL Server you can already reach works. Skip to step 3 with its connection string, ideally for <a href="pick-setup.html#login">a login granted only SELECT and VIEW DEFINITION</a>. With nothing at hand, LocalDB is the zero-install instance on a Windows development machine:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>sqllocaldb start MSSQLLocalDB</code></pre></div>
 
-<p>If <code>sqllocaldb</code> is not a command, install <b>SQL Server
-Express LocalDB</b> (the <code>SqlLocalDB.msi</code> from the SQL
-Server Express installer's Download Media option) and run it again.
-And if there is no database worth pointing at yet, make a toy one:</p>
+<p>If <code>sqllocaldb</code> is not a command, install <b>SQL Server Express LocalDB</b> (the <code>SqlLocalDB.msi</code> from the SQL Server Express installer's Download Media option) and run it again. If there is no database worth pointing at yet, make a toy one:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>sqlcmd -S "(localdb)\MSSQLLocalDB" -E -Q "CREATE DATABASE Sales;"
 sqlcmd -S "(localdb)\MSSQLLocalDB" -E -d Sales -Q "CREATE TABLE dbo.Customers(id int PRIMARY KEY, name nvarchar(80)); INSERT dbo.Customers VALUES (1, N'Iris Sutcliffe'), (2, N'Harold Wilson');"</code></pre></div>
 
-<h2 id="declare">3. Declare the boundary &mdash; two short files</h2>
+<h2 id="declare">3. Declare the boundary: two short files</h2>
 
 <p>In the project directory, the checked-in surface:</p>
 
@@ -117,48 +98,39 @@ sqlcmd -S "(localdb)\MSSQLLocalDB" -E -d Sales -Q "CREATE TABLE dbo.Customers(id
   }
 }</code></pre></div>
 
-<div class="note"><b>A password literal in the checked-in file refuses
-the whole load</b>, with directions &mdash; credentials go in the local
-file or an <code>env:NAME</code> variable. The reviewed file is the one
-that ends up in source control and in every copy of the project.</div>
+<div class="note"><b>A password literal in the checked-in file refuses the whole load</b>, with directions. Credentials go in the local file or an <code>env:NAME</code> variable. The reviewed file is the one that ends up in source control and in every copy of the project.</div>
 
-<p>Then check the wiring &mdash; the configuration, a bounded knock on
-the server, and the screening pieces if any:</p>
+<p>Then check the wiring: the configuration, a bounded knock on the server, and the screening pieces if any:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>pick doctor
 pick catalogs    # the boundary you just declared - no connection opened
-pick objects     # the tables and views you may actually see</code></pre></div>
+pick objects     # the tables and views you may see</code></pre></div>
 
-<h2 id="first">4. The first SELECT &mdash; and the first refusals</h2>
+<h2 id="first">4. The first SELECT, and the first refusals</h2>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>pick select "SELECT TOP 5 * FROM Customers"
 pick describe Sales.dbo.Customers</code></pre></div>
 
-<p>An unqualified name is resolved against the declared databases
-&mdash; never against a default the connection happens to be sitting
-in. Now watch it refuse, because the refusals are the feature:</p>
+<p>An unqualified name is resolved against the declared databases, never against a default the connection happens to be sitting in. Now watch it refuse, because the refusals are the feature:</p>
 
 <table>
 <tr><th>Command</th><th>Exit</th><th>Because</th></tr>
-<tr><td><code>pick select "DELETE FROM Customers"</code></td><td><b>8</b></td><td>not a SELECT &mdash; there is no write verb anywhere in pick</td></tr>
+<tr><td><code>pick select "DELETE FROM Customers"</code></td><td><b>8</b></td><td>not a SELECT. There is no write verb anywhere in pick</td></tr>
 <tr><td><code>pick select "SELECT 1; SELECT 2"</code></td><td><b>8</b></td><td>one statement per call, parsed whole</td></tr>
-<tr><td><code>pick select "SELECT name FROM sys.tables"</code></td><td><b>8</b></td><td>the catalog is closed; <code>describe</code> answers instead, governed by the scopes</td></tr>
-<tr><td><code>pick select "SELECT * FROM master.dbo.spt_values"</code></td><td><b>3</b></td><td>an undeclared database &mdash; refused in the same words as a table that never existed</td></tr>
+<tr><td><code>pick select "SELECT name FROM sys.tables"</code></td><td><b>8</b></td><td>the catalog is closed. <code>describe</code> answers instead, governed by the scopes</td></tr>
+<tr><td><code>pick select "SELECT * FROM master.dbo.spt_values"</code></td><td><b>3</b></td><td>an undeclared database, refused in the same words as a table that never existed</td></tr>
 </table>
 
 <p>That last one in full, because the wording is the point:</p>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>not-found: there is no table or view called 'master.dbo.spt_values' inside the
-declared databases; the objects tool lists what is here</code></pre></div>
+<div class="promptbox"><button class="copy">Copy</button><pre><code>not-found: there is no table or view called 'master.dbo.spt_values' in the declared
+databases. Run objects to list what is here</code></pre></div>
 
-<p><code>master</code> is real and inches away. The refusal does not
-know that, and neither can anyone reading refusals.</p>
+<p><code>master</code> is real and inches away. The refusal does not know that, and neither can anyone reading refusals.</p>
 
 <h2 id="client">5. Wire it into the assistant</h2>
 
-<p>One entry in the project's <code>.mcp.json</code>, written by hand
-&mdash; and nothing else changes, because the client has no built-in
-SQL tool to deny:</p>
+<p>One entry in the project's <code>.mcp.json</code>, written by hand. Nothing else changes, because the client has no built-in SQL tool to deny:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>{
   "mcpServers": {
@@ -166,21 +138,13 @@ SQL tool to deny:</p>
   }
 }</code></pre></div>
 
-<p><b>Then restart the assistant</b> &mdash; a client reads its server
-list at launch &mdash; and ask it what it can see. <code>catalogs</code>
-answers with the boundary; everything outside it answers as if it were
-not there. A changed <code>.picker.json</code> needs no restart at all:
-the server re-reads it before every call.</p>
+<p><b>Then restart the assistant</b>, because a client reads its server list at launch, and ask it what it can see. <code>catalogs</code> answers with the boundary. Everything outside it answers as if it were not there. A changed <code>.picker.json</code> needs no restart at all: the server re-reads it before every call.</p>
 
 <h2 id="screen-on">6. Turn the screen on (optional, one line)</h2>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>"Sales": { "can": ["list", "select", "describe"], "screen": ["identifiers"] }</code></pre></div>
 
-<p>From the next call, a result set carrying an SSN, a Luhn-valid card,
-an email, a phone number, or a labelled record number or date of birth
-refuses whole &mdash; naming a category and a count, and quoting
-nothing back. <a href="pick-screening.html">Screening, for the
-rows</a> proves each edge with synthetic data.</p>
+<p>From the next call, a result set carrying an SSN, a valid card number, an email, a phone number, or a labelled record number or date of birth refuses whole. The refusal names a category and a count, and quotes nothing back. <a href="pick-screening.html">Screening, for the rows</a> proves each edge with synthetic data.</p>
 
 <h2 id="next">Where to go next</h2>
 

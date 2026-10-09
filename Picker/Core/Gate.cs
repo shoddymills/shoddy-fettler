@@ -50,7 +50,7 @@ public static class Gate
         {
             ParseError first = errors[0];
             return Result<Approved>.Fail(Outcome.Invalid,
-                $"this is not T-SQL this gate reads: {first.Message} "
+                $"this is not valid T-SQL: {first.Message} "
                 + $"(line {first.Line}, column {first.Column})");
         }
 
@@ -66,19 +66,18 @@ public static class Gate
 
         if (statements.Count > 1)
             return Result<Approved>.Fail(Outcome.Refused,
-                $"one statement per call: {statements.Count} were sent. A second statement "
-                + "is a second decision, and this gate makes them one at a time");
+                $"one statement per call; {statements.Count} were sent");
 
         if (statements[0] is not SelectStatement select)
             return Result<Approved>.Fail(NotASelect(statements[0]));
 
         if (select.Into is not null)
             return Result<Approved>.Fail(Outcome.Refused,
-                "SELECT ... INTO is a write wearing a SELECT's clothes; this tool reads");
+                "SELECT ... INTO writes a table. pick only reads");
 
         if (select.On is not null)
             return Result<Approved>.Fail(Outcome.Refused,
-                "SELECT ... ON <filegroup> is not a form this gate accepts");
+                "SELECT ... ON <filegroup> is not accepted");
 
         // ---- every node accounted for ----
 
@@ -116,19 +115,18 @@ public static class Gate
         string detail = statement switch
         {
             InsertStatement or UpdateStatement or DeleteStatement or MergeStatement =>
-                "this tool reads; nothing here writes a row",
+                "pick only reads",
             UseStatement =>
-                "there is no default database and no USE - qualify the object instead, "
-                + "and the declared databases are the only ones a name can reach",
+                "there is no USE. Qualify the object name with its database instead",
             ExecuteStatement or ExecuteAsStatement =>
                 "stored procedures are not reachable here; the verbs are select and describe",
             DeclareVariableStatement or SetVariableStatement or PredicateSetStatement
                 or SetCommandStatement =>
-                "session state is not available here; a statement carries everything it needs",
+                "variables and session settings are not available here. Put everything in the one statement",
             BeginTransactionStatement or CommitTransactionStatement
                 or RollbackTransactionStatement =>
                 "there is no transaction to control; every call is one read",
-            _ => "the only statement this gate runs is a single SELECT",
+            _ => "only a single SELECT runs here",
         };
 
         return new Failure(Outcome.Refused,
@@ -201,17 +199,16 @@ public static class Gate
             "OpenRowsetTableReference" or "OpenQueryTableReference"
                 or "AdHocTableReference" or "OpenRowsetCosmos" =>
                 new Failure(Outcome.Refused,
-                    "OPENROWSET, OPENQUERY and their kin reach past the declared surface "
-                    + "to wherever their arguments say; nothing off the surface is reachable"),
+                    "OPENROWSET, OPENQUERY and similar functions reach outside the declared "
+                    + "databases, so they are refused"),
 
             "VariableReference" or "GlobalVariableExpression" or "VariableTableReference" =>
                 new Failure(Outcome.Refused,
-                    "variables and session state are not available here; a statement "
-                    + "carries everything it needs"),
+                    "variables and session state are not available here"),
 
             "TableHint" or "IndexTableHint" =>
                 new Failure(Outcome.Refused,
-                    "table hints are not accepted here; the server plans its own reads"),
+                    "table hints are not accepted here"),
 
             _ => null,
         };
@@ -224,9 +221,7 @@ public static class Gate
             if (Allowed.Contains(name)) return;
 
             Refusal = Special(node) ?? new Failure(Outcome.Refused,
-                $"this query uses {name}, a construct this gate does not know how to "
-                + "check - and what is not checked does not run. If the query is "
-                + "legitimate, extending the gate is a reviewed change, not a workaround");
+                $"this query uses {name}, which this gate does not check, so it does not run");
         }
     }
 }
