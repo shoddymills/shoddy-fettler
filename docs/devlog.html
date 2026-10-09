@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="The conversation in which Fettler was commissioned, shaped, and named &mdash; the author's messages reproduced verbatim, as a contemporaneous record of authorship.">
+<meta name="description" content="The conversation in which Fettler was commissioned, shaped, and named: the author's messages reproduced verbatim, as a contemporaneous record of authorship.">
 <title>Devlog | Fettler</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -22,46 +22,23 @@
 <div class="wrap">
 <header class="mast">
 <p class="eyebrow">Fettler</p>
-<h1 id="the-design-of-fettler">The Design of Fettler &mdash; A Conversation Record</h1>
-<p class="kicker">The conversation that commissioned Fettler &mdash; the author&rsquo;s messages, verbatim</p>
+<h1 id="the-design-of-fettler">The Design of Fettler: A Conversation Record</h1>
+<p class="kicker">The conversation that commissioned Fettler. The author&rsquo;s messages, verbatim</p>
 </header>
 <nav class="pagertop" aria-label="Breadcrumb"><a href="authorship.html">&larr; Authorship</a></nav>
 
-<p>This document is the record of the conversation in which Fettler was
-commissioned, shaped, and named. It took place in a single session between
-its author (<strong>Stephen Vincent Foster</strong>) and Claude, on
-<strong>16 August 2026</strong>, inside the Shoddy repository &mdash; the
-project whose development pains produced the need. Its outcome was the
-enhancement request specifying Fettler: a C# file, search and edit tool
-with an MCP front end and a CLI front end. The tool this site documents is
-that request, built.</p>
+<p>This document is the record of the conversation in which Fettler was commissioned, shaped, and named. It took place in a single session between its author (<strong>Stephen Vincent Foster</strong>) and Claude, on <strong>16 August 2026</strong>, inside the Shoddy repository, the project whose development pains produced the need. Its outcome was the enhancement request specifying Fettler: a C# file, search and edit tool with an MCP front end and a CLI front end. The tool this site documents is that request, built.</p>
 
-<p><strong>Fidelity note.</strong> Every message from the author below is
-reproduced <em>verbatim, typos included</em>, deliberately, as part of the
-record. Claude&rsquo;s replies are condensed in substance, with the tables,
-examples and conclusions intact; summarized tool activity is set in
-italics. The working transcript this page presents is kept in the
-repository as
-<a href="fettler-design-transcript.md"><code>fettler-design-transcript.md</code></a>,
-written at the author&rsquo;s request in the conversation&rsquo;s final turn.</p>
+<p><strong>Fidelity note.</strong> Every message from the author below is reproduced <em>verbatim, typos included</em>, deliberately, as part of the record. Claude&rsquo;s replies are condensed in substance, with the tables, examples and conclusions intact. Summarized tool activity is set in italics. The working transcript this page presents is kept in the repository as <a href="fettler-design-transcript.md"><code>fettler-design-transcript.md</code></a>, written at the author&rsquo;s request in the conversation&rsquo;s final turn.</p>
 
 <hr>
 
-<h2 id="turn-1">Turn 1 &mdash; The essential tools</h2>
+<h2 id="turn-1">Turn 1: The essential tools</h2>
 <blockquote>
-<p><strong>throughout our work, we've consantly been hit by bash and windows
-issues when using tools to develop shoddy.</strong></p>
-<p><strong>please prepare for me a list of the essential commands/tools/etc you
-use to search for files and their contents, to read file contents, to create
-files or change existing files. when i say files, i mean source files of any
-type or language, not binary. and anything else you use frequently to help
-me write code.</strong></p>
+<p><strong>throughout our work, we've consantly been hit by bash and windows issues when using tools to develop shoddy.</strong></p>
+<p><strong>please prepare for me a list of the essential commands/tools/etc you use to search for files and their contents, to read file contents, to create files or change existing files. when i say files, i mean source files of any type or language, not binary. and anything else you use frequently to help me write code.</strong></p>
 </blockquote>
-<p><em>Claude ran two verification searches against the standard library to
-confirm how the files are actually matched, then answered.</em> The
-headline: every file operation has a dedicated tool that never touches a
-shell &mdash; the bash/Windows pain comes entirely from reaching for a shell
-to do something a dedicated tool already does.</p>
+<p><em>Claude ran two verification searches against the standard library to confirm how the files are matched, then answered.</em> The headline: every file operation has a dedicated tool that never touches a shell. The bash and Windows pain comes entirely from reaching for a shell to do something a dedicated tool already does.</p>
 <table class="prose">
 <thead><tr><th>Purpose</th><th>Tool</th><th>Notes</th></tr></thead>
 <tbody>
@@ -73,204 +50,98 @@ to do something a dedicated tool already does.</p>
 <tr><td>New file / full replacement</td><td><code>Write</code></td><td>overwriting an unread file is refused</td></tr>
 </tbody>
 </table>
-<p>Alongside the table: the PowerShell&nbsp;5.1 traps (no <code>&amp;&amp;</code>;
-<code>2&gt;&amp;1</code> on a native program wraps its error stream as
-<code>NativeCommandError</code> and reports failure even on exit&nbsp;0), and
-the rule that would have saved most of the trouble: <b>if the operation is
-find, read, or change a text file &mdash; no shell, ever.</b> The shell is for
-verbs that produce output: build, test, run.</p>
+<p>Alongside the table came the PowerShell&nbsp;5.1 traps. There is no <code>&amp;&amp;</code>. And <code>2&gt;&amp;1</code> on a native program wraps its error stream as <code>NativeCommandError</code> and reports failure even on exit&nbsp;0. Then the rule that would have saved most of the trouble: <b>if the operation is find, read, or change a text file, no shell, ever.</b> The shell is for verbs that produce output: build, test, run.</p>
 
-<h2 id="turn-2">Turn 2 &mdash; Nothing else required</h2>
+<h2 id="turn-2">Turn 2: Nothing else required</h2>
 <blockquote>
-<p><strong>i also have this desire that anyone using shoddy -- including with
-claude, not need anything else. no python. no wsl. no bash. nothing else
-required.</strong></p>
-<p><strong>please consider all of the actions you perform on source code
-files...which you listed above....and design a single, cohesive,
-comprehensive tool, or suite of tools that would be written in shoddy. be
-holestic. don't be afraid to suggest shoddy enhancements, such as file
-operations. don't just recreate what's there....this is your chance to tell
-me how you'd like to work with files.</strong></p>
+<p><strong>i also have this desire that anyone using shoddy -- including with claude, not need anything else. no python. no wsl. no bash. nothing else required.</strong></p>
+<p><strong>please consider all of the actions you perform on source code files...which you listed above....and design a single, cohesive, comprehensive tool, or suite of tools that would be written in shoddy. be holestic. don't be afraid to suggest shoddy enhancements, such as file operations. don't just recreate what's there....this is your chance to tell me how you'd like to work with files.</strong></p>
 </blockquote>
-<p><em>Claude read the language&rsquo;s file library in full, launched two
-exploration agents over the builtin file and text surfaces, and read the
-capability manifests and the path-boundary source.</em> The research
-surfaced what mattered: the file library was eight whole-file builtins with
-no directories, no rename, no copy, no atomic write; the capability
-manifest already gated file access by pattern; a root boundary already
-held for every file word; and Sparky was the precedent &mdash; a program
-whose <em>user is a model</em>, hand-rolled JSON-RPC over stdio,
-self-contained single-file publish per OS. The turn was interrupted before
-the design was delivered.</p>
+<p><em>Claude read the language&rsquo;s file library in full, launched two exploration agents over the builtin file and text surfaces, and read the capability manifests and the path-boundary source.</em> The research surfaced what mattered. The file library was eight whole-file builtins with no directories, no rename, no copy, no atomic write. The capability manifest already gated file access by pattern. A root boundary already held for every file word. And Sparky was the precedent: a program whose <em>user is a model</em>, hand-rolled JSON-RPC over stdio, self-contained single-file publish per OS. The turn was interrupted before the design was delivered.</p>
 
-<h2 id="turn-3">Turn 3 &mdash; The wrong language for side effects</h2>
+<h2 id="turn-3">Turn 3: The wrong language for side effects</h2>
 <blockquote>
-<p><strong>ok...that's enough. i'm asking a purely functionaly language to do
-a lot of side-effect stuff. that's not a good fit for the language.</strong></p>
-<p><strong>Our goal of a single install can be met with c#. same requirements,
-different target. what's that plan?</strong></p>
+<p><strong>ok...that's enough. i'm asking a purely functionaly language to do a lot of side-effect stuff. that's not a good fit for the language.</strong></p>
+<p><strong>Our goal of a single install can be met with c#. same requirements, different target. what's that plan?</strong></p>
 </blockquote>
-<p>Agreed &mdash; the design was pushing effects into a language built to
-keep them at the edges. <em>Claude verified the MCP host&rsquo;s project
-layout and confirmed the existing path boundary was pure
-<code>System.IO</code> with no language dependencies</em> &mdash; and was
-interrupted again before the plan was delivered.</p>
+<p>Agreed. The design was pushing effects into a language built to keep them at the edges. <em>Claude verified the MCP host&rsquo;s project layout and confirmed the existing path boundary was pure <code>System.IO</code> with no language dependencies</em>, and was interrupted again before the plan was delivered.</p>
 
-<h2 id="turn-4">Turn 4 &mdash; 100% C#, part of the repo</h2>
+<h2 id="turn-4">Turn 4: 100% C#, part of the repo</h2>
 <blockquote>
-<p><strong>let's keep this 100% csharp. no shoddy. but part of the repo. to
-keep our single-install goal.</strong></p>
+<p><strong>let's keep this 100% csharp. no shoddy. but part of the repo. to keep our single-install goal.</strong></p>
 </blockquote>
-<p>The shape: one more MCP server, 100% C# &mdash;
-<code>read</code>/<code>write</code>/<code>edit</code>/<code>find</code>/<code>search</code>/<code>run</code>
-over stdio. Five design calls worth making deliberately:</p>
+<p>The shape: one more MCP server, 100% C#, with <code>read</code>/<code>write</code>/<code>edit</code>/<code>find</code>/<code>search</code>/<code>run</code> over stdio. Five design calls worth making deliberately:</p>
 <ul>
-<li><b>Edits are planned, then applied.</b> All anchors resolved against the
-file as read; conflicts reported before anything is written; one write.</li>
-<li><b>Staleness checked by content, not a session flag.</b>
-&ldquo;Must read before edit&rdquo; proves the reader looked, not that the
-file is unchanged.</li>
-<li><b>Anchors are scoped, not just unique strings.</b> Uniqueness fails
-constantly in a codebase of four-line bodies.</li>
-<li><b>Encoding and line endings survive the round trip.</b> The language's
-own file words rewrote every line ending on a one-line edit.</li>
-<li><b>Writes are atomic.</b> Temp file, then an atomic move &mdash; not
-expressible in the language at all, which was independent evidence C# was
-the right target.</li>
+<li><b>Edits are planned, then applied.</b> All anchors resolved against the file as read, conflicts reported before anything is written, one write.</li>
+<li><b>Staleness checked by content, not a session flag.</b> &ldquo;Must read before edit&rdquo; proves the reader looked, not that the file is unchanged.</li>
+<li><b>Anchors are scoped, not just unique strings.</b> Uniqueness fails constantly in a codebase of four-line bodies.</li>
+<li><b>Encoding and line endings survive the round trip.</b> The language's own file words rewrote every line ending on a one-line edit.</li>
+<li><b>Writes are atomic.</b> Temp file, then an atomic move. That is not expressible in the language at all, which was independent evidence C# was the right target.</li>
 </ul>
-<p>On the shell: <code>run</code> passes its command as an argument
-<em>list</em>, never a command string &mdash; no quoting layer, no
-dialect.</p>
+<p>On the shell: <code>run</code> passes its command as an argument <em>list</em>, never a command string. No quoting layer, no dialect.</p>
 
-<h2 id="turn-5">Turn 5 &mdash; Two front ends</h2>
+<h2 id="turn-5">Turn 5: Two front ends</h2>
 <blockquote>
 <p><strong>would this be both mcp and scripted (from ps or sh)?</strong></p>
 </blockquote>
-<p>Yes &mdash; and the CLI mode pays for itself fastest: every line of logic
-out of the script twins is a line that cannot drift, and driving a stdio
-JSON-RPC session to check a glob is miserable where a command line is not.
-The shape: <b>one core knowing nothing of protocol or console, an MCP front
-end, a CLI front end</b> &mdash; and the split must exist from the first
-phase or it is a retrofit. What the CLI needs that MCP does not: distinct
-exit codes, a <code>--json</code> mode, and the complete result
-<em>including failures</em> on standard output &mdash; because
-PowerShell&nbsp;5.1 turns redirected native error output into an error of
-its own. If a script ever needs <code>2&gt;&amp;1</code>, the bug is
-rebuilt.</p>
+<p>Yes, and the CLI mode pays for itself fastest. Every line of logic out of the script twins is a line that cannot drift, and driving a stdio JSON-RPC session to check a glob is miserable where a command line is not. The shape: <b>one core knowing nothing of protocol or console, an MCP front end, a CLI front end</b>. The split must exist from the first phase or it is a retrofit. What the CLI needs that MCP does not: distinct exit codes, a <code>--json</code> mode, and the complete result <em>including failures</em> on standard output, because PowerShell&nbsp;5.1 turns redirected native error output into an error of its own. If a script ever needs <code>2&gt;&amp;1</code>, the bug is rebuilt.</p>
 
-<h2 id="turn-6">Turn 6 &mdash; Independence, file operations, both platforms</h2>
+<h2 id="turn-6">Turn 6: Independence, file operations, both platforms</h2>
 <blockquote>
-<p><strong>no dependencies on shoddy... including its runtime. i don't want
-these two things coupled together.<br>
+<p><strong>no dependencies on shoddy... including its runtime. i don't want these two things coupled together.<br>
 the implementation can use whatever fileio mechanims work best.<br>
 also, what about file-level operations? move, copy, delete, rename, create<br>
 also, must work on windows and mac.<br>
-please write an enhancement request, save in github\shoddy-planning\requirmenents
-(see folders for pattern). you have permission to write there. not a lot of
-design, focus on requirements.</strong></p>
+please write an enhancement request, save in github\shoddy-planning\requirmenents (see folders for pattern). you have permission to write there. not a lot of design, focus on requirements.</strong></p>
 </blockquote>
-<p><em>Claude read the planning tree&rsquo;s existing requests to match the
-house pattern, then wrote the document.</em> Three clauses set the
-frame:</p>
+<p><em>Claude read the planning tree&rsquo;s existing requests to match the house pattern, then wrote the document.</em> Three clauses set the frame:</p>
 <ul>
-<li><b>R1, the hard constraint</b> &mdash; no reference to any other
-project&rsquo;s assembly, held by a test inspecting the built assemblies.
-The existing path boundary re-implemented, not shared: referencing it
-couples the tool to the runtime, moving it couples the runtime to the
-tool.</li>
-<li><b>R6, file-level operations</b> &mdash; no wildcards on anything
-destructive, no implicit overwrite, recursive delete asked for explicitly,
-move reports whether it was atomic.</li>
-<li><b>R9, platform</b> &mdash; Windows and macOS equal, with seven named
-hazards each having a wrong answer that works on one platform.</li>
+<li><b>R1, the hard constraint.</b> No reference to any other project&rsquo;s assembly, held by a test inspecting the built assemblies. The existing path boundary is re-implemented, not shared: referencing it couples the tool to the runtime, and moving it couples the runtime to the tool.</li>
+<li><b>R6, file-level operations.</b> No wildcards on anything destructive, no implicit overwrite, recursive delete asked for explicitly, and move reports whether it was atomic.</li>
+<li><b>R9, platform.</b> Windows and macOS equal, with seven named hazards each having a wrong answer that works on one platform.</li>
 </ul>
-<p>Flagged at the close of the turn: the planning tree sat on its main
-branch, the write was authorised in that message, and nothing was
-committed.</p>
+<p>Flagged at the close of the turn: the planning tree sat on its main branch, the write was authorised in that message, and nothing was committed.</p>
 
-<h2 id="turn-7">Turn 7 &mdash; The name</h2>
+<h2 id="turn-7">Turn 7: The name</h2>
 <blockquote>
-<p><strong>for naming, consider the tools use and the source of the shoddy
-name. think maintenance in a 1875 shoddy mill.</strong></p>
+<p><strong>for naming, consider the tools use and the source of the shoddy name. think maintenance in a 1875 shoddy mill.</strong></p>
 </blockquote>
-<p><em>Claude read the naming tradition&rsquo;s sources and confirmed the
-candidate unclaimed in both repositories.</em> <b>Fettler.</b> In a West
-Riding woollen mill the fettler kept the carding engines in order &mdash;
-stripping matted fibre and dirt out of the card clothing, cleaning,
-setting, repairing. He produced no cloth. His whole job was keeping the
-machines that produced cloth in a state where they could.</p>
+<p><em>Claude read the naming tradition&rsquo;s sources and confirmed the candidate unclaimed in both repositories.</em> <b>Fettler.</b> In a West Riding woollen mill the fettler kept the carding engines in order: stripping matted fibre and dirt out of the card clothing, cleaning, setting, repairing. He produced no cloth. His whole job was keeping the machines that produced cloth in a state where they could.</p>
 <ul>
-<li><b>It makes nothing</b> &mdash; it keeps the material the other machines
-work on in order.</li>
-<li><b>&ldquo;To fettle&rdquo; is the literal English for what it does</b>
-&mdash; and survives as <em>in fine fettle</em>, so it needs no
-glossary.</li>
-<li><b>The connection is real inside the existing naming</b> &mdash; the
-sibling names were already drawn from the same mills.</li>
+<li><b>It makes nothing.</b> It keeps the material the other machines work on in order.</li>
+<li><b>&ldquo;To fettle&rdquo; is the literal English for what it does</b>, and survives as <em>in fine fettle</em>, so it needs no glossary.</li>
+<li><b>The connection is real inside the existing naming.</b> The sibling names were already drawn from the same mills.</li>
 </ul>
-<p>Sub-choice: project and server <b>Fettler</b>, executable
-<b><code>fettle</code></b> &mdash; commands read as imperatives. Runners-up
-and why they lost: <b>Millwright</b> (maintains machinery, not material),
-<b>Mender</b> (exact for editing, undersells the rest), <b>Overlooker</b>
-(supervision, not repair), <b>Tuner</b> (overloaded in software),
-<b>Mungo</b> (already taken by a sibling project). The full account is on
-<a href="heritage.html">the heritage page</a>.</p>
+<p>Sub-choice: project and server <b>Fettler</b>, executable <b><code>fettle</code></b>, so that commands read as imperatives. Runners-up and why they lost: <b>Millwright</b> (maintains machinery, not material), <b>Mender</b> (exact for editing, undersells the rest), <b>Overlooker</b> (supervision, not repair), <b>Tuner</b> (overloaded in software), <b>Mungo</b> (already taken by a sibling project). The full account is on <a href="heritage.html">the heritage page</a>.</p>
 
-<h2 id="turn-8">Turn 8 &mdash; Into the requirements</h2>
+<h2 id="turn-8">Turn 8: Into the requirements</h2>
 <blockquote>
 <p><strong>agreed. include that in the requirements.</strong></p>
 </blockquote>
-<p><em>Six targeted edits folded the name through the document</em> &mdash;
-title, the lane it would live in, the ruling that no project in it carries
-the parent&rsquo;s prefix (the prefix would claim the kinship the
-independence clause exists to deny), the two spellings settled, and the
-naming decision recorded with the five candidates that lost.</p>
+<p><em>Six targeted edits folded the name through the document.</em> They set the title and the lane it would live in. They added the ruling that no project in it carries the parent&rsquo;s prefix, because the prefix would claim the kinship the independence clause exists to deny. They settled the two spellings, and recorded the naming decision with the five candidates that lost.</p>
 
-<h2 id="turn-9">Turn 9 &mdash; Examples expose a gap</h2>
+<h2 id="turn-9">Turn 9: Examples expose a gap</h2>
 <blockquote>
 <p><strong>looking good. add examples for each command.</strong></p>
 </blockquote>
-<p>Twelve verbs, one example each &mdash; and writing them exposed a hole:
-<b>there was no requirements section for <code>find</code> or
-<code>search</code> at all.</b> The opening prose promised both and the
-acceptance criteria assumed them, but nothing in between said what they
-must do. Added, with three clauses that earn their place:</p>
+<p>Twelve verbs, one example each. Writing them exposed a hole: <b>there was no requirements section for <code>find</code> or <code>search</code> at all.</b> The opening prose promised both and the acceptance criteria assumed them, but nothing in between said what they must do. Added, with three clauses that earn their place:</p>
 <ul>
-<li><b>Glob semantics stated, not inherited</b> &mdash; both required
-platforms are case-insensitive, so deferring to the OS behaves differently
-from not.</li>
-<li><b>A result usable as another verb&rsquo;s input without
-reformatting</b> &mdash; what makes it a set rather than a collection.</li>
-<li><b>Truncation reported</b> &mdash; a silently capped search that reads
-as complete is worse than an error.</li>
+<li><b>Glob semantics stated, not inherited.</b> Both required platforms are case-insensitive, so deferring to the OS behaves differently from not.</li>
+<li><b>A result usable as another verb&rsquo;s input without reformatting.</b> That is what makes it a set rather than a collection.</li>
+<li><b>Truncation reported.</b> A silently capped search that reads as complete is worse than an error.</li>
 </ul>
 
-<h2 id="turn-10">Turn 10 &mdash; Standing alone</h2>
+<h2 id="turn-10">Turn 10: Standing alone</h2>
 <blockquote>
-<p><strong>remove all the referencs to shoddy...just the requirements for
-this thing. simply say 'all c#', or whatever.</strong></p>
+<p><strong>remove all the referencs to shoddy...just the requirements for this thing. simply say 'all c#', or whatever.</strong></p>
 </blockquote>
-<p><em>A full rewrite of the document.</em> Every reference to the other
-project removed; the only surviving mill mentions explain where the name
-comes from. The independence clause became &ldquo;written entirely in C#,
-no reference to any other project here; shares the repository and the
-release and nothing else&rdquo; &mdash; the sentence that still governs
-this repository. Ground truth was rewritten from facts about another
-codebase into nine verifiable platform behaviours: the PowerShell&nbsp;5.1
-error-stream trap, case-insensitive filesystems, macOS filename
-normalization, Windows reserved names and path limits, open-file locking,
-and a file move having two different atomicity guarantees depending on the
-volume.</p>
+<p><em>A full rewrite of the document.</em> Every reference to the other project removed. The only surviving mill mentions explain where the name comes from. The independence clause became &ldquo;written entirely in C#, no reference to any other project here; shares the repository and the release and nothing else&rdquo;, the sentence that still governs this repository. Ground truth was rewritten from facts about another codebase into nine verifiable platform behaviours. Among them: the PowerShell&nbsp;5.1 error-stream trap, case-insensitive filesystems, macOS filename normalization, Windows reserved names and path limits, open-file locking, and a file move having two different atomicity guarantees depending on the volume.</p>
 
-<h2 id="turn-11">Turn 11 &mdash; Every command, this time</h2>
+<h2 id="turn-11">Turn 11: Every command, this time</h2>
 <blockquote>
 <p><strong>your forgot to add examples for every command</strong></p>
 </blockquote>
-<p>Correct &mdash; the worked forms covered six of twelve. Replaced with one
-worked example per verb, each captioned with what it pins and which clause
-it comes from, headed by a note that the examples pin <b>the information
-each answer must carry, not its layout</b>. Several show the refusal path
-rather than the happy one, which is where the requirements have teeth:</p>
+<p>Correct. The worked forms covered six of twelve. Replaced with one worked example per verb, each captioned with what it pins and which clause it comes from, headed by a note that the examples pin <b>the information each answer must carry, not its layout</b>. Several show the refusal path rather than the happy one, which is where the requirements have teeth:</p>
 <pre><code>$ fettle delete "artifacts/*.tmp"
 refused: delete does not accept a pattern; name one path
 
@@ -280,54 +151,31 @@ refused: edit 2 matched 4 places in src/Fettler/Glob.cs; nothing written
 $ fettle move src/glob.cs src/Glob.cs
 moved src/glob.cs -> src/Glob.cs  atomic: yes  case-only rename</code></pre>
 
-<h2 id="turn-12">Turn 12 &mdash; The file-watcher question</h2>
+<h2 id="turn-12">Turn 12: The file-watcher question</h2>
 <blockquote>
-<p><strong>is a file-watcher useful in the mcp? to notify you of changes you
-may not otherwise know about...</strong></p>
+<p><strong>is a file-watcher useful in the mcp? to notify you of changes you may not otherwise know about...</strong></p>
 </blockquote>
-<p>Yes &mdash; but almost certainly not as a watcher, and the reasoning
-inverts the obvious answer. The problem is real: refusing an edit against a
-file that changed since it was read catches staleness <em>at the moment of
-writing</em>, and misses the worse case &mdash; read a file, reason about
-it for several turns, never write, and the answer is built on content that
-stopped being true. The recommendation: <b>stat what was read, not watch
-the tree.</b> The set of files with stale beliefs attached is exactly the
-set that has been read.</p>
+<p>Yes, but almost certainly not as a watcher, and the reasoning inverts the obvious answer. The problem is real. Refusing an edit against a file that changed since it was read catches staleness <em>at the moment of writing</em>. It misses the worse case. Read a file, reason about it for several turns, never write, and the answer is built on content that stopped being true. The recommendation: <b>stat what was read, not watch the tree.</b> The set of files with stale beliefs attached is exactly the set that has been read.</p>
 <table class="prose">
 <thead><tr><th></th><th>Stat what was read</th><th>Recursive watcher</th></tr></thead>
 <tbody>
 <tr><td>Cross-platform reliability</td><td>A stat is a stat</td><td>Overflows under bursts on Windows; a long history of trouble on macOS</td></tr>
-<tr><td>Noise from own writes</td><td>None &mdash; it knows what it wrote</td><td>Every edit reports itself unless carefully attributed</td></tr>
-<tr><td>Noise from a build</td><td>None &mdash; nobody read the build output</td><td>Thousands of events without a scoping rule</td></tr>
-<tr><td>What it misses</td><td>Files never read &mdash; no beliefs held about them</td><td>Whatever the OS dropped, silently</td></tr>
+<tr><td>Noise from own writes</td><td>None. It knows what it wrote</td><td>Every edit reports itself unless carefully attributed</td></tr>
+<tr><td>Noise from a build</td><td>None. Nobody read the build output</td><td>Thousands of events without a scoping rule</td></tr>
+<tr><td>What it misses</td><td>Files never read. No beliefs held about them</td><td>Whatever the OS dropped, silently</td></tr>
 </tbody>
 </table>
-<p>Three clauses if it goes in: advisory never authoritative; modified time
-<em>and</em> size together; Fettler&rsquo;s own writes are not news. A real
-watcher would earn its place driving something reactive &mdash; a different
-product &mdash; so it goes in Out of scope with the reasoning
-recorded.</p>
+<p>Three clauses if it goes in: advisory never authoritative; modified time <em>and</em> size together; Fettler&rsquo;s own writes are not news. A real watcher would earn its place driving something reactive, which is a different product, so it goes in Out of scope with the reasoning recorded.</p>
 
-<h2 id="turn-13">Turn 13 &mdash; The record itself</h2>
+<h2 id="turn-13">Turn 13: The record itself</h2>
 <blockquote>
-<p><strong>provide a transcript of this conversation, as an md file
-please</strong></p>
+<p><strong>provide a transcript of this conversation, as an md file please</strong></p>
 </blockquote>
-<p>The transcript was written &mdash; the document this page presents. Its
-closing inventory recorded the state of the world at the end of the
-conversation: the enhancement request written and uncommitted, the
-file-watcher clauses recommended but not yet written in, the requirements
-file not yet renamed for its subject, and <b>nothing committed in either
-repository at any point in the conversation</b>. Every one of those
-decisions &mdash; what to keep, what to rename, what to make permanent
-&mdash; remained the author&rsquo;s.</p>
+<p>The transcript was written. It is the document this page presents. Its closing inventory recorded the state of the world at the end of the conversation. The enhancement request was written and uncommitted. The file-watcher clauses were recommended but not yet written in. The requirements file was not yet renamed for its subject. And <b>nothing was committed in either repository at any point in the conversation</b>. Every one of those decisions, what to keep, what to rename, what to make permanent, remained the author&rsquo;s.</p>
 
 <hr>
 
-<p>What the conversation produced is the tool this site documents:
-<a href="fettle.html">what fettle is</a>,
-<a href="fettle-reference.html#rules">the rules it holds to</a>, and
-<a href="authorship.html">the account of who made it</a>.</p>
+<p>What the conversation produced is the tool this site documents: <a href="fettle.html">what fettle is</a>, <a href="fettle-reference.html#rules">the rules it holds to</a>, and <a href="authorship.html">the account of who made it</a>.</p>
 
 <footer>Named for the fettler who kept a mill's carding engines in order
 (<a href="heritage.html">the heritage of the name</a>).<br>

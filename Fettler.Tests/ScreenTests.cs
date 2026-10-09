@@ -102,7 +102,7 @@ public sealed class ScreenTests
         Result<Screened> parsed = Screens.Parse(["identifiers", "-scientific"]);
 
         Assert.False(parsed.IsOk);
-        Assert.Contains("cannot be combined", parsed.Failure!.Message, StringComparison.Ordinal);
+        Assert.Contains("mixes included and excluded", parsed.Failure!.Message, StringComparison.Ordinal);
     }
 
     /// <summary>A misspelt category is refused rather than ignored: it
@@ -187,7 +187,7 @@ public sealed class ScreenTests
 
         Assert.False(found.IsOk);
         Assert.Equal(Outcome.Invalid, found.Failure!.Outcome);
-        Assert.Contains("cannot be combined", found.Failure.Message, StringComparison.Ordinal);
+        Assert.Contains("mixes included and excluded", found.Failure.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1035,7 +1035,7 @@ public sealed class ScreenTests
         CliResult listed = await Run(box, "roots");
 
         Assert.Equal(ExitCodes.Ok, listed.ExitCode);
-        Assert.Contains("clinical: no model installed - reads here will refuse", listed.Stdout,
+        Assert.Contains("clinical: no model installed; reads here are refused", listed.Stdout,
             StringComparison.Ordinal);
     }
 
@@ -1098,7 +1098,7 @@ public sealed class ScreenTests
 
         Assert.Contains("no \"models\" directory is declared", listed.Stdout,
             StringComparison.Ordinal);
-        Assert.Contains("only the identifier patterns run", listed.Stdout, StringComparison.Ordinal);
+        Assert.Contains("Only identifiers are screened", listed.Stdout, StringComparison.Ordinal);
 
         // Every model-backed category named, so the sentence cannot
         // quietly cover three of four.
@@ -1145,7 +1145,7 @@ public sealed class ScreenTests
 
         Assert.Equal("nlpaueb/legal-bert-base @ 9f8e7d6",
             screening.GetProperty("legal").GetString());
-        Assert.Equal("no model installed - reads here will refuse",
+        Assert.Equal("no model installed; reads here are refused",
             screening.GetProperty("clinical").GetString());
     }
 

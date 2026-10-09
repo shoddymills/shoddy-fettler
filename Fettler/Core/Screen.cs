@@ -164,8 +164,8 @@ public static class Screens
 
         if (anyBare && anyMinus)
             return Result<Screened>.Fail(Outcome.Invalid,
-                "mixes included and excluded categories in one list, and the two cannot be "
-                + "combined: write [\"identifiers\", \"clinical\"] to screen only those, or "
+                "mixes included and excluded categories in one list. Write "
+                + "[\"identifiers\", \"clinical\"] to screen only those, or "
                 + "[\"-scientific\"] to screen everything except that");
 
         Screened chosen = anyMinus ? Everything : Screened.None;
@@ -388,10 +388,9 @@ public static class Screen
         }
 
         return $"this response would disclose regulated data: {parts}. "
-            + "What was found is deliberately not quoted back, because a refusal that "
-            + "named it would put it in the log and the transcript, which is the disclosure "
-            + "being refused. Read a narrower range, or take the screen off this scope if "
-            + "the content is not what it looks like.";
+            + "The matches are not quoted, because the refusal would then disclose them. "
+            + "Read a narrower range, or take the screen off this scope if the content "
+            + "is not regulated.";
     }
 
     /// <summary>

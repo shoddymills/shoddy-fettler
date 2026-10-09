@@ -159,7 +159,7 @@ public sealed class ArchiveTests
         CliResult said = await Run(box, "read", "plain.txt", "--member", "anything");
 
         Assert.Equal(ExitCodes.Invalid, said.ExitCode);
-        Assert.Contains("not one", said.Stdout + said.Stderr);
+        Assert.Contains("not an archive", said.Stdout + said.Stderr);
     }
 
     /// <summary>A lone gzip is one file wearing a coat, and reading it

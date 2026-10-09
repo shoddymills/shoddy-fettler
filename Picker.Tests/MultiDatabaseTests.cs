@@ -89,7 +89,7 @@ public sealed class MultiDatabaseTests
         Assert.Equal(Outcome.Invalid, answer.Failure!.Outcome);
         Assert.Contains("Sales.dbo.Orders", answer.Failure.Message);
         Assert.Contains("Finance.dbo.Orders", answer.Failure.Message);
-        Assert.Contains("qualify", answer.Failure.Message);
+        Assert.Contains("Qualify it", answer.Failure.Message);
     }
 
     [Fact]

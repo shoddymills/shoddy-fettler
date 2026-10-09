@@ -218,8 +218,8 @@ public static class Tasks
                 return Result<string>.Fail(Outcome.Invalid,
                     replacements.Count == 0
                         ? $"task '{task}' uses {{{name}}}, and no \"replacements\" are declared. "
-                          + $"Add one to {RootsFile.FileName}, or to the {RootsFile.LocalFileName} "
-                          + "beside it for a value that is yours rather than the project's"
+                          + $"Add a \"replacements\" object to {RootsFile.FileName}, or to "
+                          + $"{RootsFile.LocalFileName} beside it for a value of your own"
                         : $"task '{task}' uses {{{name}}}, which is not declared; \"replacements\" has: "
                           + string.Join(", ", replacements.Keys.OrderBy(k => k, StringComparer.Ordinal)),
                     file);
@@ -361,9 +361,9 @@ public static class Tasks
         if (!cwd.IsOk)
             return cwd.Failure!.Outcome == Outcome.Refused
                 ? Result<TaskRun>.Fail(Outcome.Refused,
-                    $"'{task.Name}' would run in a tree that does not grant execute. "
+                    $"'{task.Name}' would run in a tree that does not allow execute. "
                     + "Add \"execute\" to that tree's or scope's \"can\" in "
-                    + $"{RootsFile.FileName}. It is never granted by default.",
+                    + $"{RootsFile.FileName}. execute is never a default.",
                     cwd.Failure.Path)
                 : cwd.Carry<TaskRun>();
 
@@ -442,7 +442,7 @@ public static class Tasks
         // cost again.
         if (timedOut)
             return Result<TaskRun>.Fail(new Failure(Outcome.TimedOut,
-                $"'{task.Name}' outran its timeout of {timeout.TotalSeconds:0}s and was killed."
+                $"'{task.Name}' did not finish within {timeout.TotalSeconds:0}s and was killed."
                 + Tail(run)));
 
         return Result<TaskRun>.Ok(run);
@@ -455,12 +455,12 @@ public static class Tasks
     static string Tail(TaskRun run)
     {
         string said = run.Stderr.Length > 0 ? run.Stderr : run.Stdout;
-        if (said.Length == 0) return " It had said nothing.";
+        if (said.Length == 0) return " It printed nothing.";
 
         string[] lines = said.Replace("\r\n", "\n").TrimEnd('\n').Split('\n');
         int from = Math.Max(0, lines.Length - TailLines);
 
-        var shown = new StringBuilder(" The last it said before it was killed:");
+        var shown = new StringBuilder(" Its last output:");
         for (int i = from; i < lines.Length; i++)
         {
             string line = lines[i];
@@ -510,8 +510,8 @@ public static class Tasks
         }
 
         if (dropped > 0)
-            kept.Append($"\n[{dropped:N0} more characters were produced and not captured: ")
-                .Append($"the ceiling is {cap:N0}.]\n");
+            kept.Append($"\n[{dropped:N0} more characters were not captured; ")
+                .Append($"the limit is {cap:N0}]\n");
 
         return kept.ToString();
     }

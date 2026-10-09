@@ -25,19 +25,19 @@ public static class ToolCatalogue
 
     static readonly Tool[] Tools =
     [
-        new("find", "Paths matching a glob, with size and modified time. Ordered by path, or by recency with sort=mtime. The glob is relative to a declared tree, not to any working directory.", """
+        new("find", "List files matching a glob, with size and modified time. Sorted by path, or by modified time with sort=mtime. The glob is relative to a declared tree.", """
             {"type":"object","properties":{
               "pattern":{"type":"string","description":"glob; * stays within a segment, ** crosses segments, matching is case-insensitive"},
-              "in":{"type":"string","description":"which root to search when more than one is open"},
+              "in":{"type":"string","description":"which tree to search when more than one is open"},
               "sort":{"type":"string","enum":["path","mtime"]},
               "since":{"type":"string","description":"ISO-8601; only files modified after it"},
               "limit":{"type":"integer"},
-              "include_generated":{"type":"boolean","description":"do not skip bin, obj, .git, artifacts, node_modules"},
+              "include_generated":{"type":"boolean","description":"include bin, obj, .git, artifacts and node_modules"},
               "exclude":{"type":"array","items":{"type":"string"}}
             }}
             """),
 
-        new("search", "Matching lines as records: path, line, column, text, optional context. Takes several patterns at once. Searches only inside declared trees; there is nothing outside them to search. A document that has to be rendered before it can be read - a PDF - is rendered and searched with everything else, and a hit inside one carries the page it sits on. Hits stop at `limit`, and also at 40,000 characters of matched text, because one hit can be a thousand-character line; `truncated` says either happened.", """
+        new("search", "Find lines matching one or more patterns. Each hit gives path, line, column and text, with optional context. Searches only inside the declared trees. PDFs are rendered to text and searched; a hit in one names its page. Stops at `limit` hits or at 40,000 characters of matched text; `truncated` says so.", """
             {"type":"object","required":["patterns"],"properties":{
               "patterns":{"type":"array","items":{"type":"string"},"description":".NET regular expressions unless literal is true"},
               "glob":{"type":"string","description":"restrict to a subset of files"},
@@ -46,32 +46,32 @@ public static class ToolCatalogue
               "case_sensitive":{"type":"boolean"},
               "context":{"type":"integer"},
               "limit":{"type":"integer"},
-              "count":{"type":"boolean","description":"how many, without the hits"},
+              "count":{"type":"boolean","description":"return counts only, no hits"},
               "files_only":{"type":"boolean"},
               "include_generated":{"type":"boolean"},
-              "no_documents":{"type":"boolean","description":"leave documents shut instead of rendering them to search inside. They ARE searched by default. Either way the answer says how many were not looked inside, because a file that was never opened is not a file with nothing in it."}
+              "no_documents":{"type":"boolean","description":"do not render PDFs to search inside them. The answer says how many documents were skipped."}
             }}
             """),
 
-        new("read", "Content, encoding, line ending, trailing-newline state and a content hash. Takes several paths in one call. Reads notebooks as cells, PDFs as text per page, spreadsheets as rows of cells with their formulas, Word documents as paragraphs and tables under their headings, and images as facts plus a native image part - so this is the reader for every file type, not only for source. Those are rendered, never written back: a document is refused by write, edit and replace, because the text is a fraction of the file. Stops at 2000 lines unless `to` says otherwise, and at 40,000 characters across the whole call whatever `to` says - either way it reports the lines it did not return, so ask again from where it stopped. For a log or a build transcript ask for `tail` instead - the end of the file, without needing to know its length.", """
+        new("read", "Read files. Returns content, encoding, line ending, trailing-newline state and a content hash. Takes several paths in one call. Reads notebooks as cells, PDFs as text per page, spreadsheets as rows with their formulas, Word documents as paragraphs and tables, and images as facts plus the image itself. Rendered documents cannot be written back. Stops at 2000 lines unless `to` says otherwise, and at 40,000 characters per call; the answer says how many lines were left out. Use `tail` for the end of a log.", """
             {"type":"object","required":["paths"],"properties":{
               "paths":{"type":"array","items":{"type":"string"}},
               "from":{"type":"integer"},
-              "to":{"type":"integer","description":"lifts the default 2000-line cap; say what you need. It does NOT lift the 40,000-character one: that is how much of your range survives the trip, and a range too big to send comes back short rather than not at all."},
-              "tail":{"type":"integer","description":"the LAST n lines, counted from the end. Use this for logs and build output rather than reading the file to find out how long it is. Not combinable with from/to."},
-              "member":{"type":"string","description":"read ONE entry out of a .zip/.tar/.tar.gz instead of its manifest, decoded like any other file. Nothing is unpacked to disk."}
+              "to":{"type":"integer","description":"last line to read; lifts the 2000-line default. The 40,000-character cap per call still applies."},
+              "tail":{"type":"integer","description":"read the last n lines. Not combinable with from or to."},
+              "member":{"type":"string","description":"read one entry of an archive instead of its member list. Nothing is unpacked to disk."}
             }}
             """),
 
-        new("extract", "Unpack a .zip, .tar, .tar.gz or .tgz into a declared tree. Refused WHOLE - nothing written at all - if any member would land outside a tree, needs a permission this boundary has not granted, or is a link, so an archive never lands half-unpacked. Carries the executable bit. Read the archive first to see what is in it.", """
+        new("extract", "Unpack a .zip, .tar, .tar.gz or .tgz into a declared tree. Refused whole, with nothing written, if any member would land outside a tree, needs a permission the tree does not grant, or is a link. Keeps the executable bit. Read the archive first to see its members.", """
             {"type":"object","required":["archive","into"],"properties":{
               "archive":{"type":"string"},
-              "into":{"type":"string","description":"the directory the members land in; there is no working directory to default to"},
-              "overwrite":{"type":"boolean","description":"replace files already there; without it an existing file is a refusal"}
+              "into":{"type":"string","description":"the directory to unpack into"},
+              "overwrite":{"type":"boolean","description":"replace files that already exist"}
             }}
             """),
 
-        new("write", "Create or replace a file, keeping its encoding and line endings unless told otherwise. Needs create where nothing is there and update where something is; a read-only tree grants neither.", """
+        new("write", "Create or replace a file. Keeps its encoding and line endings unless told otherwise. Needs create for a new file and update for an existing one.", """
             {"type":"object","required":["path","text"],"properties":{
               "path":{"type":"string"},
               "text":{"type":"string"},
@@ -81,16 +81,16 @@ public static class ToolCatalogue
             }}
             """),
 
-        new("edit", "A batch of edits, resolved against the files as read and applied all or not at all. May span files.", """
+        new("edit", "Apply a batch of edits to one or more files. All of them apply, or none do.", """
             {"type":"object","required":["script"],"properties":{
               "path":{"type":"string","description":"the file, when the script does not carry a files array"},
-              "expect":{"type":"string","description":"the hash read returned; the edit is refused if the file has moved"},
+              "expect":{"type":"string","description":"the hash read returned; the edit is refused if the file changed since"},
               "dry_run":{"type":"boolean"},
               "script":{"type":"object","description":"either {edits:[...]} or {files:[{path,expect,edits:[...]}]}; an edit is {replace,with,from,to,all} or {insertAfter,text} or {deleteFrom,deleteTo}"}
             }}
             """),
 
-        new("replace", "One substitution everywhere it appears across a glob, all or nothing. Dry run first.", """
+        new("replace", "Replace one string with another in every file matching a glob. All files change, or none do. Use dry_run first.", """
             {"type":"object","required":["find","with"],"properties":{
               "find":{"type":"string"},
               "with":{"type":"string"},
@@ -101,64 +101,64 @@ public static class ToolCatalogue
             }}
             """),
 
-        new("new", "An empty file, refusing rather than truncating one already there.", """
+        new("new", "Create an empty file. Refused if the file exists.", """
             {"type":"object","required":["path"],"properties":{"path":{"type":"string"}}}
             """),
 
-        new("mkdir", "A directory and the parents it needs.", """
+        new("mkdir", "Create a directory, with any missing parents.", """
             {"type":"object","required":["path"],"properties":{"path":{"type":"string"}}}
             """),
 
-        new("move", "Rename or relocate a file or a directory, reporting whether it was atomic.", """
+        new("move", "Rename or move a file or directory. Reports whether the move was atomic.", """
             {"type":"object","required":["from","to"],"properties":{
               "from":{"type":"string"},"to":{"type":"string"},"overwrite":{"type":"boolean"}
             }}
             """),
 
-        new("copy", "Copy a file, or a tree with recursive. Carries the executable bit; does not follow links.", """
+        new("copy", "Copy a file, or a directory with recursive. Keeps the executable bit. Does not follow links.", """
             {"type":"object","required":["from","to"],"properties":{
               "from":{"type":"string"},"to":{"type":"string"},
               "recursive":{"type":"boolean"},"overwrite":{"type":"boolean"},"preserve_times":{"type":"boolean"}
             }}
             """),
 
-        new("delete", "Delete one named path. Never a pattern; a non-empty directory needs recursive.", """
+        new("delete", "Delete one path. Not a pattern. A non-empty directory needs recursive.", """
             {"type":"object","required":["path"],"properties":{
               "path":{"type":"string"},"recursive":{"type":"boolean"},
               "force":{"type":"boolean","description":"clear a read-only attribute first"}
             }}
             """),
 
-        new("exec", "Set or clear the executable bit. Reports unsupported on Windows rather than pretending.", """
+        new("exec", "Set or clear the executable bit. Reports unsupported on Windows.", """
             {"type":"object","required":["path","executable"],"properties":{
               "path":{"type":"string"},"executable":{"type":"boolean"}
             }}
             """),
 
-        new("roots", "The declared trees, their paths, WHAT MAY BE DONE in each and in any scope inside it, and which one an unqualified path lands in. Ask this first, and before guessing why something was refused.", """
+        new("roots", "List the declared trees: path, what each allows, the scopes inside it, and which tree an unqualified path lands in. Call this first.", """
             {"type":"object","properties":{}}
             """),
 
-        new("tasks", "The declared tasks and what each runs: \"run\" is the line as declared, and \"command\" is the argument list that would actually be launched, with any declared values already filled in.", """
+        new("tasks", "List the declared tasks. \"run\" is the line as declared; \"command\" is the argument list that would be launched, with declared values filled in.", """
 
             {"type":"object","properties":{}}
             """),
 
-        new("run", "Run a declared task, capturing its streams and exit code. Never composes a shell command. A task is declared whole and TAKES NO ARGUMENTS: name and timeout are the only inputs, and anything else is refused rather than ignored. If you need a variant, ask for a second task to be declared. A command line MAY carry values the configuration declares under \"replacements\", written {like-this} - those come from the file, never from you, and a person edits that file. The result reports the argument list that was actually launched. Needs the tree it runs in to grant execute, which is never granted by default.", """
+        new("run", "Run a declared task and return its output and exit code. A task takes no arguments: name and timeout are the only inputs, and anything else is refused. Values written {like-this} in a task come from the configuration file, never from the caller. The result names the argument list that was launched. Needs the tree to grant execute, which is never a default.", """
             {"type":"object","required":["name"],"additionalProperties":false,"properties":{
               "name":{"type":"string"},"timeout":{"type":"integer","description":"seconds; 0 means no timeout"}
             }}
             """),
 
-        new("doctor", "Whether this tool is wired into each assistant client, at both levels, and what on this machine still lets the boundary be gone round. Diagnoses; never changes anything.", """
+        new("doctor", "Report whether fettle is registered with each assistant client at each level, and what on this machine still lets the assistant reach files without it. Changes nothing.", """
             {"type":"object","properties":{
               "client":{"type":"string","enum":["claude-code","claude-desktop","vscode-copilot","github-copilot"],
-                        "description":"narrows the REPORT; every client is scanned either way"},
+                        "description":"report only this client; every client is still scanned"},
               "quiet":{"type":"boolean","description":"leave out what is healthy or does not apply"}
             }}
             """),
 
-        new("batch", "Several operations in one call, in order, stopping at the first failure. Not transactional.", """
+        new("batch", "Run several operations in order, stopping at the first failure. Not transactional.", """
             {"type":"object","required":["script"],"properties":{
               "script":{"type":"object","description":"{operations:[{op,path,...}]}; op is mkdir, new, write, move, copy, delete or exec"}
             }}

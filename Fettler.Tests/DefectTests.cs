@@ -231,10 +231,10 @@ public sealed class DefectTests
         string instructions = JsonDocument.Parse(reply!).RootElement
             .GetProperty("result").GetProperty("instructions").GetString()!;
 
-        Assert.Contains("no current directory", instructions);
+        Assert.Contains("no working directory", instructions);
         Assert.Contains("changing directory does nothing", instructions);
-        Assert.Contains("Call roots FIRST", instructions);
-        Assert.Contains("execute, which is never granted by default", instructions);
+        Assert.Contains("Call roots first", instructions);
+        Assert.Contains("execute, which is never a default", instructions);
         Assert.Contains(RootsFile.FileName, instructions);
     }
 
@@ -255,10 +255,10 @@ public sealed class DefectTests
             throw new Xunit.Sdk.XunitException($"no tool called {name}");
         }
 
-        Assert.Contains("not to any working directory", Description("find"));
-        Assert.Contains("only inside declared trees", Description("search"));
-        Assert.Contains("WHAT MAY BE DONE", Description("roots"));
-        Assert.Contains("never granted by default", Description("run"));
+        Assert.Contains("relative to a declared tree", Description("find"));
+        Assert.Contains("only inside the declared trees", Description("search"));
+        Assert.Contains("what each allows", Description("roots"));
+        Assert.Contains("never a default", Description("run"));
     }
 
     /// <summary>

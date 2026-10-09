@@ -175,8 +175,8 @@ public sealed class Roots
         {
             if (!IsValidName(d.Name))
                 return Result<Roots>.Fail(Outcome.Invalid,
-                    $"tree name '{d.Name}' is not usable: use two or more characters, " +
-                    "starting with a letter, from letters, digits, dot, underscore and hyphen");
+                    $"tree name '{d.Name}' is not allowed. A name has two or more characters, " +
+                    "starts with a letter, and uses letters, digits, dot, underscore and hyphen");
 
             foreach (OpenTree existing in opened)
                 if (existing.Name.Equals(d.Name, PathComparison))
@@ -232,9 +232,9 @@ public sealed class Roots
     /// constant because it has to name the way out: a boundary that
     /// refuses without saying how to widen it is a wall.</summary>
     public const string NothingDeclared =
-        "no tree was declared, so there is nothing to work in. Put a "
+        "no tree is declared. Put a "
         + RootsFile.FileName + " in the folder you mean, holding "
-        + "{\"trees\":{\"work\":{\"path\":\".\"}}}, or pass --config PATH, or "
+        + "{\"trees\":{\"work\":{\"path\":\".\"}}}. Or pass --config PATH, or "
         + "--root PATH for read-only access.";
 
     // ---- resolution, which is containment and permission together ----
@@ -290,9 +290,9 @@ public sealed class Roots
 
         if (need != Permission.None && !path.Can.HasFlag(need))
             return Result<ContainedPath>.Fail(Outcome.Refused,
-                $"that needs {Permissions.Write(need)} here, and this "
-                + $"{(path.Governing.Length == 0 ? "tree" : "scope")} grants "
-                + $"{Permissions.Write(path.Can)}; ask for the roots to see the boundary",
+                $"this needs {Permissions.Write(need)}, and the "
+                + $"{(path.Governing.Length == 0 ? "tree" : "scope")} here allows "
+                + $"{Permissions.Write(path.Can)}. Run roots to see the trees",
                 path.Display);
 
         return Result<ContainedPath>.Ok(path);
@@ -325,8 +325,8 @@ public sealed class Roots
                 && !scope.Path.Equals(path.Full, PathComparison)
                 && !scope.Can.HasFlag(need))
                 return Result<ContainedPath>.Fail(Outcome.Refused,
-                    $"something inside this is governed by a scope that does not grant "
-                    + $"{Permissions.Write(need)}; name the parts you mean instead",
+                    $"a scope inside this directory does not allow "
+                    + $"{Permissions.Write(need)}. Name the parts you mean instead",
                     path.Display);
 
         return here;
@@ -426,7 +426,7 @@ public sealed class Roots
             {
                 if (link.Target is null)
                     return Result<ContainedPath>.Fail(Outcome.Refused,
-                        "a link on this path cannot be resolved, so it cannot be shown to stay inside the tree",
+                        "a link on this path does not resolve, so the path cannot be checked against the tree",
                         current);
 
                 current = link.Target;
@@ -463,7 +463,7 @@ public sealed class Roots
         // One message, whatever is or is not there (R8.4), and the same
         // one for a hidden scope.
         Result<ContainedPath>.Fail(Outcome.OutsideRoot,
-            "the path is outside every declared tree; ask for the roots to see the boundary");
+            "the path is outside every declared tree. Run roots to see the trees");
 
     // ---- names and components ----
 

@@ -73,7 +73,7 @@ static class Program
         if (request is null) return Protocol.Failed(error);
 
         if (request.Op != "screen")
-            return Protocol.Failed($"'{request.Op}' is not an operation this knows");
+            return Protocol.Failed($"'{request.Op}' is not a known operation");
 
         try
         {

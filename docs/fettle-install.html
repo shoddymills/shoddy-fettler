@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Installing Fettler &mdash; the archives, getting fettle onto PATH, and the optional MCP front end for an assistant.">
+<meta name="description" content="Installing Fettler: the archives, getting fettle onto PATH, and the optional MCP front end for an assistant.">
 <title>Installing It | Fettler</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -28,26 +28,13 @@
 
 <nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="fettle-quickstart.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Quick Start</span></span></a><a class="next" href="fettle-setup.html"><span class="pnwrap"><span class="ttl">In a project</span><span class="dir">Next &rarr;</span></span></a></nav>
 
-<div class="takeaway"><b>This is the long way round, not the fastest
-route.</b> If you just want Fettler working, three commands do it:
-<a href="fettle-quickstart.html">the quick start</a>. Come back here
-for the why and the flags.</div>
+<div class="takeaway"><b>This is the long version.</b> If you only want Fettler working, three commands do it: <a href="fettle-quickstart.html">the quick start</a>. Come back here for the reasons and the flags.</div>
 
-<p><b>Everything on this page is done once on a machine and not
-again.</b> First, get the binary onto <code>PATH</code> &mdash; the list
-of folders your terminal searches when you type a command. Then,
-optionally, register it with an assistant client, and decide &mdash; for
-this account, across every project &mdash; whether Fettler is an option
-or the route. Turning it on in a particular project comes after; that is
-<a href="fettle-setup.html">Fettler in a project</a>. What the tool
-actually is, and what its boundary means, is
-<a href="index.html">Fettler</a>.</p>
+<p><b>Everything on this page is done once per machine.</b> First, get the binary onto <code>PATH</code>, the list of folders your terminal searches when you type a command. Then, if you want, register it with an assistant client and decide whether Fettler is one option or the only route, for this account and across every project. Turning it on in one project comes after. That is <a href="fettle-setup.html">Fettler in a project</a>. What the tool is, and what its boundary means, is <a href="index.html">Fettler</a>.</p>
 
 <h2 id="download">The download</h2>
 
-<p>One download, one file on disk, no .NET runtime on the target
-machine. Every release attaches a self-contained, single-file
-<code>fettle</code> per operating system.</p>
+<p>One download, one file on disk, and no .NET runtime on the target machine. Every release attaches a self-contained, single-file <code>fettle</code> per operating system.</p>
 
 <table>
 <tr><th>Platform</th><th>Archive</th></tr>
@@ -57,61 +44,34 @@ machine. Every release attaches a self-contained, single-file
 <tr><td>Linux</td><td><code>fettle-X.Y.Z-linux-x64.tar.gz</code></td></tr>
 </table>
 
-<p>The unix archives are tars because <b>the execute bit &mdash; the
-marker that says a file may run as a program &mdash; only survives a
-tar</b>. Each archive also carries <code>NOTICE</code> and
-<code>LICENSE</code>. The single file has PdfPig, a PDF-reading
-library, bundled in. Its Apache-2.0 license asks the notice to travel
-with the binary, and MIT asks this project's own copyright notice to be
-in every copy.</p>
+<p>The unix archives are tars because <b>only a tar keeps the execute bit</b>, the marker that says a file may run as a program. Each archive also carries <code>NOTICE</code> and <code>LICENSE</code>. The single file has PdfPig, a PDF-reading library, bundled in. Its Apache-2.0 licence asks the notice to travel with the binary, and MIT asks this project's own copyright notice to be in every copy.</p>
 
-<div class="note"><b>PdfPig is in <code>fettle</code> and in nothing
-else this project ships.</b> <code>burler</code> is the only other
-program here, and it has no PDF component and no dependency on one,
-direct or indirect. Neither program references the other, so nothing
-can leak between them — the wire between them is the whole contract.
-The full statement is in
-<code>THIRD-PARTY-NOTICES.md</code>.</div>
+<div class="note"><b>PdfPig is in <code>fettle</code> and in nothing else this project ships.</b> <code>burler</code> is the only other program here. It has no PDF component and no dependency on one. Neither program references the other, so nothing can leak between them. The wire between them is the whole contract. The full statement is in <code>THIRD-PARTY-NOTICES.md</code>.</div>
 
 <h2 id="path">Putting it on <code>PATH</code></h2>
 
-<div class="takeaway"><b>This is the step everything else assumes, and
-the step most likely to be skipped.</b> Every registration on this page
-launches a bare <code>fettle</code>. If nothing on <code>PATH</code>
-resolves that name, the server never starts. From the assistant's side,
-that looks like <em>having no file tools</em> rather than like an
-error.</div>
+<div class="takeaway"><b>This is the step everything else assumes, and the step most likely to be skipped.</b> Every registration on this page launches a bare <code>fettle</code>. If nothing on <code>PATH</code> resolves that name, the server never starts. From the assistant's side, that looks like <em>having no file tools</em> rather than like an error.</div>
 
 <div class="plat win"><span class="os">Windows &middot; PowerShell</span><div class="body">
 
-<p><b>Where to put it.</b> A per-user directory &mdash; no
-administrator rights needed, no other account affected.</p>
+<p><b>Where to put it.</b> A per-user directory. No administrator rights are needed, and no other account is affected.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>$dir = "$env:LOCALAPPDATA\Programs\fettle"
 New-Item -ItemType Directory -Force $dir | Out-Null
 Expand-Archive fettle-X.Y.Z-win-x64.zip -DestinationPath $dir -Force</code></pre></div>
 
-<p><b>Unblock it if the zip came from a browser.</b> A download carries
-the Mark-of-the-Web &mdash; Windows' "this came from the internet"
-marker &mdash; and can be refused on first run.</p>
+<p><b>Unblock it if the zip came from a browser.</b> A download carries the Mark-of-the-Web, which is Windows' "this came from the internet" marker, and can be refused on first run.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>Get-ChildItem $dir -Recurse | Unblock-File</code></pre></div>
 
-<p><b>Put it on <code>PATH</code> for this account, permanently.</b>
-Set the <em>user</em> variable by reading it, adding the folder, and
-writing it back. Do not use <code>setx</code>: it cuts the value off at
-1024 characters, and it flattens the machine half of <code>PATH</code>
-into the user half.</p>
+<p><b>Put it on <code>PATH</code> for this account, permanently.</b> Set the <em>user</em> variable by reading it, adding the folder, and writing it back. Do not use <code>setx</code>. It cuts the value off at 1024 characters, and it flattens the machine half of <code>PATH</code> into the user half.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>$user = [Environment]::GetEnvironmentVariable('Path', 'User')
 if ($user -notlike "*$dir*") {
     [Environment]::SetEnvironmentVariable('Path', "$user;$dir", 'User')
 }</code></pre></div>
 
-<p><b>Then open a new terminal.</b> A running shell keeps the
-environment it started with. That is the commonest reason
-<code>fettle</code> is "not on PATH" a minute after being put
-there.</p>
+<p><b>Then open a new terminal.</b> A running shell keeps the environment it started with. That is the commonest reason <code>fettle</code> is "not on PATH" a minute after being put there.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle --version
 fettle 1.0.0</code></pre></div>
@@ -120,113 +80,72 @@ fettle 1.0.0</code></pre></div>
 
 <div class="plat mac"><span class="os">macOS and Linux</span><div class="body">
 
-<p><b>Where to put it.</b> <code>~/.local/bin</code> if it is already
-on <code>PATH</code>; otherwise <code>/usr/local/bin</code>, which needs
-<code>sudo</code>.</p>
+<p><b>Where to put it.</b> <code>~/.local/bin</code> if it is already on <code>PATH</code>. Otherwise <code>/usr/local/bin</code>, which needs <code>sudo</code>.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>mkdir -p ~/.local/bin
 tar -xzf fettle-X.Y.Z-osx-arm64.tar.gz -C ~/.local/bin
 fettle --version</code></pre></div>
 
-<p><b>If the shell cannot find it</b>, add the directory and start a
-new shell:</p>
+<p><b>If the shell cannot find it</b>, add the directory and start a new shell:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>echo 'export PATH="$HOME/.local/bin:$PATH"' &gt;&gt; ~/.zshrc</code></pre></div>
 
-<p><b>macOS quarantines anything downloaded</b> and refuses to run it,
-citing an unidentified developer. Clear the attribute on the one
-file:</p>
+<p><b>macOS quarantines anything downloaded</b> and refuses to run it, citing an unidentified developer. Clear the attribute on the one file:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>xattr -d com.apple.quarantine ~/.local/bin/fettle</code></pre></div>
 
 </div></div>
 
-<p><b>If you would rather not put it on <code>PATH</code></b>, that
-works too. <code>fettle setup</code> then writes the absolute path of
-the binary you ran it with, so a registration works without an
-installation step &mdash; and it says which of the two it did. The
-<code>PATH</code> form is better; the fallback is honest.</p>
+<p><b>If you would rather not put it on <code>PATH</code></b>, that works too. <code>fettle setup</code> then writes the full path of the binary you ran it with, and says so. The <code>PATH</code> form is better. The fallback works.</p>
 
 <h3 id="install-source">From source</h3>
 
-<p>Nothing else in this repository has to be built first. Fettler
-references no other project here:</p>
+<p>Nothing else in this repository has to be built first. Fettler references no other project here:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>./scripts/fettler-build.ps1 publish X.Y.Z    # X.Y.Z names the archives</code></pre></div>
 
-<p>Archives land in <code>artifacts/publish/</code>. A unix archive cut
-on Windows carries no execute bit, so the ones a release attaches always
-come from a unix build machine.</p>
+<p>Archives land in <code>artifacts/publish/</code>. A unix archive cut on Windows carries no execute bit, so the ones a release attaches always come from a unix build machine.</p>
 
 <h2 id="clients">The clients, and the files behind them</h2>
 
-<div class="takeaway"><b>The install is finished once it is on
-<a href="#path"><code>PATH</code></a>, and it did not involve MCP.</b>
-<code>fettle</code> is a command-line program. Every verb runs from a
-terminal or a script, taking its boundary from a
-<code>.fettler.json</code> in the tree. Everything below this
-additionally wires it into an assistant &mdash; a separate decision
-&mdash; and <a href="#mcp">the MCP front end</a> is what does it.</div>
+<div class="takeaway"><b>The install is finished once <code>fettle</code> is on <a href="#path"><code>PATH</code></a>, and it did not involve MCP.</b> <code>fettle</code> is a command-line program. Every verb runs from a terminal or a script, taking its boundary from a <code>.fettler.json</code> in the tree. Everything below this point wires it into an assistant as well, which is a separate decision. <a href="#mcp">The MCP front end</a> is what does that.</div>
 
-<p>Each client keeps its registration in its own files, at two
-levels:</p>
+<p>Each client keeps its registration in its own files, at two levels:</p>
 
 <table>
 <tr><th>Client</th><th>Global</th><th>Repo</th></tr>
-<tr><td>Claude Code (CLI, and the VS&nbsp;Code extension, which shares its registry)</td><td><code>~/.claude.json</code>, <code>~/.claude/settings.json</code>, <code>~/.claude/CLAUDE.md</code></td><td><code>.mcp.json</code>, <code>.claude/settings.json</code>, <code>.claude/settings.local.json</code>, <code>CLAUDE.md</code></td></tr>
-<tr><td>Claude Desktop</td><td><code>%APPDATA%\Claude\claude_desktop_config.json</code>; on macOS <code>~/Library/Application&nbsp;Support/Claude/</code></td><td>none &mdash; no project scope</td></tr>
+<tr><td>Claude Code (the CLI and the VS&nbsp;Code extension, which share a registry)</td><td><code>~/.claude.json</code>, <code>~/.claude/settings.json</code>, <code>~/.claude/CLAUDE.md</code></td><td><code>.mcp.json</code>, <code>.claude/settings.json</code>, <code>.claude/settings.local.json</code>, <code>CLAUDE.md</code></td></tr>
+<tr><td>Claude Desktop</td><td><code>%APPDATA%\Claude\claude_desktop_config.json</code>; on macOS <code>~/Library/Application&nbsp;Support/Claude/</code></td><td>none. It has no project level</td></tr>
 <tr><td>VS Code Copilot Chat</td><td><code>%APPDATA%\Code\User\mcp.json</code> and <code>settings.json</code></td><td><code>.vscode/mcp.json</code>, <code>.vscode/settings.json</code></td></tr>
-<tr><td>GitHub Copilot coding agent</td><td>&mdash;</td><td><code>.github/copilot-instructions.md</code></td></tr>
+<tr><td>GitHub Copilot coding agent</td><td>none</td><td><code>.github/copilot-instructions.md</code></td></tr>
 </table>
 
-<p><b>Claude Code in VS Code is deliberately not a fifth client.</b> It
-shares the CLI's registry exactly. Reporting it separately would double
-every verdict and let the two disagree.</p>
+<p><b>Claude Code in VS Code is not a fifth client.</b> It shares the CLI's registry exactly. Reporting it separately would double every verdict and let the two disagree.</p>
 
 <h2 id="global">Registering it for every project</h2>
 
-<p>The machine-level registration, written once, for every project this
-account opens:</p>
+<p>The machine-level registration, written once, covers every project this account opens:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle setup --all --global --dry-run   # what would change
 fettle setup --all --global             # change it</code></pre></div>
 
 <table>
 <tr><th>Flag</th><th>What it decides here</th></tr>
-<tr><td><code>--all</code></td><td>Every client this machine has. Ones that are not installed are skipped rather than created.</td></tr>
-<tr><td><code>--global</code></td><td>The machine level. The registration is written; <b>the deny list is only offered</b>, and needs <code>--deny</code> as well.</td></tr>
+<tr><td><code>--all</code></td><td>Every client this machine has. Clients that are not installed are skipped, not created.</td></tr>
+<tr><td><code>--global</code></td><td>The machine level. The registration is written. <b>The deny list is only offered</b>, and needs <code>--deny</code> as well.</td></tr>
 <tr><td><code>--deny</code></td><td>Write the deny list at the global level too. It is a separate flag because changing how the assistant may work in <em>every</em> project is not a side effect of configuring one.</td></tr>
-<tr><td><code>--dry-run</code></td><td>Print the identical report and write nothing. <b>Run this first.</b></td></tr>
+<tr><td><code>--dry-run</code></td><td>Print the same report and write nothing. <b>Run this first.</b></td></tr>
 </table>
 
-<div class="takeaway"><b>Registering it makes it available; only an
-exclusion makes it the route.</b> An assistant with its own file tools
-reaches for them out of habit, and a registered server it never calls
-changes nothing. <code>--deny</code> is how you say it at this level,
-and <a href="#exclusions">the exclusion list</a> is what it is and
-why.</div>
+<div class="takeaway"><b>Registering Fettler makes it available. Only the deny list makes it the route.</b> An assistant with its own file tools reaches for them out of habit, and a registered server it never calls changes nothing. <code>--deny</code> is how you say it at this level, and <a href="#exclusions">the exclusion list</a> is what it writes and why.</div>
 
-<p><b>A global run declares no tree.</b> So it writes no
-<code>.fettler.json</code>, and it says as much in its own output. Each
-project still needs one, and <code>setup &lt;client&gt; --local</code>
-in that tree is what creates it. <code>setup</code> and
-<code>doctor</code> are the only two verbs that run before any tree is
-declared.</p>
+<p><b>A global run declares no tree.</b> So it writes no <code>.fettler.json</code>, and it says as much in its own output. Each project still needs one, and <code>setup &lt;client&gt; --local</code> in that project creates it. <code>setup</code> and <code>doctor</code> are the only two verbs that run before any tree is declared.</p>
 
-<p>The remaining flags &mdash; <code>--local</code>,
-<code>--hooks</code>, <code>--force</code>, <code>--command</code>
-&mdash; belong to a particular project rather than to the machine. The
-full table is with the step that uses them:
-<a href="fettle-setup.html#setup"><code>fettle setup</code> in a
-project</a>.</p>
+<p>The remaining flags, <code>--local</code>, <code>--hooks</code>, <code>--force</code> and <code>--command</code>, belong to a particular project rather than to the machine. The full table is with the step that uses them: <a href="fettle-setup.html#setup"><code>fettle setup</code> in a project</a>.</p>
 
 <h2 id="exclusions">The exclusion list</h2>
 
-<p>Denying the built-in file tools <em>routes</em> an assistant rather
-than disarming it, because <b>the Fettler tools have different names</b>
-&mdash; <code>mcp__fettler__edit</code> and so on, per
-<a href="#mcp">the MCP front end</a>. Eleven entries, no arguments, no platform
-variants, and <code>setup --local</code> writes all eleven:</p>
+<p>Denying the built-in file tools <em>routes</em> an assistant rather than disarming it, because <b>the Fettler tools have different names</b>: <code>mcp__fettler__edit</code> and so on, as <a href="#mcp">the MCP front end</a> describes. The list has eleven entries, no arguments and no platform variants, and <code>setup --local</code> writes all eleven:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>{
   "permissions": {
@@ -236,81 +155,28 @@ variants, and <code>setup --local</code> writes all eleven:</p>
   }
 }</code></pre></div>
 
-<p><b>Three of those eleven are not obvious, and each was found open on
-a machine where every other route was shut.</b></p>
+<p><b>Three of those eleven are not obvious, and each was found open on a machine where every other route was shut.</b></p>
 
 <ul>
-<li><b><code>Monitor</code> is a shell.</b> Its own description says it
-runs the command it is handed in the same shell environment
-<code>Bash</code> does. Denying <code>Bash</code> and leaving it open
-denies the word and not the thing.</li>
-<li><b><code>BashOutput</code> and <code>TaskOutput</code> are
-readers.</b> They start nothing and write nothing, which is exactly why
-they were missed &mdash; neither an editor nor a shell. But they hand
-back the output of work already done, and those bytes reached the model
-without passing the tree boundary, the secret scan or the
-<a href="fettle-screening.html">disclosure screen</a>.
-<code>TaskOutput</code> settles the question itself: it recommends
-<code>Read</code> on the task's output file as the alternative, which is
-a tool already on this list.</li>
+<li><b><code>Monitor</code> is a shell.</b> Its own description says it runs the command it is handed in the same shell environment <code>Bash</code> does. Denying <code>Bash</code> and leaving <code>Monitor</code> open denies the word and not the thing.</li>
+<li><b><code>BashOutput</code> and <code>TaskOutput</code> are readers.</b> They start nothing and write nothing, which is why they were missed: they are neither an editor nor a shell. But they hand back the output of work already done, and those bytes reach the model without passing the tree boundary, the secret scan or the <a href="fettle-screening.html">disclosure screen</a>. The tool <code>TaskOutput</code> settles the question itself. It recommends <code>Read</code> on the task's output file as the alternative, and <code>Read</code> is already on this list.</li>
 </ul>
 
-<p class="note"><span class="lab">Note</span> <b>A closed list of names
-can only close the names on it, and the client keeps growing new
-ones.</b> So <code>fettle doctor</code> prints the date its inventory
-was drawn, and reports any tool your configuration names that the
-inventory does not know
-(<a href="fettle-reference.html#findings">2.18</a>) &mdash; because silence
-about an unknown tool otherwise reads exactly like a clean bill of
-health. Other MCP servers are the same problem in a different shape and
-are reported separately
-(<a href="fettle-reference.html#findings">2.17</a>).</p>
+<p class="note"><span class="lab">Note</span> <b>A closed list of names can only close the names on it, and the client keeps adding new ones.</b> So <code>fettle doctor</code> prints the date its inventory was drawn, and reports any tool your configuration names that the inventory does not know (<a href="fettle-reference.html#findings">2.18</a>). Silence about an unknown tool would otherwise read like a clean bill of health. Other MCP servers are the same problem in a different shape and are reported separately (<a href="fettle-reference.html#findings">2.17</a>).</p>
 
-<p><b><code>Read</code> is on the list, with no path-scoped
-exception.</b> A blanket <code>Read</code> defeats three protections at
-once: containment, the <code>read</code> permission, and hidden scopes.
-A scope with no <code>list</code> is invisible to <code>search</code>
-&mdash; and one call away from being read in full. Denying
-<code>Read</code> is affordable because Fettler reads
-<a href="fettle-reference.html#types">notebooks, images and PDF</a> as well as
-source.</p>
+<p><b><code>Read</code> is on the list, with no path-scoped exception.</b> A blanket <code>Read</code> defeats three protections at once: containment, the <code>read</code> permission, and hidden scopes. A scope with no <code>list</code> is invisible to <code>search</code>, and one call away from being read in full. Denying <code>Read</code> costs little, because Fettler reads <a href="fettle-reference.html#types">notebooks, images and PDFs</a> as well as source.</p>
 
-<div class="takeaway"><b>Before you deny <code>Write</code>, a project
-needs its scratch tree declared.</b> An assistant stages work &mdash; a
-long replacement, a generated file, a patch it is about to apply &mdash;
-in a scratch directory the harness gives it, well outside your source
-tree. Deny <code>Write</code> and that route shuts. The scratch is
-outside every declared tree, so Fettler will not write there either.
-Both routes closed &mdash; and it surfaces at the first staging write,
-not while you are running <code>setup</code>. Declaring it is
-<a href="fettle-setup.html#scratch">step 2 of setting up a
-project</a>.</div>
+<div class="takeaway"><b>Before you deny <code>Write</code>, declare the project's scratch tree.</b> An assistant stages work (a long replacement, a generated file, a patch it is about to apply) in a scratch directory the harness gives it, outside your source tree. Deny <code>Write</code> and that route shuts. The scratch is outside every declared tree, so Fettler will not write there either. Both routes are then closed, and you find out at the first staging write, not while running <code>setup</code>. Declaring it is <a href="fettle-setup.html#scratch">step 2 of setting up a project</a>.</div>
 
 <h3 id="shell">The shell is denied by name, never by command</h3>
 
-<p>The last two entries are the shell, and they are there because
-<b>a shell is a complete route round the boundary</b>. This is not a
-second-order concern. <code>node x.js</code> writes anything anywhere,
-and it is not a writing command at all.</p>
+<p>The last entries are the shells, and they are there because <b>a shell is a complete route round the boundary</b>. <code>node x.js</code> writes anything anywhere, and it is not a writing command.</p>
 
-<p>What cannot be done is enumerate what to block. A blocklist would
-have to name <code>sed -i</code>, <code>cp</code>, <code>rm</code>,
-<code>git checkout</code>, <code>Set-Content</code>,
-<code>Remove-Item</code>, <code>python -c</code>, <code>node -e</code>,
-their aliases and every platform variant &mdash; and then
-<code>echo x &gt; file</code> defeats the lot, because
-<code>&gt;</code> turns <b>any</b> command into a writer.</p>
+<p>Listing the commands to block cannot work. A blocklist would have to name <code>sed -i</code>, <code>cp</code>, <code>rm</code>, <code>git checkout</code>, <code>Set-Content</code>, <code>Remove-Item</code>, <code>python -c</code>, <code>node -e</code>, their aliases and every platform variant. Then <code>echo x &gt; file</code> defeats the lot, because <code>&gt;</code> turns <b>any</b> command into a writer.</p>
 
-<div class="takeaway"><b>So the deny is the tool name, and the allow
-list is the exception.</b> <code>"Bash"</code>,
-<code>"PowerShell"</code> and <code>"Monitor"</code> are as short,
-closed and platform-identical as the other six entries. It is the commands behind them that never close.
-Those are yours to name, because only you know which ones your project
-needs.</div>
+<div class="takeaway"><b>So the deny is the tool name, and the allow list is the exception.</b> <code>"Bash"</code>, <code>"PowerShell"</code> and <code>"Monitor"</code> are as short, closed and platform-independent as the other entries. The commands behind them are the part that never closes. Those are yours to name, because only you know which ones your project needs.</div>
 
-<p><b>This stops your build on the first run. That is the point at
-which you decide what to let through.</b> Two ways, and the first is
-better:</p>
+<p><b>This stops your build on the first run. That is the point at which you decide what to let through.</b> There are two ways, and the first is better:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>// .fettler.json - runs inside the boundary, needs "execute" on the tree
 "tasks": { "test": { "run": "dotnet test", "cwd": "." } }
@@ -318,38 +184,19 @@ better:</p>
 // .claude/settings.json - for what a task cannot cover
 "allow": ["Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)"]</code></pre></div>
 
-<p><b>Never allowlist a command that writes.</b> That is
-<a href="fettle-reference.html#findings">doctor check 2.6</a>, and
-<code>&gt;</code> and <code>&gt;&gt;</code> are on the list it matches
-against. A bare <code>"Bash"</code> in <code>allow</code> grants the
-whole shell back and undoes the deny entirely.</p>
+<p><b>Never allow a command that writes.</b> That is <a href="fettle-reference.html#findings">doctor check 2.6</a>, and <code>&gt;</code> and <code>&gt;&gt;</code> are on the list it matches against. A bare <code>"Bash"</code> in <code>allow</code> grants the whole shell back and undoes the deny.</p>
 
-<p><b>There is more than one shell, so every name is always
-written.</b> A <code>Bash</code>-only deny leaves
-<code>PowerShell</code> wide open &mdash; and the machine this was built
-on used PowerShell for nearly every command. It leaves
-<code>Monitor</code> open too, which is a shell wearing a different
-word. Denying a tool that is not installed, or not present in your
-client, costs nothing.</p>
+<p><b>There is more than one shell, so every name is always written.</b> A <code>Bash</code>-only deny leaves <code>PowerShell</code> open, and the machine this was built on used PowerShell for nearly every command. It leaves <code>Monitor</code> open too. Denying a tool that is not installed, or not present in your client, costs nothing.</p>
 
 <h3 id="precedence">On <code>deny</code> versus <code>allow</code></h3>
 
-<p>When one rule is in both lists, which wins is the client's decision.
-Fettler is a separate process and cannot watch another program resolve
-its own rules. So it reports the <em>conflict</em>, and it names the
-fix that is correct under either outcome: <b>remove the allow</b>. An
-answer that does not depend on the assumption beats a guess at it.</p>
+<p>When one rule is in both lists, which one wins is the client's decision. Fettler is a separate process and cannot watch another program resolve its own rules. So it reports the <em>conflict</em>, and it names the fix that is correct either way: <b>remove the allow</b>.</p>
 
 <h2 id="hooks">The session hook</h2>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle setup claude-code --local --hooks</code></pre></div>
 
-<p>This runs <code>fettle doctor --hook</code> at the start of each
-session &mdash; the moment a diagnostic will actually be read. It is
-silent when everything is healthy or not applicable. Otherwise it prints
-a short block naming only what is wrong. It <b>always exits 0</b>,
-because a diagnostic that can stop a session from starting would be
-removed within a week. It carries a timeout.</p>
+<p>This runs <code>fettle doctor --hook</code> at the start of each session, which is the moment a diagnostic gets read. It is silent when everything is healthy or not applicable. Otherwise it prints a short block naming only what is wrong. It <b>always exits 0</b>, because a diagnostic that could stop a session from starting would be removed within a week. It carries a timeout.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>{
   "hooks": {
@@ -362,42 +209,20 @@ removed within a week. It carries a timeout.</p>
 }</code></pre></div>
 
 <ul>
-<li><b>The hook names an absolute path</b> &mdash; the binary you ran
-<code>setup</code> with &mdash; rather than a bare <code>fettle</code>.
-A hook that cannot launch is worse than no hook, because it fails where
-nobody is reading.</li>
-<li><b>It is appended to whatever hook array is already there</b>,
-never substituted for it, and it is not installed twice.</li>
-<li><b><code>--hooks</code> is opt-in.</b> A hook runs a program at the
-start of every session, and that is not a side effect of asking for a
-registration.</li>
+<li><b>The hook names a full path</b>, the binary you ran <code>setup</code> with, rather than a bare <code>fettle</code>. A hook that cannot launch is worse than no hook, because it fails where nobody is reading.</li>
+<li><b>It is added to whatever hook array is already there</b>, never substituted for it, and it is not installed twice.</li>
+<li><b><code>--hooks</code> is opt-in.</b> A hook runs a program at the start of every session, and that is not a side effect of asking for a registration.</li>
 </ul>
 
-<p><b>To remove it</b>, delete Fettler's entry from the
-<code>SessionStart</code> array in <code>.claude/settings.json</code>.
-There is a backup beside that file from the first time setup wrote
-it.</p>
+<p><b>To remove it</b>, delete Fettler's entry from the <code>SessionStart</code> array in <code>.claude/settings.json</code>. There is a backup beside that file from the first time setup wrote it.</p>
 
 <h2 id="mcp">The MCP front end</h2>
 
-<div class="takeaway"><b>Everything above registered an MCP server
-without requiring you to know what one is</b>, because
-<code>fettle setup</code> writes those files. MCP &mdash; the Model
-Context Protocol &mdash; is the standard way an assistant launches a
-tool and talks to it. This section is what setup wrote, for registering
-by hand or for reading a registration someone else made. <b>The command
-line uses none of it.</b></div>
+<div class="takeaway"><b>Everything above registered an MCP server without asking you to know what one is</b>, because <code>fettle setup</code> writes those files. MCP, the Model Context Protocol, is the standard way an assistant launches a tool and talks to it. This section is what setup wrote, for registering by hand or for reading a registration someone else made. <b>The command line uses none of it.</b></div>
 
-<p><code>serve</code> starts the front end on stdio &mdash; plain text
-over the program's own input and output streams. It is a subcommand
-rather than a second executable name, because choosing a front end by
-the program's own name relies on a symbolic link, and Windows makes
-those awkward. <b>A client launches it; a person does not.</b> Run by
-hand it waits on stdin, which is correct behaviour that looks like a
-hang.</p>
+<p><code>serve</code> starts the front end on stdio, which means plain text over the program's own input and output streams. It is a subcommand rather than a second executable, because choosing a front end by the program's own name relies on a symbolic link, and Windows makes those awkward. <b>A client launches it. A person does not.</b> Run by hand it waits on stdin, which is correct and looks like a hang.</p>
 
-<p>The registration <code>setup</code> writes is this, and nothing
-more:</p>
+<p>The registration <code>setup</code> writes is this, and nothing more:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>{
   "mcpServers": {
@@ -405,46 +230,23 @@ more:</p>
   }
 }</code></pre></div>
 
-<p><b>No root or config flag appears there, and none can.</b> The
-server learns its trees at launch, from the <code>.fettler.json</code>
-in the folder it starts in, before the model has said anything. No tool
-schema carries a way to name a different one.</p>
+<p><b>No root or config flag appears there, and none can.</b> The server learns its trees at launch, from the <code>.fettler.json</code> in the folder it starts in, before the model has said anything. No tool schema carries a way to name a different one.</p>
 
 <table>
 <tr><th></th><th><code>fettle VERB</code></th><th><code>fettle serve</code></th></tr>
 <tr><td>Started by</td><td>a person, or a script</td><td>the client, from the registration above</td></tr>
 <tr><td>Boundary from</td><td><code>.fettler.json</code> in the tree, or <code>--root</code> / <code>--config</code></td><td><code>.fettler.json</code> in the folder the client launched it in. Nothing can name another.</td></tr>
 <tr><td>Answers with</td><td>text, or JSON under <code>--json</code></td><td>MCP tool results</td></tr>
-<tr><td>Dispatcher</td><td colspan="2">the same one &mdash; a verb behaves identically through either</td></tr>
+<tr><td>Dispatcher</td><td colspan="2">the same one. A verb behaves the same through either.</td></tr>
 </table>
 
-<p><b>The tools are named <code>mcp__fettler__VERB</code></b>:
-<code>mcp__fettler__read</code>, <code>mcp__fettler__search</code>,
-<code>mcp__fettler__edit</code> and so on. That is what makes
-<a href="#exclusions">the exclusion list</a> work &mdash; denying
-<code>Read</code> does not deny <code>mcp__fettler__read</code>.</p>
+<p><b>The tools are named <code>mcp__fettler__VERB</code></b>: <code>mcp__fettler__read</code>, <code>mcp__fettler__search</code>, <code>mcp__fettler__edit</code> and so on. That is what makes <a href="#exclusions">the exclusion list</a> work. Denying <code>Read</code> does not deny <code>mcp__fettler__read</code>.</p>
 
-<p><b><code>setup</code> is the one verb an assistant is not
-offered</b>, and a test asserts it stays that way. It writes the file
-naming the command that launches the server. A model holding it could
-point its own boundary at a different binary, or grant back the
-permissions the deny list removes. Scaffolding a machine is a person's
-act, performed once, in a terminal. <code>doctor</code> <em>is</em>
-offered &mdash; a model diagnosing its own wiring beats asking somebody
-to open a terminal for it.</p>
+<p><b><code>setup</code> is the one verb an assistant is not offered</b>, and a test asserts it stays that way. It writes the file naming the command that launches the server. A model holding it could point its own boundary at a different binary, or grant back the permissions the deny list removes. Setting up a machine is a person's act, performed once, in a terminal. <code>doctor</code> <em>is</em> offered, because a model that can diagnose its own wiring saves somebody opening a terminal.</p>
 
-<div class="takeaway"><b>To check the server is live, ask the assistant
-for <code>roots</code>.</b> It answers with the trees, what may be done
-in each, and which one an unqualified path lands in. No such tool means
-no server started &mdash; which looks identical to <code>fettle</code>
-not being on <a href="#path"><code>PATH</code></a>, and usually is
-exactly that.</div>
+<div class="takeaway"><b>To check the server is live, ask the assistant for <code>roots</code>.</b> It answers with the trees, what may be done in each, and which one an unqualified path lands in. No such tool means no server started. That looks the same as <code>fettle</code> not being on <a href="#path"><code>PATH</code></a>, and usually is that.</div>
 
-<div class="takeaway"><b>The machine is ready.</b> Everything from here
-is per-project and in a fixed order &mdash; declare your trees, declare
-the scratch, declare your tasks, run <code>setup</code>, run
-<code>doctor</code>, then prove a refusal actually refuses:
-<a href="fettle-setup.html">Fettler in a project</a>.</div>
+<div class="takeaway"><b>The machine is ready.</b> Everything from here is per project and in a fixed order: declare your trees, declare the scratch, declare your tasks, run <code>setup</code>, run <code>doctor</code>, then prove a refusal refuses. <a href="fettle-setup.html">Fettler in a project</a>.</div>
 
 <nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
   <a href="fettle-quickstart.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Quick Start</span></span></a>

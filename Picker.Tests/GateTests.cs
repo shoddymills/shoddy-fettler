@@ -52,7 +52,7 @@ public sealed class GateTests
     [InlineData("SELECT * FROM OtherServer.Sales.dbo.Customers", "linked server")]
     [InlineData("SELECT * FROM OPENROWSET('SQLNCLI', 'x', 'SELECT 1')", "OPENROWSET")]
     [InlineData("EXEC sp_who", "only a SELECT")]
-    [InlineData("SELECT id INTO #t FROM Sales.dbo.Orders", "write wearing a SELECT")]
+    [InlineData("SELECT id INTO #t FROM Sales.dbo.Orders", "writes a table")]
     [InlineData("SELECT 1; SELECT 2", "one statement per call")]
     [InlineData("SELECT name FROM sys.tables", "system catalog")]
     [InlineData("SELECT * FROM INFORMATION_SCHEMA.TABLES", "system catalog")]
@@ -201,8 +201,8 @@ public sealed class GateTests
             Fixture.Bench(db));
         Assert.False(refused.IsOk);
         Assert.Equal(Outcome.Refused, refused.Failure!.Outcome);
-        Assert.Contains("select is not granted on Sales.dbo.Orders", refused.Failure.Message);
-        Assert.Contains("it grants: list", refused.Failure.Message);
+        Assert.Contains("select is not allowed on Sales.dbo.Orders", refused.Failure.Message);
+        Assert.Contains("It allows: list", refused.Failure.Message);
     }
 
     [Fact]

@@ -152,7 +152,7 @@ public sealed class ReloadTests : IDisposable
 
         (string text, bool isError) = Answer(await server.AnswerAsync(Call(1, "tasks")));
         Assert.True(isError, "a missing declaration must refuse, not rediscover");
-        Assert.Contains("no configuration", text);
+        Assert.Contains("does not exist", text);
         Assert.DoesNotContain("wide", text);
     }
 

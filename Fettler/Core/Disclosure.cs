@@ -86,10 +86,8 @@ public static class Disclosure
             // it is a disclosure, so the two cannot be handled the same
             // way however similar the exception looks.
             return new Failure(Outcome.Screened,
-                "this response could not be screened, so it is not being served: "
-                + "a screening pattern ran out of time on this payload. Serving content "
-                + "that was never checked is the one outcome a screen must never produce, "
-                + "so this refuses instead.", path);
+                "this response could not be screened, so it is not served: "
+                + "a screening pattern ran out of time on this payload", path);
         }
 
         if (structural.Count > 0)
@@ -113,9 +111,8 @@ public static class Disclosure
 
         if (!asked.IsOk)
             return new Failure(Outcome.Screened,
-                $"this response could not be screened, so it is not being served: "
-                + $"{asked.Failure!.Message}. Serving content that was never checked is the one "
-                + "outcome a screen must never produce, so this refuses instead.", path);
+                $"this response could not be screened, so it is not served: "
+                + $"{asked.Failure!.Message}", path);
 
         return asked.Value.Count > 0
             ? new Failure(Outcome.Screened, Screen.Describe(asked.Value), path)

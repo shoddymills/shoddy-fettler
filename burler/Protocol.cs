@@ -106,7 +106,7 @@ public static class Protocol
                     string word = one.GetString()!;
                     if (Array.IndexOf(Categories, word) < 0)
                     {
-                        error = $"'{word}' is not a category this knows";
+                        error = $"'{word}' is not a known category";
                         return null;
                     }
 

@@ -1,4 +1,4 @@
-# Design conversation — Fettler
+# Design conversation - Fettler
 
 **Date:** 16 August 2026
 **Repository context:** `c:\github\shoddy`, branch `feature/gildersome`
@@ -26,7 +26,7 @@ Tool calls are summarised in italics rather than shown as full payloads.
 
 *Ran two verification searches against `machines/` to confirm how `.shoddy` files are actually matched.*
 
-Verified that `Glob` and `Grep` both take forward-slash patterns and Windows absolute paths, and both return backslash paths — no shell involved either way.
+Verified that `Glob` and `Grep` both take forward-slash patterns and Windows absolute paths, and both return backslash paths - no shell involved either way.
 
 **The headline:** every file operation has a dedicated tool that never touches a shell. Glob, Grep, Read, Edit and Write are Node-level calls into the filesystem and ripgrep. No quoting rules, no `/dev/null` vs `NUL`, no encoding default, no `&&`. The bash/Windows pain comes entirely from reaching for `Bash` or `PowerShell` to do something one of these five already does.
 
@@ -43,7 +43,7 @@ Notes that mattered: ripgrep regex (not grep), `.shoddy` has no ripgrep `type` s
 
 **PowerShell 5.1 traps:** no `&&`/`||`; no ternary/`??`/`?.`; `2>&1` on a native exe wraps stderr as `NativeCommandError` and sets `$?` false even on exit 0; here-strings must close at column 0; `-ErrorAction SilentlyContinue` still exits 1.
 
-**The rule that would have saved most of the trouble:** if the operation is find, read, or change a text file — no shell, ever. The shell is for verbs that produce output: build, test, run, git. On this machine that shell is PowerShell, and the script to run is the `.ps1`.
+**The rule that would have saved most of the trouble:** if the operation is find, read, or change a text file - no shell, ever. The shell is for verbs that produce output: build, test, run, git. On this machine that shell is PowerShell, and the script to run is the `.ps1`.
 
 ---
 
@@ -61,7 +61,7 @@ Key findings surfaced during the research:
 
 - `file.shoddy` is 92 lines: eight whole-file builtins and three words. No directories, no rename, no copy, no metadata by path, no atomic write.
 - The capability manifest already gates file access by glob pattern (`"write": ["halifaxrc", "*.calc", "*.tape"]`).
-- `Shoddy.Runtime.FileRoot` already enforces a root boundary for every file word — `..`, absolute paths and symlinks anywhere along the path — and every host inherits it.
+- `Shoddy.Runtime.FileRoot` already enforces a root boundary for every file word - `..`, absolute paths and symlinks anywhere along the path - and every host inherits it.
 - Sparky is the precedent: a mill whose *user is a model*, hand-rolled JSON-RPC over stdio, self-contained single-file publish per OS.
 - No `Eval` or compile word exists, so Shoddy cannot verify Shoddy from inside the language.
 
@@ -77,7 +77,7 @@ Key findings surfaced during the research:
 
 ## 6. Assistant
 
-Agreed — I was pushing effects into a language built to keep them at the edges.
+Agreed - I was pushing effects into a language built to keep them at the edges.
 
 *Verified `hosts/mcp` project layout and read `FileRoot.cs`, confirming it is pure `System.IO` with no Shoddy dependencies.*
 
@@ -91,7 +91,7 @@ Agreed — I was pushing effects into a language built to keep them at the edges
 
 ## 8. Assistant
 
-**The shape:** one more MCP server, in this repo, 100% C# — `read`/`write`/`edit`/`find`/`search`/`run` over stdio. Most of the hard parts already exist in `hosts/mcp`.
+**The shape:** one more MCP server, in this repo, 100% C# - `read`/`write`/`edit`/`find`/`search`/`run` over stdio. Most of the hard parts already exist in `hosts/mcp`.
 
 Proposed layout: shared protocol in `src/Shoddy.Mcp.Protocol`, shared path boundary in `src/Shoddy.Paths`, tools in `hosts/mcp/Shoddy.Tools`, executable reusing `sparky`.
 
@@ -100,10 +100,10 @@ Proposed layout: shared protocol in `src/Shoddy.Mcp.Protocol`, shared path bound
 - **Edits are planned, then applied.** All anchors resolved against the file as read; conflicts reported before anything is written; one write.
 - **Staleness checked by content, not a session flag.** Today's "must Read before Edit" proves I looked, not that the file is unchanged.
 - **Anchors are scoped, not just unique strings.** Uniqueness fails constantly in a codebase of four-line bodies.
-- **Encoding and line endings survive the round trip.** Shoddy's `ReadLines` does a blanket `Replace(c, "\r", "")` and `WriteLines` always writes LF plus a trailing newline — a one-line edit rewrites every line ending.
+- **Encoding and line endings survive the round trip.** Shoddy's `ReadLines` does a blanket `Replace(c, "\r", "")` and `WriteLines` always writes LF plus a trailing newline - a one-line edit rewrites every line ending.
 - **Writes are atomic.** Temp file, then `File.Move(..., overwrite: true)`. Not expressible in Shoddy at all, which is independent evidence C# is the right target.
 
-**On the shell:** `run` uses `Process.Start` with `ArgumentList` — an array — never a command string. No quoting layer, no dialect. Caveat stated plainly: tasks still invoke `pwsh` and `node`, so the machine still needs them; full independence is a separate, larger job.
+**On the shell:** `run` uses `Process.Start` with `ArgumentList` - an array - never a command string. No quoting layer, no dialect. Caveat stated plainly: tasks still invoke `pwsh` and `node`, so the machine still needs them; full independence is a separate, larger job.
 
 Phasing given as six phases, phase 0 (extraction) first because it makes the rest cheap and is the only phase touching shipping code.
 
@@ -115,7 +115,7 @@ Phasing given as six phases, phase 0 (extraction) first because it makes the res
 
 ## 10. Assistant
 
-Yes — and the CLI mode pays for itself fastest.
+Yes - and the CLI mode pays for itself fastest.
 
 - **This repo already runs the pattern.** `scripts/shoddy.ps1` and `.sh` are thin launchers over `scripts/gate/driver.mjs`, which exists so "the logic lives once and the twins cannot drift."
 - **Every line of logic out of the twins is a line that can't drift.** The release that had to fix *native stderr being fatal in every PowerShell script* is exactly the failure this prevents.
@@ -123,7 +123,7 @@ Yes — and the CLI mode pays for itself fastest.
 
 Shape: one core knowing nothing of protocol or console, an MCP front end, a CLI front end. The split must exist from phase 1 or it's a retrofit.
 
-What the CLI needs that MCP doesn't: distinct exit codes, a `--json` mode, and **the complete result including failures on stdout** — because PowerShell 5.1 wraps redirected native stderr into `NativeCommandError` and flips `$?` false even on exit 0. If a script ever needs `2>&1`, the bug is rebuilt.
+What the CLI needs that MCP doesn't: distinct exit codes, a `--json` mode, and **the complete result including failures on stdout** - because PowerShell 5.1 wraps redirected native stderr into `NativeCommandError` and flips `$?` false even on exit 0. If a script ever needs `2>&1`, the bug is rebuilt.
 
 ---
 
@@ -143,9 +143,9 @@ Pattern identified: `[Enhancement]` title, a ground-truth table read from the tr
 
 Document written to `requirements/backlog/shoddy-source-tools-enhancement.md`, with:
 
-- **R1 as the hard constraint** — no reference to any Shoddy assembly, plus a test inspecting built assemblies. `FileRoot` re-implemented, not shared: referencing it couples the tool to the runtime, moving it couples the runtime to the tool.
-- **R6 for file-level operations** — no wildcards on anything destructive, no implicit overwrite, recursive delete asked for explicitly, move reports whether it was atomic.
-- **R9 for platform** — Windows and macOS equal, with seven named hazards each having a wrong answer that works on one platform.
+- **R1 as the hard constraint** - no reference to any Shoddy assembly, plus a test inspecting built assemblies. `FileRoot` re-implemented, not shared: referencing it couples the tool to the runtime, moving it couples the runtime to the tool.
+- **R6 for file-level operations** - no wildcards on anything destructive, no implicit overwrite, recursive delete asked for explicitly, move reports whether it was atomic.
+- **R9 for platform** - Windows and macOS equal, with seven named hazards each having a wrong answer that works on one platform.
 
 Flagged: `shoddy-planning` sits on `main`, the write was authorised in that message, nothing was committed.
 
@@ -161,15 +161,15 @@ Flagged: `shoddy-planning` sits on `main`, the write was authorised in that mess
 
 **Fettler.**
 
-In a West Riding woollen mill the fettler kept the carding engines in order — stripping matted fibre and dirt out of the card clothing, cleaning, setting, repairing. He produced no cloth. His whole job was keeping the machines that produced cloth in a state where they could.
+In a West Riding woollen mill the fettler kept the carding engines in order - stripping matted fibre and dirt out of the card clothing, cleaning, setting, repairing. He produced no cloth. His whole job was keeping the machines that produced cloth in a state where they could.
 
 - **It makes nothing.** The devil tears source into tokens, the weave builds, the mill runs. This tool keeps the material they work on in order.
-- **"To fettle" is the literal English for what it does** — and survives as *in fine fettle*, so it needs no glossary.
+- **"To fettle" is the literal English for what it does** - and survives as *in fine fettle*, so it needs no glossary.
 - **The connection is real inside the existing naming.** `scribbler` is already named for scribbling, the first carding step. The fettler is the trade that maintained the carding engines.
 
-Sub-choice: project and server **Fettler**, executable **`fettle`** — commands read as imperatives.
+Sub-choice: project and server **Fettler**, executable **`fettle`** - commands read as imperatives.
 
-Runners-up and why they lost: **Millwright** (maintains machinery, not material; long, reads American), **Mender** (exact for editing, undersells the rest), **Overlooker** (supervision, not repair), **Tuner** (overloaded in software), **Mungo** (already taken — `mungo-caverns` is a mill).
+Runners-up and why they lost: **Millwright** (maintains machinery, not material; long, reads American), **Mender** (exact for editing, undersells the rest), **Overlooker** (supervision, not repair), **Tuner** (overloaded in software), **Mungo** (already taken - `mungo-caverns` is a mill).
 
 ---
 
@@ -182,7 +182,7 @@ Runners-up and why they lost: **Millwright** (maintains machinery, not material;
 *Six targeted edits folding the name through the document.*
 
 - Title and provenance paragraph in Sparky's shape.
-- R2.1 names the lane `hosts/fettler` and adds that no project in it carries a `Shoddy.` prefix — the prefix would claim the kinship R1 exists to deny.
+- R2.1 names the lane `hosts/fettler` and adds that no project in it carries a `Shoddy.` prefix - the prefix would claim the kinship R1 exists to deny.
 - R2.6 settles the two spellings.
 - R11.5 requires a "Where the Name Comes From" section.
 - Out of scope loses "a name is the maintainer's to give".
@@ -202,11 +202,11 @@ Noted that renaming the file to `shoddy-fettler-enhancement.md` would match the 
 
 Added twelve verbs in one table with an example each, worked forms, and the `.ps1`/`.sh` twins side by side reading from stdout with no `2>&1`.
 
-**The gap it exposed:** there was no requirements section for `find` or `search` at all. The opening prose promised both and the acceptance criteria assumed them, but nothing in between said what they must do. Writing the examples is what surfaced it. Added as R4.6–R4.10, with three clauses that earn their place:
+**The gap it exposed:** there was no requirements section for `find` or `search` at all. The opening prose promised both and the acceptance criteria assumed them, but nothing in between said what they must do. Writing the examples is what surfaced it. Added as R4.6-R4.10, with three clauses that earn their place:
 
-- **Glob semantics must be stated, not inherited** — both required platforms are case-insensitive, so deferring to the OS behaves differently from not.
-- **A result must be usable as another verb's input without reformatting** — this is what makes it a set rather than a collection.
-- **Truncation must be reported** — a silently capped search that reads as complete is worse than an error.
+- **Glob semantics must be stated, not inherited** - both required platforms are case-insensitive, so deferring to the OS behaves differently from not.
+- **A result must be usable as another verb's input without reformatting** - this is what makes it a set rather than a collection.
+- **Truncation must be reported** - a silently capped search that reads as complete is worse than an error.
 
 Also corrected a `copy` example writing to `/tmp`, which the containment rule would refuse.
 
@@ -221,8 +221,8 @@ Also corrected a `copy` example writing to `/tmp`, which the containment rule wo
 *Full rewrite of the document.*
 
 - Every reference to the other project removed. The only surviving "mill" mentions are in the naming rationale, explaining where Fettler comes from.
-- **R1 became "Implementation and independence"** — written entirely in C#, no reference to any other project here, shares the repository and release and nothing else. The section arguing why it wasn't written in another language deleted outright.
-- **Ground truth rewritten from scratch** — from facts about another codebase to nine verifiable platform behaviours: the PowerShell 5.1 stderr trap, case-insensitive filesystems, macOS filename normalization, Windows reserved names and path limits, open-file locking, and `File.Move` having two atomicity guarantees depending on volume.
+- **R1 became "Implementation and independence"** - written entirely in C#, no reference to any other project here, shares the repository and release and nothing else. The section arguing why it wasn't written in another language deleted outright.
+- **Ground truth rewritten from scratch** - from facts about another codebase to nine verifiable platform behaviours: the PowerShell 5.1 stderr trap, case-insensitive filesystems, macOS filename normalization, Windows reserved names and path limits, open-file locking, and `File.Move` having two atomicity guarantees depending on volume.
 
 ---
 
@@ -232,11 +232,11 @@ Also corrected a `copy` example writing to `/tmp`, which the containment rule wo
 
 ## 22. Assistant
 
-Correct — the worked forms covered six of twelve.
+Correct - the worked forms covered six of twelve.
 
 *Replaced the section with one worked example per verb: `find`, `search`, `read`, `write`, `edit`, `new`, `mkdir`, `move`, `copy`, `delete`, `tasks`, `run`.*
 
-Each captioned with what it pins and which clause it comes from, and headed by a note that the examples pin **the information each answer must carry, not its layout** — otherwise invented output formatting reads as specification.
+Each captioned with what it pins and which clause it comes from, and headed by a note that the examples pin **the information each answer must carry, not its layout** - otherwise invented output formatting reads as specification.
 
 Several show the refusal path rather than the happy one, which is where the requirements have teeth:
 
@@ -259,9 +259,9 @@ moved src/glob.cs -> src/Glob.cs  atomic: yes  case-only rename
 
 ## 24. Assistant
 
-Yes — but almost certainly not as a watcher, and the reasoning inverts the obvious answer.
+Yes - but almost certainly not as a watcher, and the reasoning inverts the obvious answer.
 
-**The problem is real.** R5.5 refuses an edit against a file that changed since it was read, which catches staleness *at the moment of writing*. It misses the worse case: read a file, reason about it for several turns, never write — nothing ever checks, and the answer is built on content that stopped being true.
+**The problem is real.** R5.5 refuses an edit against a file that changed since it was read, which catches staleness *at the moment of writing*. It misses the worse case: read a file, reason about it for several turns, never write - nothing ever checks, and the answer is built on content that stopped being true.
 
 **Push is the wrong shape.** MCP can push, but whether a client surfaces a notification to the model is the client's business and unobservable from the server; and there is no process between turns to interrupt.
 
@@ -270,15 +270,15 @@ Yes — but almost certainly not as a watcher, and the reasoning inverts the obv
 | | Stat what was read | Recursive watcher |
 |---|---|---|
 | Cross-platform reliability | A stat is a stat | `FileSystemWatcher` overflows under bursts on Windows; recursive watching on macOS has a long history of fd and API trouble |
-| Noise from own writes | None — it knows what it wrote | Every edit reports itself unless carefully attributed |
-| Noise from a build | None — nobody read `obj/` | Thousands of events without a scoping rule |
-| What it misses | Files never read — no beliefs held about them | Whatever the OS dropped, silently |
+| Noise from own writes | None - it knows what it wrote | Every edit reports itself unless carefully attributed |
+| Noise from a build | None - nobody read `obj/` | Thousands of events without a scoping rule |
+| What it misses | Files never read - no beliefs held about them | Whatever the OS dropped, silently |
 
 The watcher watches an entire tree to report on a subset that could be checked directly.
 
 **Three clauses if it goes in:** advisory never authoritative; mtime *and* size together; Fettler's own writes are not news.
 
-**Where a real watcher would earn its place:** driving something reactive — rebuild on save, a live gate. That's a different product.
+**Where a real watcher would earn its place:** driving something reactive - rebuild on save, a live gate. That's a different product.
 
 Recommendation: add the read-set staleness check, mark it advisory, and put a genuine file watcher in Out of scope with the reasoning recorded.
 

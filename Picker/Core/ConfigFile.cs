@@ -51,8 +51,8 @@ public static class ConfigFile
     }
 
     public const string NothingDeclared =
-        "no " + FileName + " declares any server here; a person writes that file - "
-        + "this tool does not";
+        "no " + FileName + " found at or above the current directory. A person writes "
+        + "that file; pick does not";
 
     /// <summary>
     /// Open one configuration file, merging its local twin when one sits
@@ -110,9 +110,9 @@ public static class ConfigFile
                     {
                         if (supplement.Databases.Count > 0)
                             return Result<Boundary>.Fail(Outcome.Invalid,
-                                $"{LocalFileName} declares databases on '{declared.Name}'; the local "
-                                + "file supplies models and connect and cannot widen the surface - "
-                                + $"databases are declared in {FileName}, where a review sees them",
+                                $"{LocalFileName} declares databases on '{declared.Name}'. The local "
+                                + "file may supply models and connect only. Declare databases in "
+                                + $"{FileName}",
                                 local.Path);
 
                         if (supplement.Connect is { } supplied)
@@ -124,8 +124,8 @@ public static class ConfigFile
 
             if (connect is null)
                 return Result<Boundary>.Fail(Outcome.Invalid,
-                    $"server '{declared.Name}' has no \"connect\": name an environment "
-                    + $"variable as env:NAME here, or put the connection string in {LocalFileName}",
+                    $"server '{declared.Name}' has no \"connect\". Name an environment "
+                    + $"variable as env:NAME, or put the connection string in {LocalFileName}",
                     main.Path);
 
             Result<Connect> made = MakeConnect(connect, fromLocal, declared.Name, main.Path);
@@ -139,7 +139,7 @@ public static class ConfigFile
                 if (!main.Servers.Any(s => s.Name.Equals(supplement.Name, StringComparison.OrdinalIgnoreCase)))
                     return Result<Boundary>.Fail(Outcome.Invalid,
                         $"{LocalFileName} names a server '{supplement.Name}' that {FileName} does not "
-                        + "declare; the local file supplements the surface and cannot add to it",
+                        + "declare. Declare servers in " + FileName,
                         local.Path);
 
         // The models directory is per-machine - usually local - and is
@@ -176,8 +176,8 @@ public static class ConfigFile
         // one that ends up in history and in every clone.
         if (!fromLocal && Credential.IsMatch(value))
             return Result<Connect>.Fail(Outcome.Invalid,
-                $"server '{server}' has a \"connect\" carrying a password in {FileName}, "
-                + $"which is checked in; put the connection string in {LocalFileName} or "
+                $"server '{server}' has a \"connect\" with a password in {FileName}, "
+                + $"which is checked in. Put the connection string in {LocalFileName}, or "
                 + "name an environment variable as env:NAME", mainPath);
 
         return Result<Connect>.Ok(new Connect(value, FromEnvironment: false));
@@ -243,7 +243,7 @@ public static class ConfigFile
                             || top.Value.GetString() is not { Length: > 0 } dir)
                             return Result<Parsed>.Fail(Outcome.Invalid,
                                 $"\"models\" is not a non-empty string in {Path.GetFileName(path)}; "
-                                + "it names the directory the screening models were put in", path);
+                                + "it names the directory holding the screening models", path);
                         models = dir;
                         break;
 
@@ -431,16 +431,15 @@ public static class ConfigFile
 
         if (pattern is null)
             return Result<ScopeDecl>.Fail(Outcome.Invalid,
-                $"a scope in database '{database}' has no \"object\"; a scope without one "
-                + "governs nothing", path);
+                $"a scope in database '{database}' has no \"object\"", path);
 
         // A scope must state its verbs - saying nothing about them would
         // be the one ambiguity the model refuses to have. Screening is
         // different: silence inherits (see ScopeDecl).
         if (can is null)
             return Result<ScopeDecl>.Fail(Outcome.Invalid,
-                $"scope '{pattern.Typed}' in database '{database}' has no \"can\"; a scope "
-                + "states its verbs, and [] states nothing may be done", path);
+                $"scope '{pattern.Typed}' in database '{database}' has no \"can\". Write the "
+                + "verbs it allows; [] allows nothing", path);
 
         return Result<ScopeDecl>.Ok(new ScopeDecl(pattern, can.Value, columns, screened));
     }

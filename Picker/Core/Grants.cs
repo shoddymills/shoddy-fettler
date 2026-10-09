@@ -64,9 +64,9 @@ public sealed class ColumnRule
 
         if (anyBare && anyMinus)
             return Result<ColumnRule>.Fail(Outcome.Invalid,
-                "mixes included and excluded columns in one list, and the two cannot be "
-                + "combined: write [\"name\", \"city\"] for only those to exist, or "
-                + "[\"-ssn\"] for everything except that");
+                "mixes included and excluded columns in one list. Write "
+                + "[\"name\", \"city\"] to allow only those, or "
+                + "[\"-ssn\"] to allow everything except that");
 
         var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (string raw in words)
@@ -126,8 +126,8 @@ public sealed class ObjectPattern
         string[] parts = typed.Split('.');
         if (parts.Length != 2 || parts[0].Length == 0 || parts[1].Length == 0)
             return Result<ObjectPattern>.Fail(Outcome.Invalid,
-                $"'{typed}' is not an object pattern; write schema.object, with * "
-                + "staying inside its segment - dbo.Customers, audit.*");
+                $"'{typed}' is not an object pattern. Write schema.object, for example "
+                + "dbo.Customers or audit.*; * stays inside its segment");
 
         return Result<ObjectPattern>.Ok(new ObjectPattern(parts[0], parts[1], typed));
     }

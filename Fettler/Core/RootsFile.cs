@@ -220,11 +220,11 @@ public static class RootsFile
         }
         catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException)
         {
-            return Result<Found>.Fail(Outcome.NotFound, "there is no configuration there", full);
+            return Result<Found>.Fail(Outcome.NotFound, "the file does not exist", full);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            return Result<Found>.Fail(Outcome.Denied, $"the configuration could not be read: {e.Message}", full);
+            return Result<Found>.Fail(Outcome.Denied, $"could not read the file: {e.Message}", full);
         }
 
         JsonDocument doc;
@@ -294,8 +294,8 @@ public static class RootsFile
                 if (named.ValueKind != JsonValueKind.String
                     || named.GetString() is not { Length: > 0 } rawModels)
                     return Result<Found>.Fail(Outcome.Invalid,
-                        "has a \"models\" that is not a non-empty string; it names the directory "
-                        + "the screening models were put in", full);
+                        "has a \"models\" that is not a non-empty string. It names the directory "
+                        + "holding the screening models", full);
 
                 if (Separator(rawModels, "the \"models\" path", full) is { } badModels)
                     return Result<Found>.Fail(badModels);
@@ -327,13 +327,11 @@ public static class RootsFile
     /// says the whole of what to do rather than that something is
     /// wrong.</summary>
     public const string Migration =
-        "uses \"roots\", which this version does not read. A root granted "
-        + "everything; a tree states what it grants. Rewrite "
+        "uses \"roots\", which this version does not read. Rewrite "
         + "{\"roots\":{\"work\":\".\"}} as "
-        + "{\"trees\":{\"work\":{\"path\":\".\"}}} - a tree whose path is the "
-        + "folder this file sits in gets list read create update rename delete, "
-        + "and every other tree gets list read unless \"can\" says more. "
-        + "execute is never granted by default.";
+        + "{\"trees\":{\"work\":{\"path\":\".\"}}}. The tree holding this file "
+        + "gets list read create update rename delete. Every other tree gets "
+        + "list read unless \"can\" says more. execute is never a default.";
 
     static Result<TreeDecl> ReadTree(JsonProperty entry, string here, string file)
     {
@@ -539,9 +537,8 @@ public static class RootsFile
     static Failure? Separator(string raw, string what, string file) =>
         raw.Contains('\\') && !Absolute(raw)
             ? new Failure(Outcome.Invalid,
-                $"{what} is written with a backslash. A relative declared path uses \"/\" on "
-                + "every platform: Windows accepts it, and on macOS and Linux a backslash is "
-                + "an ordinary character in a name rather than a separator", file)
+                $"{what} is written with a backslash. Write a relative path with \"/\"; "
+                + "it works on every platform", file)
             : null;
 
     /// <summary>Whether a declared path names a particular disk. A drive

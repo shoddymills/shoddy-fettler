@@ -160,7 +160,7 @@ public sealed class ConfigTests
         Assert.False(found.IsOk);
         Assert.Equal(Outcome.Invalid, found.Failure!.Outcome);
         Assert.Contains("\"trees\"", found.Failure.Message);
-        Assert.Contains("execute is never granted by default", found.Failure.Message);
+        Assert.Contains("execute is never a default", found.Failure.Message);
     }
 
     [Fact]

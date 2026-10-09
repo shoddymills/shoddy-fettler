@@ -124,9 +124,8 @@ public static class RuleFiles
     {
         string name = System.IO.Path.GetFileName(path);
         return Result<T>.Fail(Outcome.Governed,
-            $"{name} is one of the files that say what this tool and the "
-            + "assistant driving it may do, and it does not edit those. "
-            + "Change it with an editor. "
+            $"{name} is a file that says what this tool and the assistant may do. "
+            + "Fettler does not write those files. Change it with an editor. "
             + $"The files are: {string.Join(", ", Ruled)}",
             path);
     }

@@ -116,7 +116,7 @@ public sealed class DocumentTests
 
         CliResult search = await Run(box, "search", "Kirkburton", "--no-documents");
 
-        Assert.Contains("not looked inside", search.Stdout);
+        Assert.Contains("not searched", search.Stdout);
     }
 
     [Fact]

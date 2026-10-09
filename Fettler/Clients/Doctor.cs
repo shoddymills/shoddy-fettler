@@ -129,19 +129,19 @@ public static class Doctor
         if (places.Count == 0)
             return new ClientReport(client, level, Verdict.NotApplicable,
                 client == Places.ClaudeDesktop && level == Level.Repo
-                    ? "this client has no project scope, so there is nothing to configure here"
-                    : "this client has nothing at this level",
+                    ? "this client has no project level"
+                    : "nothing to configure at this level",
                 null);
 
         Place? servers = places.FirstOrDefault(p => p.Purpose == Purpose.Servers);
 
         if (servers is null)
             return new ClientReport(client, level, Verdict.NotApplicable,
-                "this client takes its servers from another level", null);
+                "this client's servers are registered at the other level", null);
 
         if (!File.Exists(servers.Path))
             return new ClientReport(client, level, Verdict.NotApplicable,
-                "not configured on this machine at this level", servers.Path);
+                "no configuration file at this level", servers.Path);
 
         Result<JsonDocument> read = ReadJson(machine, servers.Path);
         if (!read.IsOk)
@@ -151,7 +151,7 @@ public static class Doctor
 
         if (!Registration(doc.RootElement, out JsonElement entry))
             return new ClientReport(client, level, Verdict.Absent,
-                $"no server called '{Places.ServerName}' is registered here", servers.Path);
+                $"'{Places.ServerName}' is not registered in this file", servers.Path);
 
         return Judge(client, level, entry, servers.Path, install);
     }
@@ -195,19 +195,19 @@ public static class Doctor
             || !entry.TryGetProperty("command", out JsonElement command)
             || command.ValueKind != JsonValueKind.String)
             return new ClientReport(client, level, Verdict.Broken,
-                "the registration has no command to launch", where);
+                "the registration has no command", where);
 
         string named = command.GetString()!;
         string? resolved = Resolve(named);
 
         if (resolved is null)
             return new ClientReport(client, level, Verdict.Broken,
-                $"the registration launches '{named}', which resolves to nothing on this machine"
-                + (install.OnPath ? "" : " - and fettle is not on PATH at all"),
+                $"the registration runs '{named}', and nothing on this machine has that name"
+                + (install.OnPath ? "" : ". fettle is not on PATH"),
                 where);
 
         return new ClientReport(client, level, Verdict.Healthy,
-            $"registered and launchable as {resolved}", where);
+            $"registered; runs {resolved}", where);
     }
 
     // ---- the second job: what lets the model go round it ----
@@ -234,8 +234,8 @@ public static class Doctor
         foreach (Place place in Places.All(machine))
             if (place.Path.EndsWith("settings.local.json", StringComparison.Ordinal) && File.Exists(place.Path))
                 findings.Add(new Finding("2.13", false,
-                    "a personal settings file is present; anything granted there is uncommitted "
-                    + "and invisible to everyone else on the project", place.Path));
+                    "settings.local.json is present. Permissions granted there are not committed, "
+                    + "so nobody else on the project sees them", place.Path));
 
         // 2.15: the assistant's own scratch directory, which nothing here
         // granted - the harness gives it - so work staged there is invisible
@@ -253,15 +253,13 @@ public static class Doctor
         if (roots is not null && ScratchRoot() is { } scratch
             && !InSomeTree(roots, scratch) && !HasTreeInside(roots, scratch))
             findings.Add(new Finding("2.15", false,
-                "an assistant scratch directory sits outside every declared tree, so work staged "
-                + "there is invisible to this boundary - and once the built-in Write is denied, "
-                + "nothing can write there at all. Declare the per-project folder inside it as a "
-                + $"tree in {RootsFile.LocalFileName}, which is gitignored: "
+                "the assistant's scratch directory is outside every declared tree. Once the "
+                + "built-in Write is denied, the assistant cannot write there. Declare this "
+                + $"project's folder inside it as a tree in {RootsFile.LocalFileName}: "
                 + "{\"trees\":{\"scratch\":{\"path\":\"<that folder>\",\"can\":"
                 + "[\"list\",\"read\",\"create\",\"update\",\"rename\",\"delete\"]}}}. "
-                + "Declare the project folder rather than this one, which holds every project's; "
-                + "and note that this tool does not write that file and setup cannot either - "
-                + "granting a tree is a person's act",
+                + "Declare the project's folder, not the directory named below, which holds "
+                + "every project's scratch. A person edits that file; setup does not",
                 scratch));
     }
 
@@ -434,7 +432,7 @@ public static class Doctor
                         && !InSomeTree(roots, directory.GetString()!))
                         findings.Add(new Finding("2.9", false,
                             $"additionalDirectories names '{directory.GetString()}', which is outside "
-                            + "every declared tree; the wider boundary is the one that applies",
+                            + "every declared tree. Remove the entry, or declare that directory as a tree",
                             place.Path));
         }
 
@@ -448,9 +446,10 @@ public static class Doctor
 
         if (shell.Count > 0)
             findings.Add(new Finding("2.6", true,
-                $"{shell.Count} allow entr{(shell.Count == 1 ? "y" : "ies")} pre-approve a shell command that "
-                + $"writes files, so each runs without a prompt: {string.Join(", ", shell.Take(5))}"
-                + (shell.Count > 5 ? $", and {shell.Count - 5} more" : ""),
+                $"{shell.Count} allow entr{(shell.Count == 1 ? "y pre-approves" : "ies pre-approve")} a shell command that "
+                + $"writes files: {string.Join(", ", shell.Take(5))}"
+                + (shell.Count > 5 ? $", and {shell.Count - 5} more" : "")
+                + (shell.Count == 1 ? ". Remove it" : ". Remove them"),
                 place.Path));
 
         // 2.7: an allow on the built-in editors or reader removes the
@@ -460,8 +459,8 @@ public static class Doctor
 
         if (builtIn.Count > 0)
             findings.Add(new Finding("2.7", true,
-                $"the built-in tools Fettler replaces are explicitly allowed: {string.Join(", ", builtIn)}. "
-                + "Read in particular defeats containment, the read permission and hidden scopes at once",
+                $"allow lists built-in tools that Fettler replaces: {string.Join(", ", builtIn)}. "
+                + "Remove those entries",
                 place.Path));
 
         // 2.8: registering Fettler makes it available; only a deny makes
@@ -472,8 +471,8 @@ public static class Doctor
 
         if (missing.Count > 0 && place.Level == Level.Repo)
             findings.Add(new Finding("2.8", false,
-                $"nothing denies the built-in {string.Join(", ", missing)}, so Fettler is an option "
-                + "rather than the route; `fettle setup claude-code --local` writes the denies",
+                $"deny does not list the built-in {string.Join(", ", missing)}. "
+                + "Run: fettle setup claude-code --local",
                 place.Path));
 
         // 2.18: 2.8 can only check the tools this fettle has heard of,
@@ -494,10 +493,9 @@ public static class Doctor
 
         if (unknown.Count > 0)
             findings.Add(new Finding("2.18", false,
-                $"this names {string.Join(", ", unknown)}, which is not in the tool inventory this "
-                + $"fettle was built with (drawn {InventoryOf}). Check 2.8 therefore said nothing "
-                + "about it either way - not that it is safe. A newer fettle may know it; until "
-                + "then, decide by hand whether it reads files, writes them, or runs a shell",
+                $"this file names {string.Join(", ", unknown)}, which this fettle does not know "
+                + $"(tool inventory dated {InventoryOf}). Check 2.8 did not judge it. Decide yourself "
+                + "whether it reads files, writes files or runs a shell, and deny it if it does",
                 place.Path));
 
         // B.17. The question that decides whether any of this works is
@@ -528,17 +526,16 @@ public static class Doctor
 
         if (contested.Count > 0)
             findings.Add(new Finding("B.17", true,
-                $"{string.Join(", ", contested)} appear in BOTH allow and deny. Which wins is the "
-                + "client's to decide and cannot be determined from here, so do not rely on the "
-                + "deny: remove the allow, which is correct either way",
+                $"{string.Join(", ", contested)} appear in both allow and deny. Which one wins is "
+                + "the client's decision. Remove the allow entry",
                 place.Path));
 
         // 2.14: auto-approval reinstates every route the boundary removed.
         if (doc.RootElement.TryGetProperty("chat.tools.autoApprove", out JsonElement auto)
             && auto.ValueKind == JsonValueKind.True)
             findings.Add(new Finding("2.14", true,
-                "chat.tools.autoApprove is on, which approves arbitrary tools without asking and "
-                + "reinstates every route the boundary removes", place.Path));
+                "chat.tools.autoApprove is on, so every tool runs without asking. Turn it off",
+                place.Path));
     }
 
     /// <summary>Whether two rules name the same tool, comparing the tool
@@ -618,12 +615,10 @@ public static class Doctor
                 if (!Interprets.Contains(word, StringComparer.OrdinalIgnoreCase)) continue;
 
                 findings.Add(new Finding("2.16", false,
-                    $"task '{task.Name}' fills a declared value into a string it hands to "
-                    + $"{program} to interpret ('{word}'). The value arrives as one argument, but "
-                    + "that argument is a script the shell parses, so a quote or a semicolon in "
-                    + "the value changes what runs. Declare the steps as separate tasks, or call "
-                    + "a script with the value as a parameter, so it stays an argument all the "
-                    + "way down",
+                    $"task '{task.Name}' puts a declared value inside a string that "
+                    + $"{program} parses ('{word}'). A quote or a semicolon in the value changes "
+                    + "what runs. Declare the steps as separate tasks, or pass the value to a "
+                    + "script as a parameter",
                     RootsFile.FileName));
                 break;
             }
@@ -658,8 +653,8 @@ public static class Doctor
         if (!text.Contains("fettle", StringComparison.OrdinalIgnoreCase)
             && !text.Contains("Fettler", StringComparison.OrdinalIgnoreCase))
             findings.Add(new Finding("2.10", false,
-                "this says nothing about Fettler, so nothing tells the assistant to prefer it "
-                + "over the tools it already reaches for by habit", place.Path));
+                "this file does not mention Fettler. Add a line telling the assistant to use it",
+                place.Path));
     }
 
     /// <summary>
@@ -714,12 +709,11 @@ public static class Doctor
 
         bool one = others.Count == 1;
         findings.Add(new Finding("2.17", false,
-            $"{others.Count} other MCP server{(one ? " is" : "s are")} registered here and the deny "
-            + $"list cannot narrow {(one ? "it" : "them")}: {(one ? "its" : "their")} tools are not "
-            + "called Read, so nothing setup writes says anything about what they may reach. "
-            + $"{(one ? "It is" : "They are")}: {string.Join(", ", others.Take(8))}"
+            $"{others.Count} other MCP server{(one ? " is" : "s are")} registered here: "
+            + $"{string.Join(", ", others.Take(8))}"
             + (others.Count > 8 ? $", and {others.Count - 8} more" : "")
-            + ". Deny mcp__<name>__* for any that should not be a route",
+            + $". The deny list does not cover {(one ? "its" : "their")} tools. "
+            + "Deny mcp__<name>__* for any that should not reach files",
             place.Path));
     }
 
@@ -746,9 +740,9 @@ public static class Doctor
             if (seen.TryGetValue(key, out string? first) && !string.Equals(first, key, StringComparison.Ordinal))
             {
                 findings.Add(new Finding("2.11", true,
-                    $"two project entries name one directory in different spellings ('{first}' and "
-                    + $"'{project.Name}'); permissions and approvals attach to whichever was resolved "
-                    + "that day and silently do not apply to the other", place.Path));
+                    $"two project entries name one directory with different spellings: '{first}' "
+                    + $"and '{project.Name}'. Permissions apply to only one of them. Merge them by hand",
+                    place.Path));
                 continue;
             }
             seen[key] = key;
@@ -765,14 +759,14 @@ public static class Doctor
     {
         if (!Places.Allows(machine, path))
             return Result<JsonDocument>.Fail(Outcome.Refused,
-                "that is not one of the configuration files this may read", path);
+                "doctor does not read this file", path);
 
         string text;
         try { text = Core.TextIo.WithoutMark(File.ReadAllText(path)); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             return Result<JsonDocument>.Fail(Outcome.Denied,
-                "the configuration could not be read: " + e.Message, path);
+                "could not read this file: " + e.Message, path);
         }
 
         try
@@ -786,7 +780,7 @@ public static class Doctor
         catch (JsonException e)
         {
             return Result<JsonDocument>.Fail(Outcome.Invalid,
-                "the configuration will not parse: " + e.Message, path);
+                "this file is not valid JSON: " + e.Message, path);
         }
     }
 }

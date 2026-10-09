@@ -1,34 +1,34 @@
 # Release notes
 
-One file per release, named for its tag: `v1.0.0` → `v1.0.0.md`.
+One file per release, named for its tag: `v1.0.0` becomes `v1.0.0.md`.
 
-**The whole file becomes the body of the GitHub Release.** Don't repeat the
-version as a heading — the release is already titled with it.
+**The whole file becomes the body of the GitHub Release.** Do not repeat the
+version as a heading. The release is already titled with it.
 
 **Write it on the branch, and commit it before the tag is pushed.** The
 Release workflow checks out the *tag* and reads only what that commit
-contains, so notes written afterwards are invisible to it. `fettler-ship.ps1` refuses
-to tag without the file.
+contains, so notes written afterwards are invisible to it.
+`fettler-ship.ps1` refuses to tag without the file.
 
 ## What goes in one
 
 Lead with what a user notices, in this order:
 
-1. **Breaking changes** — first and unmissable, with what to do about each.
-2. **Fixed bugs that bit someone** — say what went wrong, not just what was
+1. **Breaking changes.** First and unmissable, with what to do about each.
+2. **Fixed bugs that bit someone.** Say what went wrong, not just what was
    changed.
-3. **New behaviour** — new verbs, flags, permissions, screen categories.
-4. **Everything else** — briefly, or not at all.
+3. **New behaviour.** New verbs, flags, permissions, screen categories.
+4. **Everything else.** Briefly, or not at all.
 
 Skip anything a user cannot observe. A refactor with no behavioural change
-does not belong here; that is what the commit history is for.
+does not belong here. That is what the commit history is for.
 
 ## Two Fettler-specific things worth calling out
 
 - **A new or changed exit code.** Scripts branch on these, so a change is
-  breaking even when nothing else is. `fettler-verify-errors.js` will not let one ship
-  undocumented, but the notes are where somebody finds out.
-- **Anything touching the boundary** — a new permission, a change to what a
+  breaking even when nothing else is. `fettler-verify-errors.js` will not
+  let one ship undocumented, but the notes are where somebody finds out.
+- **Anything touching the boundary.** A new permission, a change to what a
   scope grants, a new rule file. People have written `.fettler.json` against
   the old behaviour.
 

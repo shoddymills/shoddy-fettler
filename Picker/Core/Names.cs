@@ -49,8 +49,7 @@ public static class Names
             2 => Result<ObjectName>.Ok(new ObjectName(null, parts[0], parts[1], typed)),
             3 => Result<ObjectName>.Ok(new ObjectName(parts[0], parts[1], parts[2], typed)),
             _ => Result<ObjectName>.Fail(Outcome.Refused,
-                $"'{typed}' has four parts, and a four-part name leaves the declared "
-                + "surface: a linked server is not reachable from here", typed),
+                $"'{typed}' has four parts. A linked server is not reachable here", typed),
         };
     }
 
@@ -122,30 +121,29 @@ public static class Names
     /// same fact. One factory rather than two call sites, so the two
     /// cases cannot drift into distinguishable sentences.</summary>
     public static Failure NotThere(string typed) => new(Outcome.NotFound,
-        $"there is no table or view called '{typed}' inside the declared databases; "
-        + "the objects tool lists what is here", typed);
+        $"there is no table or view called '{typed}' in the declared databases. "
+        + "Run objects to list what is here", typed);
 
     /// <summary>The one wording for a column that is not there - and for
     /// a column that is hidden. Same rule, same reason.</summary>
     public static Failure NoSuchColumn(string column, string onObject) => new(Outcome.NotFound,
-        $"'{column}' is not a column of {onObject}; describe it to see its columns", column);
+        $"'{column}' is not a column of {onObject}. Run describe to see its columns", column);
 
     /// <summary>The unqualified twin: when a bare name resolves to
     /// nothing a caller may see, the refusal names NO object - naming
     /// one would let the choice of object be compared across probes,
     /// which is the leak the shared wording exists to close.</summary>
     public static Failure NoColumnAnywhere(string column) => new(Outcome.NotFound,
-        $"'{column}' is not a column of anything in this query's FROM; describe the "
-        + "objects to see their columns", column);
+        $"'{column}' is not a column of any object in this query's FROM. Run describe "
+        + "on them to see their columns", column);
 
     /// <summary>The system catalog's own refusal. sys and
     /// INFORMATION_SCHEMA would list every object on the database,
     /// declared or hidden - metadata IS disclosure here, and the
     /// sanctioned route answers it under the grant.</summary>
     public static Failure SystemCatalog(string typed) => new(Outcome.Refused,
-        $"'{typed}' is the system catalog, which is not queryable here: it would "
-        + "disclose objects the grant does not list. The objects and describe verbs "
-        + "answer metadata questions under the grant", typed);
+        $"'{typed}' is the system catalog, which is not queryable here. "
+        + "Use objects and describe instead", typed);
 
     /// <summary>True when a schema name reaches for the system catalog.</summary>
     public static bool IsSystemSchema(string? schema) =>

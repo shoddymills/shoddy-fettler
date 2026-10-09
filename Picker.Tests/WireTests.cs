@@ -38,7 +38,7 @@ public sealed class WireTests
 
         Assert.False(read.IsOk);
         Assert.Equal(Outcome.Screened, read.Failure!.Outcome);
-        Assert.Contains("no findings array", read.Failure.Message);
+        Assert.Contains("without a findings array", read.Failure.Message);
     }
 
     [Theory]

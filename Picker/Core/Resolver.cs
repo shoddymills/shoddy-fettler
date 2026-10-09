@@ -129,8 +129,7 @@ public sealed class Resolver
             return Result<ResolvedObject>.Fail(Outcome.Invalid,
                 $"'{name.Database}' is declared on more than one server ("
                 + string.Join(", ", declared.Select(d => d.Server.Name))
-                + "), and a name cannot say which; declare it on one server here, "
-                + "and reach the other through its own configuration",
+                + "). Declare it on one server in this configuration",
                 name.Typed);
 
         (ServerDecl on, DatabaseDecl db) = declared[0];
@@ -189,7 +188,7 @@ public sealed class Resolver
             return Result<ResolvedObject>.Fail(Outcome.Invalid,
                 $"'{name.Typed}' is in more than one place: "
                 + string.Join(", ", candidates.Select(c => c.Display))
-                + " - qualify it", name.Typed);
+                + ". Qualify it", name.Typed);
 
         return Check(candidates[0], name.Typed, needed);
     }
@@ -214,8 +213,8 @@ public sealed class Resolver
 
         if (!resolved.Can.HasFlag(needed))
             return Result<ResolvedObject>.Fail(Outcome.Refused,
-                $"{Verbs.NameOf(needed)} is not granted on {resolved.Display}; "
-                + $"it grants: {Verbs.Write(resolved.Can)}", typed);
+                $"{Verbs.NameOf(needed)} is not allowed on {resolved.Display}. "
+                + $"It allows: {Verbs.Write(resolved.Can)}", typed);
 
         return Result<ResolvedObject>.Ok(resolved);
     }

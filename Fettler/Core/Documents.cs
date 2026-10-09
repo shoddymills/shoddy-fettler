@@ -272,8 +272,8 @@ sealed class PdfReader : IDocumentReader
 
         if (pages > 0 && withText == 0)
             return Result<Rendering>.Fail(Outcome.Refused,
-                $"this PDF has {pages} page(s) and no text layer at all, so it is probably a scan; "
-                + "nothing here does character recognition", path.Display);
+                $"this PDF has {pages} page(s) and no text layer, so it is probably a scan. "
+                + "Fettler does not do character recognition", path.Display);
 
         var text = new StringBuilder();
         foreach (string line in lines) text.Append(line).Append('\n');

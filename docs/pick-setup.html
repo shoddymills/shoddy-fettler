@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Pick in a project &mdash; declaring servers, databases, scopes and columns in .picker.json, the local overlay, the least-privilege login, doctor, and wiring the MCP server into a client.">
+<meta name="description" content="Pick in a project: declaring servers, databases, scopes and columns in .picker.json, the local overlay, the least-privilege login, doctor, and wiring the MCP server into a client.">
 <title>In a Project | Picker</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -23,20 +23,14 @@
 <header class="mast">
 <p class="eyebrow">Shoddy &middot; Picker</p>
 <h1 id="picksetup">In a Project</h1>
-<p class="kicker">Declaring servers, databases, scopes and columns; the
-two files they live in; the login to connect as; and proving the wiring
-with <code>doctor</code>.</p>
+<p class="kicker">Declaring servers, databases, scopes and columns, the two files they live in, the login to connect as, and proving the wiring with <code>doctor</code>.</p>
 </header>
 
 <nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a href="pick-install.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Installing It</span></span></a><a class="next" href="pick-screening.html"><span class="pnwrap"><span class="ttl">Screening</span><span class="dir">Next &rarr;</span></span></a></nav>
 
-<h2 id="files">Two files, dividing by what belongs in source control</h2>
+<h2 id="files">Two files, split by what belongs in source control</h2>
 
-<p><b><code>.picker.json</code> is checked in and declares the
-surface</b> &mdash; servers, databases, verbs, scopes, columns, screens
-&mdash; and is reviewed like the boundary it is. Pick finds it by
-walking upward from the current directory, the way Fettler finds the
-tree file; <code>--config PATH</code> names one directly.</p>
+<p><b><code>.picker.json</code> is checked in and declares the surface</b>: servers, databases, verbs, scopes, columns and screens. It is reviewed like the boundary it is. Pick finds it by walking upward from the current directory, the way Fettler finds the tree file. <code>--config PATH</code> names one directly.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>{
   "servers": {
@@ -57,10 +51,7 @@ tree file; <code>--config PATH</code> names one directly.</p>
   }
 }</code></pre></div>
 
-<p><b><code>.picker.local.json</code> sits beside it, kept out of source control</b>,
-and holds what never belongs in source control: the connection strings, and the
-per-machine <code>models</code> directory for
-<a href="pick-models.html">the screen's second tier</a>.</p>
+<p><b><code>.picker.local.json</code> sits beside it, kept out of source control.</b> It holds what never belongs in source control: the connection strings, and the per-machine <code>models</code> directory for <a href="pick-models.html">the screen's second tier</a>.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>{
   "models": "C:/screening-models",
@@ -72,46 +63,20 @@ per-machine <code>models</code> directory for
 }</code></pre></div>
 
 <ul>
-<li><b>The local file cannot widen the surface.</b> It supplies
-<code>connect</code> and <code>models</code> for what the checked-in
-file declares &mdash; and nothing else. A database declared only
-locally refuses the load, because it would be a boundary nobody
-reviewed.</li>
-<li><b>Two ways to say the connection, and the overlay wins.</b>
-Either the local file carries the string, as above &mdash; or the
-checked-in file names an environment variable,
-<code>"connect": "env:WAREHOUSE_SQL"</code>, and nothing secret sits
-in either file. Naming both is legal, and the overlay's wins; an
-example should pick one, so this page's picks the local file.</li>
-<li><b>A password literal in the checked-in file refuses the whole
-load</b>, with directions to the local file or an <code>env:NAME</code>
-variable. The reviewed file is the one that ends up in source control
-and in every copy of the project.</li>
-<li><b>An unknown word anywhere refuses the load, naming the valid
-set.</b> A misspelt verb or category would otherwise silently withhold
-a grant or a screen, and the failure would arrive much later as a
-refusal nobody can explain.</li>
-<li><b>Neither file is ever written by pick.</b> A person edits them,
-and <code>serve</code> re-reads both before every call &mdash; an edit
-binds on the next request.</li>
+<li><b>The local file cannot widen the surface.</b> It supplies <code>connect</code> and <code>models</code> for what the checked-in file declares, and nothing else. A database declared only locally refuses the load, because it would be a boundary nobody reviewed.</li>
+<li><b>Two ways to say the connection, and the overlay wins.</b> Either the local file carries the string, as above, or the checked-in file names an environment variable, <code>"connect": "env:WAREHOUSE_SQL"</code>, and nothing secret sits in either file. Naming both is legal, and the overlay's wins. An example should pick one, so this page's uses the local file.</li>
+<li><b>A password literal in the checked-in file refuses the whole load</b>, with directions to the local file or an <code>env:NAME</code> variable. The reviewed file is the one that ends up in source control and in every copy of the project.</li>
+<li><b>An unknown word anywhere refuses the load, naming the valid set.</b> A misspelt verb or category would otherwise silently withhold a grant or a screen, and the failure would arrive much later as a refusal nobody can explain.</li>
+<li><b>Neither file is ever written by pick.</b> A person edits them, and <code>serve</code> re-reads both before every call. An edit binds on the next request.</li>
 </ul>
 
 <h3 id="trustroot">Who can write these two files is the whole game</h3>
 
-<p><b>The pair is pick's trust root</b>: rewrite them and the very next
-call obeys the edit, because the boundary is re-read every time. pick
-itself cannot touch them &mdash; it has no write path at all &mdash;
-but some other tool the assistant holds probably can, and that is the
-door to close.</p>
+<p><b>The pair is pick's trust root.</b> Rewrite them and the very next call obeys the edit, because the boundary is re-read every time. pick itself cannot touch them. It has no write path at all. But some other tool the assistant holds probably can, and that is the door to close.</p>
 
 <ul>
-<li><b>On a workstation that also runs <code>fettle</code>, the door is
-already closed.</b> Both names are on fettle's governed list, refused
-by every fettle write path at every permission level &mdash; on exactly
-the terms fettle refuses its own <code>.fettler.json</code>.</li>
-<li><b>Running pick without fettle? At a minimum, set both files
-read-only</b> so an assistant's file tools cannot casually rewrite
-them:</li>
+<li><b>On a workstation that also runs <code>fettle</code>, the door is already closed.</b> Both names are on fettle's governed list, refused by every fettle write path at every permission level, on the same terms fettle refuses its own <code>.fettler.json</code>.</li>
+<li><b>Running pick without fettle? At a minimum, set both files read-only</b> so an assistant's file tools cannot casually rewrite them:</li>
 </ul>
 
 <div class="plat win"><span class="os">Windows &middot; PowerShell</span><div class="body">
@@ -126,40 +91,21 @@ them:</li>
 
 </div></div>
 
-<p class="note"><span class="lab">Note</span> <b>The attribute is a
-speed bump, not a wall.</b> A tool that can run a shell can clear it in
-one command &mdash; which is the argument for the fettled workstation,
-where the shells and built-in file tools are denied and the governed
-list holds instead.</p>
+<p class="note"><span class="lab">Note</span> <b>The attribute is a speed bump, not a wall.</b> A tool that can run a shell can clear it in one command. That is the argument for the fettled workstation, where the shells and built-in file tools are denied and the governed list holds instead.</p>
 
-<h2 id="scopes">Scopes replace; the most specific wins</h2>
+<h2 id="scopes">Scopes replace. The most specific wins</h2>
 
-<p>A scope names an <code>object</code> pattern &mdash;
-<code>schema.object</code>, with <code>*</code> standing for a whole
-segment &mdash; and what it grants <b>replaces</b> the database's
-grant outright for the objects it matches. An exact object beats an
-exact schema; an object matching no scope gets the database's own
-<code>can</code> and <code>screen</code>. What a table gets is read
-from one line, never assembled from several.</p>
+<p>A scope names an <code>object</code> pattern, <code>schema.object</code>, with <code>*</code> standing for a whole segment. What it grants <b>replaces</b> the database's grant outright for the objects it matches. An exact object beats an exact schema. An object matching no scope gets the database's own <code>can</code> and <code>screen</code>. What a table gets is read from one line, never assembled from several.</p>
 
 <ul>
-<li><b>A scope states its verbs</b>: <code>"can": []</code> is how
-<code>audit.*</code> above hides a whole schema &mdash; absent from
-listings, and refused as nonexistent everywhere else.</li>
-<li><b><code>columns</code></b> is <code>true</code> (everything), a
-bare list (only these), or a <code>-</code> list (everything but
-these); mixing the two forms is refused rather than resolved.</li>
-<li><b><code>screen</code> on a scope replaces the database's; silence
-inherits it</b> &mdash; the same rule Fettler's scopes follow, for the
-same reason.</li>
+<li><b>A scope states its verbs.</b> <code>"can": []</code> is how <code>audit.*</code> above hides a whole schema: absent from listings, and refused as nonexistent everywhere else.</li>
+<li><b><code>columns</code></b> is <code>true</code> (everything), a bare list (only these), or a <code>-</code> list (everything but these). Mixing the two forms is refused, never resolved.</li>
+<li><b><code>screen</code> on a scope replaces the database's. Silence inherits it.</b> That is the same rule Fettler's scopes follow, for the same reason.</li>
 </ul>
 
 <h2 id="several">More than one database, more than one server</h2>
 
-<p><b><code>servers</code> and <code>databases</code> are both plural on
-purpose.</b> The ETL shape &mdash; a staging database beside the
-warehouse, an operational server beside the reporting one &mdash; is one
-configuration:</p>
+<p><b><code>servers</code> and <code>databases</code> are both plural on purpose.</b> The ETL shape, a staging database beside the warehouse and an operational server beside the reporting one, is one configuration:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>{
   "servers": {
@@ -181,59 +127,20 @@ configuration:</p>
 }</code></pre></div>
 
 <ul>
-<li><b>A query may join across databases on the same server.</b>
-<code>SELECT &hellip; FROM Staging.load.Batch b JOIN Sales.dbo.Orders o
-ON &hellip;</code> is one statement down one connection, each reference
-rewritten to its three-part name, each object's own scope, columns and
-screen applied &mdash; a response is screened under the union of the
-scopes it read.</li>
-<li><b>One server per statement.</b> A query reaching objects on two
-servers is refused naming both, because a connection speaks to one of
-them. Compare across servers as two selects &mdash; which is also the
-honest shape: pick discloses result sets, it does not fabricate a
-joined one no server produced.</li>
-<li><b>An unqualified name is proven unique across every declared
-database</b> before it resolves &mdash; the connection's default
-database is never consulted. A bare name matching in two databases is
-refused naming both places; qualify it. Every database declared is
-therefore part of every name's proof, so declare what you use.</li>
-<li><b>The same database name on two servers cannot be told apart by a
-name</b>, so naming it is refused. The declared name is the name the
-rewrite sends to the server &mdash; renaming a declaration is not a
-remedy &mdash; so declare it on one server per configuration and reach
-the other through its own <code>.picker.json</code>
-(<code>--config</code> names one directly).</li>
-<li><b>Each server carries its own <code>connect</code></b> &mdash; and
-its own least-privilege principal, which is the next section: least
-privilege is per server, per database.</li>
+<li><b>A query may join across databases on the same server.</b> <code>SELECT &hellip; FROM Staging.load.Batch b JOIN Sales.dbo.Orders o ON &hellip;</code> is one statement down one connection. Each reference is rewritten to its three-part name, and each object's own scope, columns and screen are applied. A response is screened under the union of the scopes it read.</li>
+<li><b>One server per statement.</b> A query reaching objects on two servers is refused naming both, because a connection speaks to one of them. Compare across servers as two selects. That is also the true shape: pick discloses result sets. It does not fabricate a joined one no server produced.</li>
+<li><b>An unqualified name is proven unique across every declared database</b> before it resolves. The connection's default database is never consulted. A bare name matching in two databases is refused naming both places. Qualify it. Every database declared is therefore part of every name's proof, so declare what you use.</li>
+<li><b>The same database name on two servers cannot be told apart by a name</b>, so naming it is refused. The declared name is the name the rewrite sends to the server, so renaming a declaration is not a remedy. Declare it on one server per configuration and reach the other through its own <code>.picker.json</code> (<code>--config</code> names one directly).</li>
+<li><b>Each server carries its own <code>connect</code></b>, and its own least-privilege principal, which is the next section. Least privilege is per server, per database.</li>
 </ul>
 
 <h2 id="login">Connect as a login that could not do more anyway</h2>
 
-<p>Pick's boundary is enforced in pick. The server has its own, and the
-two should agree: <b>connect as a login granted only
-<code>SELECT</code> and <code>VIEW DEFINITION</code> on the declared
-databases</b>, so that even a fault in pick has nothing wider to spend.
-The honesty clause runs the other way too &mdash; declaring a database
-in <code>.picker.json</code> does not grant the login anything, and
-<code>doctor</code> reports a server that refuses the knock rather
-than letting the declaration imply access. A login failure is reported
-as the server declining (<code>denied</code>), never as the gate
-refusing (<code>refused</code>), so nobody debugs a boundary that is
-working.</p>
+<p>Pick's boundary is enforced in pick. The server has its own, and the two should agree. <b>Connect as a login granted only <code>SELECT</code> and <code>VIEW DEFINITION</code> on the declared databases</b>, so that even a fault in pick has nothing wider to spend. The rule runs the other way too. Declaring a database in <code>.picker.json</code> does not grant the login anything, and <code>doctor</code> reports a server that refuses the knock rather than letting the declaration imply access. A login failure is reported as the server declining (<code>denied</code>), never as the gate refusing (<code>refused</code>), so nobody debugs a boundary that is working.</p>
 
-<div class="takeaway"><b>Creating a SQL login is optional &mdash; one
-way to hold the principle, not a requirement.</b> Most shops connect
-with integrated security &mdash; <code>Integrated Security=true</code>,
-the connection arriving as a Windows or Entra account, no password
-anywhere &mdash; and least privilege carries over unchanged: the
-grants attach to whatever principal connects. Grant the same two
-permissions to that account, to a group, or to a database role the
-account is a member of; only the name in the T-SQL changes.</div>
+<div class="takeaway"><b>Creating a SQL login is optional. It is one way to hold the principle, not a requirement.</b> Most shops connect with integrated security, <code>Integrated Security=true</code>, where the connection arrives as a Windows or Entra account with no password anywhere. Least privilege carries over unchanged: the grants attach to whatever principal connects. Grant the same two permissions to that account, to a group, or to a database role the account is a member of. Only the name in the T-SQL changes.</div>
 
-<p>The grant, in full &mdash; run once by an administrator, and the
-whole of what pick's principal can ever do. With a dedicated SQL
-login:</p>
+<p>The grant, in full. An administrator runs it once, and it is the whole of what pick's principal can ever do. With a dedicated SQL login:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>CREATE LOGIN pick_reader WITH PASSWORD = 'a-strong-generated-password';
 USE Sales;
@@ -241,9 +148,7 @@ CREATE USER pick_reader FOR LOGIN pick_reader;
 GRANT SELECT          TO pick_reader;   -- the rows
 GRANT VIEW DEFINITION TO pick_reader;   -- the metadata describe reads</code></pre></div>
 
-<p>With integrated security, the same two grants land on the account
-or its group &mdash; or sit in a role, so that membership is the only
-thing that ever changes:</p>
+<p>With integrated security, the same two grants land on the account or its group. Or they sit in a role, so that membership is the only thing that ever changes:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>CREATE LOGIN [DOMAIN\report-readers] FROM WINDOWS;  -- a group: membership stays AD's job
 USE Sales;
@@ -252,51 +157,38 @@ CREATE ROLE pick_reading;
 GRANT SELECT, VIEW DEFINITION TO pick_reading;
 ALTER ROLE pick_reading ADD MEMBER [DOMAIN\report-readers];</code></pre></div>
 
-<p>On a development machine with LocalDB, integrated security stands in
-for all of this &mdash; the instance is yours alone. On anything
-shared, the GRANT lines are the whole ceremony. With a SQL login the
-password goes in <code>.picker.local.json</code> or an environment
-variable, never in the checked-in file &mdash; and with integrated
-security there is no password to put anywhere.</p>
+<p>On a development machine with LocalDB, integrated security stands in for all of this. The instance is yours alone. On anything shared, the GRANT lines are the whole ceremony. With a SQL login the password goes in <code>.picker.local.json</code> or an environment variable, never in the checked-in file. With integrated security there is no password to put anywhere.</p>
 
 <h2 id="doctor">Prove the wiring</h2>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>pick doctor     # the configuration, a bounded knock on each server,
                 # the models directory, burler beside the program
 pick catalogs   # the declared boundary - no connection opened
-pick objects    # what this caller may actually see</code></pre></div>
+pick objects    # what this caller may see</code></pre></div>
 
-<p><code>doctor</code> never prints a connection string or a credential
-&mdash; it says whether the knock was answered, not what knocked.</p>
+<p><code>doctor</code> never prints a connection string or a credential. It says whether the knock was answered, not what knocked.</p>
 
 <h2 id="verify">Verifying the boundary</h2>
 
-<p><b>Prove it, don&#8217;t trust it.</b> The wiring being declared
-correctly and the boundary holding are two different claims, and only
-the second one matters. Run each of these &mdash; or ask the assistant
-to &mdash; and watch what comes back:</p>
+<p><b>Prove it. Do not trust it.</b> The wiring being declared correctly and the boundary holding are two different claims, and only the second one matters. Run each of these, or ask the assistant to, and watch what comes back:</p>
 
 <table>
 <tr><th>Try to&hellip;</th><th>A correct setup&hellip;</th></tr>
-<tr><td>select from a database the file does not declare</td><td>refuses, exit&nbsp;3 &mdash; in the same words as a table that never existed, whether or not the database is real</td></tr>
-<tr><td>select from an object whose scope is <code>"can": []</code></td><td>refuses, exit&nbsp;3 &mdash; and <code>objects</code> never listed it</td></tr>
-<tr><td>select a column the scope excludes &mdash; then filter on it with <code>WHERE</code></td><td>refuses both, exit&nbsp;3, in the words of a column that does not exist</td></tr>
-<tr><td><code>SELECT *</code> from that same table</td><td>serves &mdash; every column except the excluded ones, and the answer states the column list it chose</td></tr>
+<tr><td>select from a database the file does not declare</td><td>refuses, exit&nbsp;3, in the same words as a table that never existed, whether or not the database is real</td></tr>
+<tr><td>select from an object whose scope is <code>"can": []</code></td><td>refuses, exit&nbsp;3, and <code>objects</code> never listed it</td></tr>
+<tr><td>select a column the scope excludes, then filter on it with <code>WHERE</code></td><td>refuses both, exit&nbsp;3, in the words of a column that does not exist</td></tr>
+<tr><td><code>SELECT *</code> from that same table</td><td>serves every column except the excluded ones, and the answer states the column list it chose</td></tr>
 <tr><td>run <code>DELETE</code>, <code>EXEC</code>, or a second statement</td><td>refuses, exit&nbsp;8, each with its own stated reason</td></tr>
-<tr><td>read <code>sys.tables</code></td><td>refuses, exit&nbsp;8 &mdash; the catalog answers through <code>describe</code>, governed</td></tr>
-<tr><td>connect with the login and a plain SQL client, and try an <code>INSERT</code></td><td>the <b>server</b> refuses &mdash; the login's grant stops at SELECT, so even around pick there is nothing wider to spend</td></tr>
-<tr><td>edit <code>.picker.json</code>, then call again without restarting</td><td>the change binds &mdash; the boundary is re-read before every call</td></tr>
+<tr><td>read <code>sys.tables</code></td><td>refuses, exit&nbsp;8. The catalog answers through <code>describe</code>, governed</td></tr>
+<tr><td>connect with the login and a plain SQL client, and try an <code>INSERT</code></td><td>the <b>server</b> refuses. The login's grant stops at SELECT, so even around pick there is nothing wider to spend</td></tr>
+<tr><td>edit <code>.picker.json</code>, then call again without restarting</td><td>the change binds. The boundary is re-read before every call</td></tr>
 </table>
 
-<p>With a screen declared, add the screening rows &mdash;
-<a href="pick-screening.html#prove">proving it refuses</a> has that
-half.</p>
+<p>With a screen declared, add the screening rows. <a href="pick-screening.html#prove">Proving it refuses</a> has that half.</p>
 
 <h2 id="client">Wiring the MCP server into a client</h2>
 
-<p>The server is <code>pick serve</code> on stdio. Register it in the
-project that should see it &mdash; for Claude Code,
-<code>.mcp.json</code> in the project directory:</p>
+<p>The server is <code>pick serve</code> on stdio. Register it in the project that should see it. For Claude Code, that is <code>.mcp.json</code> in the project directory:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>{
   "mcpServers": {
@@ -307,10 +199,7 @@ project that should see it &mdash; for Claude Code,
   }
 }</code></pre></div>
 
-<p>The five tools it offers are the five verbs, and every answer is
-byte-identical to <code>pick VERB --json</code>. A changed
-<code>.picker.json</code> binds on the next call; a changed binary
-needs the session restarted.</p>
+<p>The five tools it offers are the five verbs, and every answer is byte-identical to <code>pick VERB --json</code>. A changed <code>.picker.json</code> binds on the next call. A changed binary needs the session restarted.</p>
 
 <nav class="pagenav pagenav-bottom" aria-label="Picker, in order">
   <a href="pick-install.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Installing It</span></span></a>

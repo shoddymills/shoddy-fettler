@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Fettler &amp; Picker &mdash; bounded tools for a model and a script: files through fettle, SQL Server through pick. What they are, what they guarantee, and where the boundary comes from.">
+<meta name="description" content="Fettler and Picker: bounded tools for an assistant and for scripts. Files through fettle, SQL Server through pick. What they are, what they guarantee, and where the boundary comes from.">
 <title>Fettler &amp; Picker</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -23,87 +23,47 @@
 <header class="mast">
 <p class="eyebrow">Shoddy &middot; Fettler</p>
 <h1 id="fettler">Fettler &amp; Picker</h1>
-<p class="kicker">Bounded tools for a model and a script &mdash; the files through <code>fettle</code>, the SQL Server through <code>pick</code>. Two programs, two front ends each, and no shell between them and the data.</p>
+<p class="kicker">Bounded tools for an AI assistant and for scripts. Files through <code>fettle</code>, SQL Server through <code>pick</code>. Each is one program with two front ends, and neither one uses a shell.</p>
 </header>
 
 <nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a class="next" href="fettle.html"><span class="pnwrap"><span class="ttl">Fettle, for the files</span><span class="dir">Next &rarr;</span></span></a></nav>
 
 <div class="pair">
 <div class="prog">
-<p class="cmd">fettle &mdash; the files</p>
-<p><b>Find, search, read and edit inside declared trees, and nothing
-else.</b> No current directory, no path that climbs out, no shell to
-sneak past it. Batches land all or not at all, and a disclosure screen
-can refuse regulated data leaving a tree you name.</p>
+<p class="cmd">fettle: the files</p>
+<p><b>Find, search, read and edit files inside declared trees, and nothing else.</b> A tree is a folder you name in a configuration file. There is no current directory, no path can climb out of a tree, and there is no shell. A batch of edits lands whole or not at all. A screen can refuse to send regulated data out of a tree you name.</p>
 <a class="go" href="fettle.html">Start with the files &rarr;</a>
 </div>
 <div class="prog">
-<p class="cmd">pick &mdash; the SQL Server</p>
-<p><b>SELECT and DESCRIBE inside declared databases, and nothing
-else.</b> No default database, no <code>USE</code>, no system catalog;
-tables, views and columns scoped one by one; one statement through a
-fail-closed parser gate &mdash; and the same screen over the rows coming
-out.</p>
+<p class="cmd">pick: the SQL Server</p>
+<p><b>SELECT and DESCRIBE inside declared databases, and nothing else.</b> There is no default database, no <code>USE</code>, and no system catalog. Tables, views and columns are allowed one by one. One statement at a time passes through a parser that refuses anything it cannot check. The same screen covers the rows that come out.</p>
 <a class="go" href="pick.html">Start with the SQL &rarr;</a>
 </div>
 </div>
 
-<h2 id="discipline">One discipline, twice</h2>
+<h2 id="discipline">One set of rules, used twice</h2>
 
-<p>The two programs are one argument applied to two kinds of data, and
-every rule below holds for both:</p>
+<p>The two programs apply one set of rules to two kinds of data. Every rule below holds for both.</p>
 
 <ul>
-<li><b>The world is a declared list.</b> A tree in
-<code>.fettler.json</code>; a database in <code>.picker.json</code>.
-Whatever the file does not name does not exist &mdash; there is no
-default directory and no default database to fall into.</li>
-<li><b>Hidden is absent.</b> A path outside the trees, a hidden scope,
-an undeclared database, an excluded column: each is refused <em>in the
-same words as something that was never there</em>, so a refusal cannot
-be used to map what it protects.</li>
-<li><b>No shell, anywhere.</b> <code>fettle</code> runs only declared
-tasks, whole and argumentless; <code>pick</code> runs only one parsed
-and rewritten SELECT. Neither ever composes a command line.</li>
-<li><b>A person writes the rules, and the tools refuse to.</b> The
-configuration files are refused by every write path of the very tools
-they govern.</li>
-<li><b>Two front ends, one behaviour.</b> Each program is a CLI for a
-script and an MCP server for a model over the same core, and the MCP
-answers are byte-identical to the CLI's <code>--json</code> mode.
-Where the outcome words match, the exit codes carry
-<a href="fettle-reference.html#codes">the same numbers</a> in both
-programs.</li>
+<li><b>The world is a declared list.</b> fettle works in the trees listed in <code>.fettler.json</code>. pick works in the databases listed in <code>.picker.json</code>. Whatever a file does not name does not exist. There is no default directory and no default database.</li>
+<li><b>Hidden means absent.</b> A path outside the trees, a hidden folder, an undeclared database and a hidden column are all refused in the same words as something that was never there. A refusal cannot be used to map what it protects.</li>
+<li><b>No shell, anywhere.</b> fettle runs only declared tasks, whole and without arguments. pick runs only one parsed and rewritten SELECT. Neither builds a command line.</li>
+<li><b>A person writes the rules.</b> The tools refuse to write their own configuration files, whatever permissions they hold.</li>
+<li><b>Two front ends, one behaviour.</b> Each program is a command-line tool for scripts and an MCP server for an assistant. MCP is the Model Context Protocol, the standard way an assistant launches a tool and talks to it. Both front ends use the same core, and the MCP answers are byte for byte the same as the command line's <code>--json</code> output. Where the two programs share an outcome word, they share <a href="fettle-reference.html#codes">the exit code</a> too.</li>
 </ul>
 
 <h2 id="screen">They can refuse to disclose regulated data</h2>
 
-<p><b>Optional, off by default, and shared &mdash; one screen, both
-programs.</b> A tree or a database can declare that certain things must
-not leave it. The first tier runs in process with nothing installed:
-labelled record numbers, dates of birth, SSNs, Luhn-valid cards, emails,
-phone numbers.</p>
+<p><b>The screen is optional, off by default, and shared by both programs.</b> A tree or a database can declare that certain things must not leave it. The first tier runs inside the program with nothing installed. It catches labelled record numbers, dates of birth, social security numbers, valid card numbers, email addresses and phone numbers.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>"trees": {
   "records": { "path": "./records", "can": ["list", "read"], "screen": ["identifiers"] }
 }</code></pre></div>
 
-<p>Anything it finds refuses the <b>whole response</b> &mdash; a file
-read, a search, a result set of rows &mdash; rather than handing back a
-redacted copy that looks safe and is not.</p>
+<p>When the screen finds something, it refuses the <b>whole response</b>: a file read, a search, or a set of rows. It never hands back a redacted copy, because a redacted copy looks safe and is not.</p>
 
-<p><b>And here is what it does not catch.</b> Names, addresses,
-conditions and free text need a model, which is a separate download.
-<code>identifiers</code> is the only one of the four categories that
-works with nothing installed; <code>clinical</code>,
-<code>legal</code> and <code>scientific</code> screen nothing at all
-until you install one, and the tools say so in as many words rather
-than letting the category name imply otherwise.
-<a href="fettle-screening.html">Screening for the files</a> &middot;
-<a href="pick-screening.html">screening for the rows</a> &middot;
-the models, <a href="fettle-models.html">for fettle</a> and
-<a href="pick-models.html">for pick</a> &mdash; one installation on
-disk serves both.</p>
+<p><b>The screen does not catch names, addresses, conditions or free text on its own.</b> Those need a model, which is a separate download. <code>identifiers</code> is the only category that works with nothing installed. <code>clinical</code>, <code>legal</code> and <code>scientific</code> screen nothing until you install a model, and the tools say so in plain words. See <a href="fettle-screening.html">screening for the files</a>, <a href="pick-screening.html">screening for the rows</a>, and the models <a href="fettle-models.html">for fettle</a> and <a href="pick-models.html">for pick</a>. One set of models on disk serves both programs.</p>
 
 <h2 id="start">Getting started</h2>
 
@@ -112,18 +72,14 @@ disk serves both.</p>
 <tr><td>What it is, and why</td><td><a href="fettle.html">Overview</a></td><td><a href="pick.html">Overview</a></td></tr>
 <tr><td>The boundary, drawn</td><td><a href="fettle-workstation.html">Workstation</a></td><td><a href="pick-workstation.html">Workstation</a></td></tr>
 <tr><td>Working in five minutes</td><td><a href="fettle-quickstart.html">Quick start</a></td><td><a href="pick-quickstart.html">Quick start</a></td></tr>
-<tr><td>The per-machine wiring</td><td><a href="fettle-install.html">Install</a></td><td><a href="pick-install.html">Install</a></td></tr>
+<tr><td>The per-machine setup</td><td><a href="fettle-install.html">Install</a></td><td><a href="pick-install.html">Install</a></td></tr>
 <tr><td>Declaring the boundary</td><td><a href="fettle-setup.html">In a project</a></td><td><a href="pick-setup.html">In a project</a></td></tr>
 <tr><td>Refusing regulated data</td><td><a href="fettle-screening.html">Screening</a></td><td><a href="pick-screening.html">Screening</a></td></tr>
 <tr><td>The second tier's models, chosen and licensed</td><td><a href="fettle-models.html">Models</a></td><td><a href="pick-models.html">Models</a></td></tr>
 <tr><td>Every verb, refusal and exit code</td><td><a href="fettle-reference.html">Reference</a></td><td><a href="pick-reference.html">Reference</a></td></tr>
 </table>
 
-<div class="takeaway"><b>Both are written in C#, ship as one
-self-contained file each per platform, and need nothing installed
-alongside them.</b> <code>burler</code>, the model host the screen's
-second tier uses, is a separate download wanted only by people who
-switch that tier on &mdash; and it serves both programs.</div>
+<div class="takeaway"><b>Both programs are written in C#, ship as one self-contained file per platform, and need nothing installed beside them.</b> <code>burler</code>, the model host the screen's second tier uses, is a separate download. Only people who switch that tier on need it, and it serves both programs.</div>
 
 <nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
   <a class="next" href="fettle.html"><span class="pnwrap"><span class="ttl">Fettle, for the files</span><span class="dir">Next &rarr;</span></span></a>

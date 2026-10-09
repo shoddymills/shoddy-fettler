@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Fettler &mdash; bounded file, search and edit tools for a model and a script. What it is, what it guarantees, and where its boundary comes from.">
+<meta name="description" content="Fettler: bounded file, search and edit tools for an assistant and for scripts. What it is, what it guarantees, and where its boundary comes from.">
 <title>Fettler</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -23,101 +23,61 @@
 <header class="mast">
 <p class="eyebrow">Shoddy &middot; Fettler</p>
 <h1 id="fettle">Fettler</h1>
-<p class="kicker">File, search and edit tools for a model and a script. One program, two front ends, and no shell between it and the file.</p>
+<p class="kicker">File, search and edit tools for an AI assistant and for scripts. One program, two front ends, and no shell between it and the file.</p>
 </header>
 
 <nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="index.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Fettler &amp; Picker</span></span></a><a class="next" href="fettle-workstation.html"><span class="pnwrap"><span class="ttl">The Fettled Workstation</span><span class="dir">Next &rarr;</span></span></a></nav>
 
 <div class="onramp">
-<p><b>An assistant given Fettler cannot go wandering. Everything outside
-the boundary is denied.</b> Every path it touches must sit inside a
-<em>tree</em> &mdash; a folder you named ahead of time. Outside those
-trees, everything is refused: writing, reading, listing, even learning
-that a file exists. There is no current directory to change. No path can
-climb out of a tree. There is no shell to sneak past it with. So the
-assistant cannot wander into a sibling project, an old copy, or your home
-directory, read the wrong thing, and then answer from it with complete
-confidence.</p>
-<a class="shot" href="fettle-reference.html#boundary"><img src="media/fettler.svg" alt="A terminal showing two declared trees with their permissions, and a path from outside the boundary refused" loading="lazy"><span class="lab"><b>fettle</b><span>bounded file tools &middot; no shell in between</span></span></a>
+<p><b>An assistant given Fettler cannot wander. Everything outside the boundary is refused.</b> Every path it touches must sit inside a <em>tree</em>, a folder you named ahead of time. Outside those trees, everything is refused: writing, reading, listing, even learning that a file exists. There is no current directory to change. No path can climb out of a tree. There is no shell to go round it. So the assistant cannot open a sibling project, an old copy or your home directory, read the wrong thing, and answer from it.</p>
+<a class="shot" href="fettle-reference.html#boundary"><img src="media/fettler.svg" alt="A terminal showing two declared trees with their permissions, and a path from outside the boundary refused" loading="lazy"><span class="lab"><b>fettle</b><span>bounded file tools &middot; no shell</span></span></a>
 </div>
 
-<p>Inside the boundary, it does the work an assistant actually does on
-source files. It can find a file, search its contents, read it, write it,
-edit it, move it, copy it, and delete it. It can also run a named build
-task. It is written in C#, ships from this repository, and installs as
-one file. <b>And nothing it does changes how <em>you</em> work.</b> Your
-shell, your file explorer, your editor, and your source control stay exactly as they
-were.</p>
+<p>Inside the boundary, Fettler does the work an assistant does on source files. It can find a file, search its contents, read it, write it, edit it, move it, copy it and delete it. It can also run a named build task. It is written in C#, ships from this repository, and installs as one file. <b>Nothing it does changes how you work.</b> Your shell, your file explorer, your editor and your source control stay as they were.</p>
 
-<div class="takeaway"><b>The project is Fettler; the command is
-<code>fettle</code>.</b> The command uses the verb form because
-<code>fettle move a.txt b.txt</code> reads as an instruction, and
-<code>fettler move</code> does not. Both spellings are correct. Neither
-is a typo.</div>
+<div class="takeaway"><b>The project is Fettler. The command is <code>fettle</code>.</b> The command is the verb form, because <code>fettle move a.txt b.txt</code> reads as an instruction and <code>fettler move</code> does not. Both spellings are correct.</div>
 
-<p class="note"><span class="lab">Note</span> <b>This page asks you to
-type nothing.</b> To have it working in about five minutes instead, go
-straight to the <a href="fettle-quickstart.html">quick start</a>.</p>
+<p class="note"><span class="lab">Note</span> <b>This page asks you to type nothing.</b> To have Fettler working in about five minutes, go to the <a href="fettle-quickstart.html">quick start</a>.</p>
 
 <h2 id="does">What it does</h2>
 
 <table>
 <tr><th></th><th></th></tr>
-<tr><td><b>Bounded, not advisory</b></td><td>Every path resolves inside a tree you declared. Outside is refused <em>identically whether or not the file exists</em>, so a refusal cannot be used to probe a disk. No current directory, no path that climbs out, no shell to reach past it with.</td></tr>
-<tr><td><b>Every answer is the next call's argument</b></td><td><code>search</code> hands back <code>tree:path:line:column</code>. <code>read</code> numbers its lines and states a hash. <code>edit</code> asks for exactly those. Refused edits stop happening.</td></tr>
-<tr><td><b>It reads more than source</b></td><td>Notebooks as cells, spreadsheets as rows with their formulas, Word as paragraphs under their headings, PDF as text per page, images as facts &mdash; and inside archives without unpacking them.</td></tr>
-<tr><td><b>Batches are all or nothing</b></td><td>Every edit resolves before the first byte moves. A permission not granted, a file changed underneath, an anchor that no longer matches: any of these stops the whole batch with the tree exactly as it was.</td></tr>
-<tr><td><b>Two front ends, one core</b></td><td>A CLI for a script, an MCP server for a model, over the same operations. Machine-readable mode puts the complete result on stdout &mdash; failures included.</td></tr>
-<tr><td><b>Nothing changes how <em>you</em> work</b></td><td>Your shell, file explorer, editor and source control stay exactly as they were.</td></tr>
+<tr><td><b>Bounded, not advisory</b></td><td>Every path resolves inside a tree you declared. A path outside is refused in the same words whether or not the file exists, so a refusal cannot be used to probe a disk. There is no current directory, no path that climbs out, and no shell.</td></tr>
+<tr><td><b>Every answer is the next call's argument</b></td><td><code>search</code> returns <code>tree:path:line:column</code>. <code>read</code> numbers its lines and returns a hash. <code>edit</code> takes exactly those. A refused edit changes nothing.</td></tr>
+<tr><td><b>It reads more than source</b></td><td>Notebooks as cells, spreadsheets as rows with their formulas, Word documents as paragraphs under their headings, PDFs as text per page, images as facts. It reads inside archives without unpacking them.</td></tr>
+<tr><td><b>Batches are all or nothing</b></td><td>Every edit in a batch is resolved before the first byte moves. A missing permission, a file changed underneath, or an anchor that no longer matches stops the whole batch, and the tree stays as it was.</td></tr>
+<tr><td><b>Two front ends, one core</b></td><td>A command-line tool for scripts and an MCP server for an assistant, over the same operations. In machine-readable mode the complete result goes to stdout, failures included.</td></tr>
+<tr><td><b>Nothing changes how you work</b></td><td>Your shell, file explorer, editor and source control stay as they were.</td></tr>
 </table>
 
 <h2 id="refactor">One refactor, with the arithmetic</h2>
 
-<p>Rename a C# type in this repository and you touch <b>200 occurrences
-across 23 files</b>. That number is measured, not estimated &mdash;
-<code>fettle search</code> counted it. This is the change nobody does by
-hand, and every assistant is asked to do anyway.</p>
+<p>Renaming a C# type in this repository touches <b>200 occurrences across 23 files</b>. That number was measured with <code>fettle search</code>. Nobody does this change by hand, and every assistant is asked to do it.</p>
 
 <table>
 <tr><th></th><th>Built-in file tools</th><th>Fettler</th></tr>
-<tr><td><b>Calls</b></td><td>one search, then a read and an edit for each file &mdash; <b>47</b></td><td><code>search</code>, <code>replace --dry-run</code>, <code>replace</code> &mdash; <b>3</b></td></tr>
-<tr><td><b>Context spent</b></td><td>23 whole files pulled through it</td><td>the matching lines</td></tr>
-<tr><td><b>If it fails at file 15</b></td><td>14 files renamed, 9 not: a tree that no longer compiles, half-changed &mdash; and nothing says which half</td><td>nothing is written unless all 23 resolved first; if a <em>write</em> then fails, it names the file it stopped at and how many were already done</td></tr>
+<tr><td><b>Calls</b></td><td>one search, then a read and an edit for each file: <b>47</b></td><td><code>search</code>, <code>replace --dry-run</code>, <code>replace</code>: <b>3</b></td></tr>
+<tr><td><b>Context spent</b></td><td>23 whole files</td><td>the matching lines</td></tr>
+<tr><td><b>If it fails at file 15</b></td><td>14 files renamed and 9 not. The tree no longer compiles, and nothing says which half changed.</td><td>Nothing is written unless all 23 resolve first. If a <em>write</em> then fails, the answer names the file it stopped at and how many were already done.</td></tr>
 <tr><td><b>Per-file properties</b></td><td>whatever the writer happened to emit</td><td>each file keeps its own encoding, line endings and execute bit</td></tr>
 </table>
 
-<div class="takeaway"><b>The measurement that decided the design.</b> A
-model's tool call costs a round trip and a block of its context. Scanning
-this repository's 15&nbsp;MB of tracked text costs a few hundred
-milliseconds. The exchange costs about a thousand times more than the
-work &mdash; so the work is not the thing to optimise.</div>
+<div class="takeaway"><b>The measurement that decided the design.</b> A model's tool call costs a round trip and a block of its context. Scanning this repository's 15&nbsp;MB of tracked text costs a few hundred milliseconds. The exchange costs about a thousand times more than the work, so the work is not the thing to optimise.</div>
 
 <h2 id="screening">It can refuse to disclose regulated data</h2>
 
-<p><b>Optional, off by default, and it costs one line to try.</b> A tree
-can declare that certain things must not leave it; one detection refuses
-the whole response, and an image, which it cannot read into, is refused
-rather than served unchecked. <a href="index.html#screen">The shared
-screen</a> is introduced on the overview, and
-<a href="fettle-screening.html">the screening page</a> switches it on and
-proves it refuses.</p>
+<p><b>The screen is optional, off by default, and costs one line to try.</b> A tree can declare that certain things must not leave it. One detection refuses the whole response. An image in a screened tree is refused rather than served unchecked, because the screen cannot read into it. <a href="index.html#screen">The shared screen</a> is introduced on the overview. <a href="fettle-screening.html">The screening page</a> switches it on and proves it refuses.</p>
 
 <h2 id="start">Getting started</h2>
 
 <ul>
-<li><b><a href="fettle-quickstart.html">Quick start</a></b> &mdash; installed and
-turned on in a project, in about five minutes.</li>
-<li><b><a href="fettle-workstation.html">The fettled workstation</a></b> &mdash; what
-the boundary looks like on a disk, drawn.</li>
-<li><b><a href="fettle-install.html">Install</a></b> &mdash; the per-machine
-wiring and the client registrations.</li>
-<li><b><a href="fettle-setup.html">In a project</a></b> &mdash; declaring trees,
-scopes and tasks.</li>
-<li><b><a href="fettle-screening.html">Screening</a></b> &mdash; switching on the
-refusal to disclose regulated data, and proving it refuses.</li>
-<li><b><a href="fettle-reference.html">Reference</a></b> &mdash; the boundary in
-full, the seven permissions, every verb, every refusal, every exit code,
-and what this defends against.</li>
+<li><b><a href="fettle-quickstart.html">Quick start</a>.</b> Installed and turned on in a project, in about five minutes.</li>
+<li><b><a href="fettle-workstation.html">The fettled workstation</a>.</b> What the boundary looks like on a disk, drawn.</li>
+<li><b><a href="fettle-install.html">Install</a>.</b> The per-machine setup and the client registrations.</li>
+<li><b><a href="fettle-setup.html">In a project</a>.</b> Declaring trees, scopes and tasks.</li>
+<li><b><a href="fettle-screening.html">Screening</a>.</b> Switching on the refusal to disclose regulated data, and proving it refuses.</li>
+<li><b><a href="fettle-reference.html">Reference</a>.</b> The boundary in full: the seven permissions, every verb, every refusal, every exit code, and what this defends against.</li>
 </ul>
 
 <nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">

@@ -84,7 +84,7 @@ public sealed class ClientTests
         Diagnosis d = Examine(box);
 
         Assert.Equal(Verdict.NotApplicable, Report(d, Places.ClaudeDesktop, Level.Repo).Verdict);
-        Assert.Contains("no project scope", Report(d, Places.ClaudeDesktop, Level.Repo).Detail);
+        Assert.Contains("no project level", Report(d, Places.ClaudeDesktop, Level.Repo).Detail);
         Assert.False(d.AnyBroken);
     }
 
@@ -114,7 +114,7 @@ public sealed class ClientTests
         ClientReport report = Report(Examine(box), Places.ClaudeCode, Level.Repo);
 
         Assert.Equal(Verdict.Broken, report.Verdict);
-        Assert.Contains("resolves to nothing", report.Detail);
+        Assert.Contains("has that name", report.Detail);
         Assert.True(Examine(box).AnyBroken);
     }
 
@@ -148,7 +148,7 @@ public sealed class ClientTests
         ClientReport report = Report(Examine(box), Places.ClaudeCode, Level.Global);
 
         Assert.Equal(Verdict.Broken, report.Verdict);
-        Assert.Contains("will not parse", report.Detail);
+        Assert.Contains("is not valid JSON", report.Detail);
     }
 
     // ---- 6.3: every override check, positive and clean ----
@@ -164,7 +164,7 @@ public sealed class ClientTests
         Finding f = Examine(box).Findings.First(x => x.Check == "2.6");
 
         Assert.True(f.Serious);
-        Assert.Contains("without a prompt", f.Message);
+        Assert.Contains("writes files", f.Message);
         Assert.Contains("sed", f.Message);
 
         // The one that reads rather than writes is not named.
@@ -205,7 +205,7 @@ public sealed class ClientTests
 
         Assert.True(f.Serious);
         Assert.Contains("Read", f.Message);
-        Assert.Contains("hidden scopes", f.Message);
+        Assert.Contains("Fettler replaces", f.Message);
     }
 
     [Fact]
@@ -217,7 +217,7 @@ public sealed class ClientTests
         Finding f = Examine(box).Findings.First(x => x.Check == "2.8");
 
         Assert.False(f.Serious);
-        Assert.Contains("an option", f.Message);
+        Assert.Contains("deny does not list", f.Message);
     }
 
     /// <summary>The six replaced tools alone are not the whole list: a
@@ -333,8 +333,8 @@ public sealed class ClientTests
         Finding f = Examine(box).Findings.First(x => x.Check == "B.17");
 
         Assert.True(f.Serious);
-        Assert.Contains("cannot be determined from here", f.Message);
-        Assert.Contains("remove the allow", f.Message);
+        Assert.Contains("the client's decision", f.Message);
+        Assert.Contains("Remove the allow", f.Message);
     }
 
     /// <summary>
@@ -711,7 +711,7 @@ public sealed class ClientTests
         Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo));
 
         Assert.True(done.IsOk, done.Failure?.Message);
-        Assert.Contains(done.Value.Notes, n => n.Contains("LEFT ALONE") && n.Contains("Read(//c/x/**)"));
+        Assert.Contains(done.Value.Notes, n => n.Contains("remove them yourself") && n.Contains("Read(//c/x/**)"));
         Assert.Contains("Read(//c/x/**)",
             File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Policy)));
     }
@@ -866,7 +866,7 @@ public sealed class ClientTests
         Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo, DryRun: true));
 
         Assert.True(done.IsOk, done.Failure?.Message);
-        Assert.Contains(done.Value.Changes, c => c.What.Contains("REPLACE") && c.What.Contains("--force"));
+        Assert.Contains(done.Value.Changes, c => c.What.Contains("replace") && c.What.Contains("--force"));
         Assert.All(done.Value.Changes, c => Assert.False(c.Applied));
         Assert.Contains("something-else",
             File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Servers)));

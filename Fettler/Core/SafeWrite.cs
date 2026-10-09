@@ -56,9 +56,8 @@ public static class SafeWrite
         // get one onto the disk.
         if (Documents.For(path.Full) is { } reader)
             return Result<Saved>.Fail(Outcome.Refused,
-                $"this is read as a {Typed.NameOf(reader.Kind)}, and what read and search give back "
-                + "for one is a rendering rather than the file; writing that text here would leave "
-                + "the name and destroy the document", path.Display);
+                $"this file is a {Typed.NameOf(reader.Kind)}. read and search return a rendering "
+                + "of it, not the file. Writing text here would destroy the document", path.Display);
 
         // THE SAME ARGUMENT, ONE STEP WIDER. An image, an archive and a
         // lone gzip are not text either. `read` gives back an image's
@@ -81,9 +80,8 @@ public static class SafeWrite
         FileKind kind = Typed.KindOf(path.Full);
         if (kind is FileKind.Image or FileKind.Archive or FileKind.Gzip)
             return Result<Saved>.Fail(Outcome.Refused,
-                $"this is read as {Article(kind)} and is not text; writing text here would leave "
-                + "the name and destroy the file. The file-level operations of R6 - move, copy, "
-                + "delete - do not inspect content and are the way to shift one of these",
+                $"this file is {Article(kind)}, not text. Writing text here would destroy it. "
+                + "Use move, copy or delete for a file like this",
                 path.Display);
 
         byte[] bytes = TextIo.Encode(text, encodingName);
@@ -232,7 +230,7 @@ public static class SafeWrite
         {
             if (File.GetAttributes(full).HasFlag(FileAttributes.ReadOnly))
                 return Result<T>.Fail(Outcome.Denied,
-                    "the file carries the Windows read-only attribute; clear it, or pass force where the verb offers it",
+                    "the file has the Windows read-only attribute. Clear it, or pass force where the verb takes it",
                     path.Display);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }

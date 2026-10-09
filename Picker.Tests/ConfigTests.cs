@@ -88,8 +88,8 @@ public sealed class ConfigTests : IDisposable
     [Theory]
     [InlineData("""{ "servers": { "s": { "connect": "env:X", "databases": { "d": { "can": ["selct"] } } } } }""", "not a verb")]
     [InlineData("""{ "servers": { "s": { "connect": "env:X", "databases": { "d": { "screen": ["lgal"] } } } } }""", "not a screening category")]
-    [InlineData("""{ "servers": { "s": { "connect": "env:X", "databases": { "d": { "screen": ["identifiers", "-legal"] } } } } }""", "cannot be combined")]
-    [InlineData("""{ "servers": { "s": { "connect": "env:X", "databases": { "d": { "scopes": [ { "object": "dbo.T", "can": ["list"], "columns": ["a", "-b"] } ] } } } } }""", "cannot be combined")]
+    [InlineData("""{ "servers": { "s": { "connect": "env:X", "databases": { "d": { "screen": ["identifiers", "-legal"] } } } } }""", "mixes included and excluded")]
+    [InlineData("""{ "servers": { "s": { "connect": "env:X", "databases": { "d": { "scopes": [ { "object": "dbo.T", "can": ["list"], "columns": ["a", "-b"] } ] } } } } }""", "mixes included and excluded")]
     [InlineData("""{ "wrong": {} }""", "not something")]
     [InlineData("""{ "servers": { "s": { "connect": "env:X", "typo": {} } } }""", "not something")]
     [InlineData("""{ "servers": { "s": { "connect": "env:X", "databases": { "d": { "scopes": [ { "object": "dbo.T" } ] } } } } }""", "no \"can\"")]
@@ -143,7 +143,7 @@ public sealed class ConfigTests : IDisposable
             """);
 
         Assert.False(widened.IsOk);
-        Assert.Contains("cannot widen", widened.Failure!.Message);
+        Assert.Contains("may supply models and connect only", widened.Failure!.Message);
     }
 
     [Fact]

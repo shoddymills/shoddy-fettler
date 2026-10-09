@@ -60,7 +60,7 @@ public static class Command
         {
             roots = Roots.Open(
                 [new TreeDecl("work", Directory.GetCurrentDirectory(), Permissions.ReadOnly)],
-                "the current directory, because setup and doctor configure a machine rather than work in a tree");
+                "the current directory, read-only, for setup and doctor");
         }
 
         if (!roots.IsOk) return Failed(roots.Failure!, json);
@@ -115,7 +115,7 @@ public static class Command
         IReadOnlyList<string> unknown = args.UnknownFlags;
         if (unknown.Count > 0)
             return Failed(new Failure(Outcome.Invalid,
-                $"no such flag: {string.Join(", ", unknown)} - try: fettle help"), json);
+                $"no such flag: {string.Join(", ", unknown)}. Run fettle help for the list"), json);
 
         // The same argument one step in: the flag is known and its value
         // is the thing that is missing. Second, so a typo at the end of a
@@ -123,8 +123,7 @@ public static class Command
         IReadOnlyList<string> empty = args.FlagsMissingAValue;
         if (empty.Count > 0)
             return Failed(new Failure(Outcome.Invalid,
-                $"{string.Join(", ", empty)} needs a value, and nothing followed it"
-                + " - write --NAME= for a deliberately empty one"), json);
+                $"{string.Join(", ", empty)} needs a value. Write --NAME= to pass an empty one"), json);
 
         try
         {
@@ -180,7 +179,7 @@ public static class Command
             "setup" => Setup(bench, args, json),
             "run" => await Run(bench, args, json, cancel).ConfigureAwait(false),
             "batch" => await Batch(bench, args, json, cancel).ConfigureAwait(false),
-            _ => Failed(new Failure(Outcome.Invalid, $"no verb called '{args.Verb}'; try: fettle help"), json),
+            _ => Failed(new Failure(Outcome.Invalid, $"no verb called '{args.Verb}'. Run fettle help for the list"), json),
         };
 
     // ---- read-only verbs ----
@@ -191,7 +190,7 @@ public static class Command
         if (args.Value("since") is { } s)
         {
             if (!DateTimeOffset.TryParse(s, null, System.Globalization.DateTimeStyles.AdjustToUniversal, out DateTimeOffset parsed))
-                return Failed(new Failure(Outcome.Invalid, $"--since is not a time this reads: {s}"), json);
+                return Failed(new Failure(Outcome.Invalid, $"--since needs an ISO-8601 time; got '{s}'"), json);
             since = parsed;
         }
 
@@ -236,7 +235,7 @@ public static class Command
                 .AppendLine(f.Modified.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ"));
 
         text.Append(answer.Count).Append(answer.Count == 1 ? " file" : " files");
-        if (answer.Excluded > 0) text.Append($" ({answer.Excluded} excluded: bin, obj, .git - pass --include-generated)");
+        if (answer.Excluded > 0) text.Append($" ({answer.Excluded} skipped in bin, obj, .git and the like; pass --include-generated to see them)");
         if (answer.Truncated) text.Append(" (limit reached; more files exist)");
 
         return Ok(text.AppendLine().ToString());
@@ -280,7 +279,7 @@ public static class Command
 
         if (patterns.Count == 0)
             return Failed(new Failure(Outcome.Invalid,
-                "search needs a pattern: one written plainly, -e PATTERN, "
+                "search needs a pattern: PATTERN, -e PATTERN, "
                 + "--pattern-file PATH or --pattern-stdin"), json);
 
         Result<SearchAnswer> result = bench.Search(new SearchRequest(
@@ -385,7 +384,7 @@ public static class Command
             if (answer.DocumentsSkipped > 0)
                 text.Append("; ").Append(answer.DocumentsSkipped)
                     .Append(answer.DocumentsSkipped == 1 ? " document was" : " documents were")
-                    .Append(" not looked inside");
+                    .Append(" not searched");
 
             text.AppendLine();
         }
@@ -409,16 +408,15 @@ public static class Command
         // R3.14's failure in another costume: not an error, a wrong answer.
         if (tail is not null && (from is not null || to is not null))
             return Failed(new Failure(Outcome.Invalid,
-                "--tail is the end of the file and --from/--to is a named range;"
-                + " ask for one or the other"), json);
+                "--tail cannot be combined with --from or --to"), json);
 
         if (tail is < 1)
             return Failed(new Failure(Outcome.Invalid,
-                "--tail counts lines back from the end, so it needs at least 1"), json);
+                "--tail needs a count of 1 or more"), json);
 
         if (member is not null && paths.Count != 1)
             return Failed(new Failure(Outcome.Invalid,
-                "--member names one entry inside one archive, so read one archive at a time"), json);
+                "--member reads one entry from one archive; give one archive path"), json);
 
         Result<IReadOnlyList<ReadSlice>> result =
             bench.Read(new ReadRequest(paths, from, to, tail, member));
@@ -500,7 +498,7 @@ public static class Command
             if (s.Truncated)
                 text.Append("... ").Append(s.Remaining)
                     .Append(" more line(s); pass --from ").Append(s.To + 1)
-                    .AppendLine(" to go on, or --to for a range");
+                    .AppendLine(" to continue, or --to N for a range");
             else if (s.Budgeted && s.From > 1)
                 text.Append("... ").Append(s.From - 1)
                     .Append(" earlier line(s); pass --to ").Append(s.From - 1)
@@ -511,7 +509,7 @@ public static class Command
             // the range asked for.
             if (s.Budgeted)
                 text.Append("      (stopped at the ").Append(Bench.DefaultCharCap)
-                    .AppendLine("-character answer budget)");
+                    .AppendLine("-character limit for one call)");
         }
 
         return Ok(text.ToString());
@@ -689,9 +687,9 @@ public static class Command
         // configuration, and only where a category needing a model was
         // actually asked for.
         if (bench.Roots.Models is null && AnythingNeedsAModel(bench))
-            text.AppendLine().Append("no \"models\" directory is declared, so ")
+            text.AppendLine().Append("no \"models\" directory is declared, so the ")
                 .Append(ModelBackedWords())
-                .AppendLine(" screen nothing here - only the identifier patterns run");
+                .AppendLine(" categories screen nothing. Only identifiers are screened");
 
         // Where the boundary came from, not only what it is: a caller
         // who disagrees with it has to know which file to open.
@@ -727,7 +725,7 @@ public static class Command
             IReadOnlyList<Installed.Model> installed = Installed.For(models, Screens.NameOf(one));
 
             lines.Add((one, installed.Count == 0
-                ? "no model installed - reads here will refuse"
+                ? "no model installed; reads here are refused"
                 : string.Join(", ", installed)));
         }
 
@@ -793,7 +791,7 @@ public static class Command
         string? only = args.Value("client");
         if (only is not null && !Places.Clients.Contains(only))
             return Failed(new Failure(Outcome.Invalid,
-                $"no client called '{only}'; they are: {string.Join(", ", Places.Clients)}"), json);
+                $"no client called '{only}'. The clients are: {string.Join(", ", Places.Clients)}"), json);
 
         // --client narrows the REPORT, never the scan, so "it looked
         // fine" can never mean "it only looked at one".
@@ -813,7 +811,7 @@ public static class Command
                 if (c.Verdict is Verdict.Broken or Verdict.Absent)
                     brief.Append("  ").Append(c.Client).Append(' ').Append(Word(c.Level))
                          .Append(": ").Append(Word(c.Verdict))
-                         .Append(" - ").AppendLine(c.Detail);
+                         .Append(": ").AppendLine(c.Detail);
 
             foreach (Finding f in diagnosis.Findings.Where(f => f.Serious))
                 brief.Append("  ").Append(f.Check).Append(": ").AppendLine(f.Message);
@@ -863,13 +861,13 @@ public static class Command
         text.Append("fettle ").Append(diagnosis.Install.Version).Append("  ").AppendLine(diagnosis.Install.Binary);
         text.Append("on PATH: ").AppendLine(diagnosis.Install.OnPath
             ? diagnosis.Install.PathBinary
-            : "no - every registration naming a bare 'fettle' will fail to launch");
+            : "no. A registration that names a bare 'fettle' cannot start it");
 
         // A closed list that has fallen behind reports exactly as clean
         // as one that has not, so the date it was drawn is part of the
         // answer rather than a footnote in the source.
-        text.Append("tool inventory drawn ").Append(Doctor.InventoryOf)
-            .AppendLine("; check 2.8 says nothing about a tool added to the client since");
+        text.Append("tool inventory dated ").Append(Doctor.InventoryOf)
+            .AppendLine(". Check 2.8 does not know tools added to the client since then");
         text.AppendLine();
 
         foreach (ClientReport c in shown)
@@ -883,7 +881,7 @@ public static class Command
 
         if (diagnosis.Findings.Count > 0)
         {
-            text.AppendLine().AppendLine("what could let the assistant go round the boundary:");
+            text.AppendLine().AppendLine("ways past Fettler on this machine:");
             foreach (Finding f in diagnosis.Findings)
             {
                 text.Append("  ").Append(f.Serious ? "! " : "- ").Append(f.Check).Append("  ").AppendLine(f.Message);
@@ -916,7 +914,7 @@ public static class Command
     {
         if (args.At(0) is not { } client && !args.Has("all"))
             return Failed(new Failure(Outcome.Invalid,
-                $"setup needs a client, or --all; the clients are: {string.Join(", ", Places.Clients)}"), json);
+                $"setup needs a client name or --all. The clients are: {string.Join(", ", Places.Clients)}"), json);
 
         if (args.Has("global") && args.Has("local"))
             return Failed(new Failure(Outcome.Invalid, "setup takes --global or --local, not both"), json);
@@ -978,7 +976,7 @@ public static class Command
             human.Append("  ").Append(c.Path).Append("  ").AppendLine(c.What);
             if (c.Backup is { } backup) human.Append("     backed up to ").AppendLine(backup);
         }
-        if (changes.Count == 0) human.AppendLine("  nothing; it was already as it should be");
+        if (changes.Count == 0) human.AppendLine("  nothing; everything was already in place");
 
         foreach (string n in notes) human.Append("note: ").AppendLine(n);
 
@@ -1012,7 +1010,7 @@ public static class Command
         else if (args.Has("stdin"))
             text = TextIo.WithoutMark(await stdin.ReadToEndAsync(cancel).ConfigureAwait(false));
         else return Failed(new Failure(Outcome.Invalid,
-            "write needs its content named: --stdin, --text TEXT, or --text-file PATH"), json);
+            "write needs the content: --stdin, --text TEXT or --text-file PATH"), json);
 
 
         Result<Saved> saved = await bench.WriteAsync(
@@ -1120,7 +1118,7 @@ public static class Command
         string? find = args.At(0);
         string? with = args.At(1);
         if (find is null || with is null)
-            return Failed(new Failure(Outcome.Invalid, "replace needs the text to find and the text to put there"), json);
+            return Failed(new Failure(Outcome.Invalid, "replace needs FIND and WITH"), json);
 
         Result<ReplaceAnswer> result = await bench.ReplaceAsync(
             find, with, args.Value("glob"), args.Value("in"), args.Has("dry-run"),
@@ -1262,7 +1260,7 @@ public static class Command
         // wrong place to be helpful.
         if (args.Value("into") is not { Length: > 0 } into)
             return Failed(new Failure(Outcome.Invalid,
-                "extract needs --into DIR, naming where the members land"), json);
+                "extract needs --into DIR"), json);
 
         Result<Unpacked> done = await bench.ExtractAsync(archive, into, args.Has("overwrite"), cancel)
             .ConfigureAwait(false);
@@ -1320,9 +1318,8 @@ public static class Command
         // shape R3.14 exists to prevent, one argument further in.
         if (args.Positional.Count > 1)
             return Failed(new Failure(Outcome.Invalid,
-                $"run takes a task name and nothing else; '{args.At(1)}' is extra. "
-                + "A task is declared whole and takes no arguments - declare a second "
-                + "task for the second thing you want run."), json);
+                $"run takes only a task name; '{args.At(1)}' is extra. "
+                + "A task takes no arguments. Declare a second task for a variant"), json);
 
         var timeout = TimeSpan.FromSeconds(args.Int("timeout", 0));
         Result<TaskRun> ran = await bench.RunAsync(name, timeout, cancel).ConfigureAwait(false);
@@ -1400,7 +1397,7 @@ public static class Command
              .Append(answer.Completed).AppendLine(" ok");
 
         if (answer.StoppedEarly)
-            human.AppendLine("stopped at the first failure; the operations above it were done and are not undone");
+            human.AppendLine("stopped at the first failure. The operations before it were done and stay done");
 
         return new CliResult(answer.StoppedEarly ? ExitCodes.Refused : ExitCodes.Ok, human.ToString(), string.Empty);
     }
@@ -1528,7 +1525,7 @@ public static class Command
     static void AppendLost(StringBuilder text, IReadOnlyList<string> lost)
     {
         foreach (string l in lost)
-            text.Append("   warning: could not carry over ").AppendLine(l);
+            text.Append("   warning: not preserved: ").AppendLine(l);
     }
 
     /// <summary>Paths are written qualified only when more than one root
@@ -1538,67 +1535,44 @@ public static class Command
         bench.Roots.IsSingle ? path.Display : path.Qualified;
 
     static string Help() => """
-        fettle - find, search, read, write, edit, move, copy, delete, unpack an archive,
-         and run a declared task.
+        fettle - find, search, read, write, edit, move, copy and delete files inside
+        declared trees, unpack archives, and run declared tasks.
 
-        Global flags, accepted by every verb:
-          --config PATH        the .fettler.json to use, rather than searching
-          --root PATH          a tree for READING only, repeatable as NAME=PATH.
-                               It cannot grant write at any level: to write to a
-                               tree, put a .fettler.json in it. With neither flag,
-                               the nearest .fettler.json at or above the current
-                               directory declares the trees, and its paths are read
-                               relative to ITSELF - so the boundary is the same from
-                               anywhere inside the tree. With none of those, fettle
-                               refuses: there is no implicit current directory.
-          --no-config          do not search for one, so a command refuses as it
-                               would from outside any configured tree
-          --json               the machine-readable result, complete, on stdout
-          --include-generated  do not skip bin, obj, .git, artifacts, node_modules
-          --exclude GLOB       skip more, repeatable
+        Global flags (every verb takes them):
+          --config PATH        use this .fettler.json instead of searching for one
+          --root PATH          open a tree for reading only; repeat as NAME=PATH.
+                               A tree is writable only through its own .fettler.json.
+                               With neither flag, the nearest .fettler.json at or above
+                               the current directory declares the trees. With no
+                               .fettler.json at all, fettle refuses.
+          --no-config          do not search for a .fettler.json
+          --json               machine-readable result on stdout, failures included
+          --include-generated  include bin, obj, .git, artifacts and node_modules
+          --exclude GLOB       skip more files; repeatable
 
         Verbs:
           find PATTERN [--sort mtime] [--limit N] [--since TIME]
           search PATTERN [-e PATTERN]... [--glob G] [--literal] [--case-sensitive]
-                         [--context N] [--limit N] [--count] [--files-only]
-                         [--no-documents]
-                 A pattern may instead arrive as --pattern-file PATH or
-                 --pattern-stdin, one per line, so a shell never gets to
-                 eat a quote out of it.
-                 A document in the sweep - a PDF - is rendered to text and
-                 searched like anything else, and a hit in one cites its page.
-                 --no-documents leaves them shut. Either way the answer says
-                 how many were not looked inside, because a search that never
-                 opened a file found nothing in it, which is not the same as
-                 there being nothing in it.
+                 [--context N] [--limit N] [--count] [--files-only] [--no-documents]
+                 [--pattern-file PATH] [--pattern-stdin]
+                 PDFs are searched as text unless --no-documents is given.
           read PATH... [--from N] [--to N] [--tail N] [--member NAME]
-                 Text, notebooks, PDFs, .xlsx/.xlsm workbooks, .docx/.docm
-                 documents, images and archives. Stops at 2000 lines and says
-                 how many are left; --to asks for more. It also stops at 40,000
-                 characters across the call, which --to does NOT lift: that is
-                 how much of your range survives the trip, and a range too big
-                 to send comes back short rather than not at all. --tail N is the
-                 LAST n lines - for a log or a build transcript, so reaching the
-                 end of one costs no arithmetic and no second call.
-                 A .zip, .tar, .tar.gz or .tgz reads as its MANIFEST: every
-                 member, its size, and whether it carries the execute bit.
-                 --member NAME reads one entry out of it, decoded like any other
-                 file, without unpacking anything. A lone .gz reads as whatever
-                 is underneath it.
+                 Reads text, notebooks, PDFs, spreadsheets, Word documents, images
+                 and archives. Stops at 2000 lines and at 40,000 characters per
+                 call; --to lifts the line cap only. --tail N reads the last N
+                 lines. An archive reads as its member list; --member NAME reads
+                 one member.
           extract ARCHIVE --into DIR [--overwrite]
-                 Unpack into a declared tree. Refused WHOLE if any member would
-                 land outside a tree, needs a permission it has not got, or is a
-                 link - so an archive never lands half-unpacked. Carries the
-                 execute bit. Never writes over anything without --overwrite.
-          write PATH --stdin [--overwrite] [--encoding E] [--eol lf|crlf]
+                 Refused whole if any member would land outside a tree or is a link.
+          write PATH (--stdin | --text S | --text-file PATH) [--overwrite]
+                [--encoding E] [--eol lf|crlf]
           edit PATH [--expect HASH] [--dry-run] and one of:
                  --replace S --with S [--between 120-140] [--all]
                  --insert-after N --text S
                  --delete 150-151
                  --script FILE
-               Any of --replace, --with and --text may instead be given as
-               --NAME-file PATH or --NAME-stdin, so text with quotes and
-               newlines in it never has to be escaped onto a command line.
+                 --replace, --with and --text also take --NAME-file PATH or
+                 --NAME-stdin.
           replace FIND WITH [--glob G] [--dry-run]
           new PATH
           mkdir PATH
@@ -1606,43 +1580,36 @@ public static class Command
           copy FROM TO [--recursive] [--overwrite] [--preserve-times]
           delete PATH [--recursive] [--force]
           exec PATH --on | --off
-          tasks                 the declared tasks and the command line each runs
-          roots                 the trees, their paths, and what may be done in each
+          tasks                 list the declared tasks and what each runs
+          roots                 list the trees, their paths, and what each allows
           run NAME [--timeout SECONDS]
-                 A task is declared whole and takes NO arguments from its
-                 caller. Declare a second task rather than composing one.
-                 A command line may name values the configuration declares
-                 under "replacements", written {like-this}; the value is
-                 the file's and an undeclared name is refused.
+                 Runs one declared task. A task takes no arguments.
           batch --script FILE
           doctor [--client NAME] [--quiet] [--hook]
-                 whether this tool is wired into each assistant client, at both
-                 levels, and what still lets the boundary be gone round
+                 Reports whether fettle is registered with each assistant client,
+                 and what still lets the assistant reach files without it.
           setup CLIENT | --all [--global | --local] [--dry-run] [--force]
                 [--hooks] [--deny] [--command PATH]
-                 clients: claude-code, claude-desktop, vscode-copilot, github-copilot
-          serve                 become the MCP front end on stdio
+                 Clients: claude-code, claude-desktop, vscode-copilot, github-copilot
+          serve                 run as an MCP server on stdin and stdout
 
         Permissions, granted only by a .fettler.json:
           list read create update rename delete execute
-          The tree that file sits in gets all but execute; every other tree gets
-          list read. execute is never a default anywhere. A scope inside a tree
-          replaces what the tree grants, so it can take a permission away, and a
-          scope with no `list` is not there at all as far as find and search go.
-          .fettler.json and .fettler.local.json say what this tool may do - the
-          trees, and the tasks - and it does not write them. See
-          docs/fettler.html.
+          The tree holding the file gets all but execute. Every other tree gets
+          list and read. execute is never a default. A scope inside a tree
+          replaces the tree's permissions for that folder. A scope without list
+          is invisible to find and search. fettle never writes .fettler.json or
+          .fettler.local.json.
 
-        An unknown flag is refused, never ignored - one dash or two: ignoring
-        one would eat the argument after it, or be read as a second pattern,
-        and answer a different question confidently. -e is the only short
-        flag there is. A pattern or path that starts with a hyphen goes after
-        a bare --, or through --pattern-file or --pattern-stdin.
+        An unknown flag is refused. -e is the only short flag. A pattern or path
+        that starts with a hyphen goes after a bare --, or in --pattern-file.
 
         Exit codes: 0 ok, 2 invalid, 3 not-found, 4 outside-root, 5 target-exists,
                     6 stale, 7 conflict, 8 refused, 9 denied, 10 timed-out,
-                    11 governed, 12 credential. doctor answers 0, 1 for warnings,
-                    2 for broken.
+                    11 governed, 12 credential, 13 screened.
+                    doctor: 0 healthy, 1 warnings, 2 broken.
+
+        Full reference: https://shoddymills.github.io/shoddy-fettler/fettle-reference.html
 
         """;
 }

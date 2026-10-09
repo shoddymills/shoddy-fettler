@@ -183,10 +183,9 @@ public static class Secrets
         }
 
         return $"this write would add a credential to the file: {where}. "
-            + "The secret itself is deliberately not quoted back, because a "
-            + "refusal that named it would put it in the log and the transcript. "
-            + "Use a reference such as ${ENV_VAR} instead, or pass the override "
-            + "if this is not a credential.";
+            + "The secret is not quoted, because the refusal would then disclose it. "
+            + "Use a reference such as ${ENV_VAR} instead, or pass --allow-credential "
+            + "on the command line if this is not a credential.";
     }
 
     /// <summary>A value worth refusing: long, high-entropy, no

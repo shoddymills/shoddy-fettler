@@ -156,13 +156,13 @@ public static class Editor
         Edit.Replace r => ResolveReplace(file, r, index),
         Edit.InsertAfter i => ResolveInsert(file, i, index),
         Edit.DeleteLines d => ResolveDelete(file, d, index),
-        _ => Result<Resolved>.Fail(Outcome.Invalid, $"edit {index} is of no kind this understands"),
+        _ => Result<Resolved>.Fail(Outcome.Invalid, $"edit {index} has no recognised kind"),
     };
 
     static Result<Resolved> ResolveReplace(TextFile file, Edit.Replace r, int index)
     {
         if (r.Find.Length == 0)
-            return Result<Resolved>.Fail(Outcome.Invalid, $"edit {index} looks for nothing");
+            return Result<Resolved>.Fail(Outcome.Invalid, $"edit {index} has an empty replace text");
 
         int[] starts = LineStarts(file.Lines);
 
@@ -232,7 +232,7 @@ public static class Editor
         // the way out that does not mean quoting more context.
         if (found.Count > 1 && !r.All)
             return Result<Resolved>.Fail(Outcome.Conflict,
-                $"edit {index} matched {found.Count} places; scope it with a line range, or say to replace all");
+                $"edit {index} matches in {found.Count} places. Scope it with a line range, or set all");
 
         if (r.All)
         {

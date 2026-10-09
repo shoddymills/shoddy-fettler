@@ -22,30 +22,30 @@ public static class ToolCatalogue
 
     static readonly Tool[] Tools =
     [
-        new("catalogs", "The declared servers and databases, what each grants and screens, and where the configuration came from. Ask this first, rather than discovering the boundary by being refused. No connection is opened to answer it.", """
+        new("catalogs", "List the declared servers and databases, what each grants and screens, and which file declared them. Call this first. Opens no connection.", """
             {"type":"object","properties":{}}
             """),
 
-        new("objects", "Tables and views matching a pattern, filtered by the grant - an object outside it is not a row here and not a count either. PATTERN is schema.object or a bare object name, with * staying inside its segment.", """
+        new("objects", "List tables and views matching a pattern, limited to the ones the grant allows. PATTERN is schema.object or a bare object name; * stays inside its segment.", """
             {"type":"object","properties":{
               "pattern":{"type":"string","description":"schema.object or a bare object name; * stays inside its segment; omit for everything"}
             }}
             """),
 
-        new("select", "Run ONE SELECT statement through the gate: tables and views only, every name resolved inside the declared databases, columns proven against the grant, * expanded to the columns that exist here. There is no default database and no USE - qualify names, or let a unique name resolve. Rows come back as records with the column list stated; a truncated answer says so, and TOP/WHERE/OFFSET are the remedy.", """
+        new("select", "Run one SELECT statement. Tables and views only. Every name must resolve inside the declared databases, and every column must be allowed by the grant; * expands to the allowed columns. There is no default database and no USE: qualify names, or use a name that is unique. Rows come back as records with the column list. A truncated answer says so; narrow it with TOP, WHERE or OFFSET.", """
             {"type":"object","required":["sql"],"properties":{
-              "sql":{"type":"string","description":"one SELECT statement; anything else is refused with the reason"},
-              "limit":{"type":"integer","description":"row cap for this call; the answer says when it bites"}
+              "sql":{"type":"string","description":"one SELECT statement"},
+              "limit":{"type":"integer","description":"maximum rows for this call; the answer says if it was reached"}
             }}
             """),
 
-        new("describe", "Columns, keys and indexes for one table or view, generated from the catalog and filtered by the grant. A view describes exactly as a table does - its stored definition text is never served, under any grant. The answer carries a hash so a later call can prove 'unchanged' cheaply.", """
+        new("describe", "List the columns, keys and indexes of one table or view, limited by the grant. A view's definition text is never returned. The answer carries a hash, so a later call can check for changes cheaply.", """
             {"type":"object","required":["name"],"properties":{
               "name":{"type":"string","description":"the object: Customers, dbo.Customers, or Sales.dbo.Customers"}
             }}
             """),
 
-        new("doctor", "Whether the configuration loads, whether each declared server answers a bounded connection attempt, and whether the screening pieces are in place. Diagnoses; never changes anything; never prints a credential.", """
+        new("doctor", "Report whether the configuration loads, whether each declared server accepts a connection, and whether the screening pieces are installed. Changes nothing. Never prints a credential.", """
             {"type":"object","properties":{}}
             """),
     ];

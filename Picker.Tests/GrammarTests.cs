@@ -48,7 +48,7 @@ public sealed class GrammarTests
 
         Result<ColumnRule> mixed = ColumnRule.Parse(["name", "-ssn"]);
         Assert.False(mixed.IsOk);
-        Assert.Contains("cannot be combined", mixed.Failure!.Message);
+        Assert.Contains("mixes included and excluded", mixed.Failure!.Message);
 
         Result<ColumnRule> empty = ColumnRule.Parse([]);
         Assert.False(empty.IsOk);
