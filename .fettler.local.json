@@ -22,8 +22,8 @@
   "replacements": {
     "feature-branch":  "anderson",
     "bug-branch":      "anderson01", 
-    "release-version": "1.2.0",
-    "checkin-note":     "Fettler now guards and screens SQL!"
+    "release-version": "1.3.0",
+    "checkin-note":     "No more mannered prose."
   }
 }
 
