@@ -338,6 +338,7 @@ public static class Command
 
                 w.WriteNumber("hits_count", answer.Hits.Count);
                 w.WriteNumber("files", answer.Files);
+                w.WriteNumber("files_matched", answer.FilesMatched);
                 w.WriteNumber("files_searched", answer.FilesSearched);
                 w.WriteBoolean("truncated", answer.Truncated);
                 w.WriteNumber("excluded", answer.Excluded);
@@ -389,8 +390,23 @@ public static class Command
             text.AppendLine();
         }
 
+        // R3.3: a glob that matched nothing, or matched only files with
+        // no text in them, is said out loud. Otherwise it reads as a
+        // search that looked and found nothing.
+        if (args.Value("glob") is not null)
+        {
+            if (answer.FilesMatched == 0)
+                text.AppendLine(NothingMatched);
+            else if (answer.FilesSearched == 0)
+                text.Append(answer.FilesMatched)
+                    .Append(answer.FilesMatched == 1 ? " file" : " files")
+                    .AppendLine(" matched the glob; none could be searched as text");
+        }
+
         return Ok(text.ToString());
     }
+
+    const string NothingMatched = "0 files matched the glob; nothing was searched";
 
     static CliResult Read(Bench bench, Arguments args, bool json)
     {
@@ -419,7 +435,7 @@ public static class Command
                 "--member reads one entry from one archive; give one archive path"), json);
 
         Result<IReadOnlyList<ReadSlice>> result =
-            bench.Read(new ReadRequest(paths, from, to, tail, member));
+            bench.Read(new ReadRequest(paths, from, to, tail, member, args.Has("numbered")));
         if (!result.IsOk) return Failed(result.Failure!, json);
 
         if (json)
@@ -489,9 +505,13 @@ public static class Command
                 .Append("  lines ").Append(s.From).Append('-').Append(s.To)
                 .Append(" of ").AppendLine(s.TotalLines.ToString());
 
+            // The terminal always numbers. With --numbered the text is
+            // numbered already, in the same spelling, so it is not
+            // numbered twice.
             int number = s.From;
             foreach (Line line in TextIo.SplitLines(s.Text))
-                text.Append((number++).ToString().PadLeft(5)).Append(" | ").AppendLine(line.Text);
+                if (args.Has("numbered")) text.AppendLine(line.Text);
+                else text.Append((number++).ToString().PadLeft(Bench.NumberWidth)).Append(" | ").AppendLine(line.Text);
 
             // 9b.8: a truncated answer must never read as a complete one,
             // and must say the way to see the rest.
@@ -596,6 +616,15 @@ public static class Command
 
                     w.WriteBoolean("default", name.Equals(names[0], Core.Roots.PathComparison));
 
+                    // Read at the call, never cached, so a branch switched
+                    // in a terminal shows on the next call.
+                    if (Checkouts.Of(full) is { } checkout)
+                    {
+                        w.WriteString("branch", checkout.Name);
+                        w.WriteBoolean("detached", checkout.Detached);
+                        w.WriteString("repository", checkout.Repository);
+                    }
+
                     if (grant.Scopes.Count > 0)
                     {
                         w.WriteStartArray("scopes");
@@ -647,6 +676,19 @@ public static class Command
             text.Append(name.PadRight(column)).Append(full)
                 .AppendLine(name.Equals(names[0], Core.Roots.PathComparison) ? "  (default)" : "");
             text.Append(' ', column).Append("can: ").AppendLine(Permissions.Write(grant.Can));
+
+            // A fact about this machine's checkout, and said to be one:
+            // what a remote holds is a different question, and only a
+            // fetch answers it.
+            if (Checkouts.Of(full) is { } checkout)
+            {
+                text.Append(' ', column)
+                    .Append(checkout.Detached ? "detached at " : "branch: ")
+                    .Append(checkout.Name).AppendLine(" (local)");
+
+                if (!checkout.Repository.Equals(full, Core.Roots.PathComparison))
+                    text.Append(' ', column).Append("repository: ").AppendLine(checkout.Repository);
+            }
 
             if (grant.Screen != Screened.None)
             {
@@ -1047,7 +1089,7 @@ public static class Command
 
     static async Task<CliResult> Edit(Bench bench, Arguments args, bool json, TextReader stdin, CancellationToken cancel)
     {
-        Result<IReadOnlyList<FileEdits>> batch = EditScript.Build(args, stdin);
+        Result<IReadOnlyList<FileEdits>> batch = EditScript.Build(args, stdin, bench);
         if (!batch.IsOk) return Failed(batch.Failure!, json);
 
         Result<EditAnswer> applied = await bench.EditAsync(batch.Value, args.Has("dry-run"), cancel,
@@ -1152,6 +1194,9 @@ public static class Command
 
         foreach (ReplacePlan p in answer.Files)
             human.Append("   ").Append(p.Path.PadRight(44)).AppendLine(p.Occurrences.ToString());
+
+        if (args.Value("glob") is not null && answer.FilesMatched == 0)
+            human.AppendLine(NothingMatched);
 
         return Ok(human.ToString());
     }
@@ -1358,13 +1403,10 @@ public static class Command
 
     static async Task<CliResult> Batch(Bench bench, Arguments args, bool json, CancellationToken cancel)
     {
-        Result<BatchAnswer> ran;
-        if (args.Value("script-inline") is { } inline)
-            ran = await BatchScript.RunInlineAsync(bench, inline, cancel).ConfigureAwait(false);
-        else if (args.Value("script") is { } script)
-            ran = await BatchScript.RunAsync(bench, script, cancel).ConfigureAwait(false);
-        else
-            return Failed(new Failure(Outcome.Invalid, "batch needs --script FILE"), json);
+        if (Scripts.Given(args, bench) is not { } script)
+            return Failed(new Failure(Outcome.Invalid, "batch needs --script FILE or --script-path PATH"), json);
+
+        Result<BatchAnswer> ran = await BatchScript.RunAsync(bench, script, cancel).ConfigureAwait(false);
 
         if (!ran.IsOk) return Failed(ran.Failure!, json);
         BatchAnswer answer = ran.Value;
@@ -1556,12 +1598,13 @@ public static class Command
                  [--context N] [--limit N] [--count] [--files-only] [--no-documents]
                  [--pattern-file PATH] [--pattern-stdin]
                  PDFs are searched as text unless --no-documents is given.
-          read PATH... [--from N] [--to N] [--tail N] [--member NAME]
+          read PATH... [--from N] [--to N] [--tail N] [--member NAME] [--numbered]
                  Reads text, notebooks, PDFs, spreadsheets, Word documents, images
                  and archives. Stops at 2000 lines and at 40,000 characters per
                  call; --to lifts the line cap only. --tail N reads the last N
                  lines. An archive reads as its member list; --member NAME reads
-                 one member.
+                 one member. --numbered starts each line of the text with its
+                 number and a bar, as this terminal form does.
           extract ARCHIVE --into DIR [--overwrite]
                  Refused whole if any member would land outside a tree or is a link.
           write PATH (--stdin | --text S | --text-file PATH) [--overwrite]
@@ -1571,8 +1614,10 @@ public static class Command
                  --insert-after N --text S
                  --delete 150-151
                  --script FILE
+                 --script-path PATH
                  --replace, --with and --text also take --NAME-file PATH or
-                 --NAME-stdin.
+                 --NAME-stdin. A large script goes in a file in a tree and is
+                 named by --script-path.
           replace FIND WITH [--glob G] [--dry-run]
           new PATH
           mkdir PATH
@@ -1584,7 +1629,9 @@ public static class Command
           roots                 list the trees, their paths, and what each allows
           run NAME [--timeout SECONDS]
                  Runs one declared task. A task takes no arguments.
-          batch --script FILE
+          batch --script FILE | --script-path PATH
+                 A large script goes in a file in a tree and is named by
+                 --script-path.
           doctor [--client NAME] [--quiet] [--hook]
                  Reports whether fettle is registered with each assistant client,
                  and what still lets the assistant reach files without it.
@@ -1600,6 +1647,10 @@ public static class Command
           replaces the tree's permissions for that folder. A scope without list
           is invisible to find and search. fettle never writes .fettler.json or
           .fettler.local.json.
+
+        A glob has * within a segment, ** across segments and ? for one character.
+        Every other character is literal. A glob holding {, }, [ or ], or starting
+        with !, is refused.
 
         An unknown flag is refused. -e is the only short flag. A pattern or path
         that starts with a hyphen goes after a bare --, or in --pattern-file.

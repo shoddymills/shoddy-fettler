@@ -45,7 +45,12 @@ public sealed record SearchRequest(
 /// </summary>
 public sealed record ReadRequest(
     IReadOnlyList<string> Paths, int? From = null, int? To = null, int? Tail = null,
-    string? Member = null);
+    string? Member = null,
+
+    /// <summary>Whether the text carries the terminal's <c>N | </c>
+    /// prefix on every line. The prefix counts toward the size budget,
+    /// and the hash stays the file's.</summary>
+    bool Numbered = false);
 
 /// <summary>What an extraction did: how many members were written, and
 /// where they landed.</summary>
@@ -89,7 +94,13 @@ public sealed record ReplaceAnswer(
     IReadOnlyList<ReplacePlan> Files,
     int TotalOccurrences,
     bool DryRun,
-    IReadOnlyList<EditedFile> Written);
+    IReadOnlyList<EditedFile> Written,
+
+    /// <summary>How many files the glob matched, before any was read. A
+    /// glob that matched nothing changed nothing for that reason, and the
+    /// answer says so rather than leaving it to look like a clean
+    /// sweep.</summary>
+    int FilesMatched = 0);
 
 /// <summary>
 /// The callable core of R3.1: operations take typed arguments and answer
@@ -184,6 +195,8 @@ public sealed class Bench : IDisposable
             pattern = compiled.Value;
         }
 
+        if (UnsupportedExclude(request.Exclude) is not null) return new Bounded<FoundFile>([], false, 0);
+
         return Tree.Find(Roots, request.Root ?? Roots.Names[0], pattern,
             ExcludesFor(request.IncludeGenerated, request.Exclude),
             request.Since, request.Limit, request.ByModified);
@@ -196,6 +209,9 @@ public sealed class Bench : IDisposable
             Result<Glob> compiled = Glob.Compile(p);
             if (!compiled.IsOk) return compiled.Carry<Bounded<FoundFile>>();
         }
+
+        if (UnsupportedExclude(request.Exclude) is { } refused)
+            return Result<Bounded<FoundFile>>.Fail(refused);
 
         Result<string> root = RootNamed(request.Root);
         if (!root.IsOk) return root.Carry<Bounded<FoundFile>>();
@@ -215,6 +231,9 @@ public sealed class Bench : IDisposable
             if (!compiled.IsOk) return compiled.Carry<SearchAnswer>();
             glob = compiled.Value;
         }
+
+        if (UnsupportedExclude(request.Exclude) is { } unsupported)
+            return Result<SearchAnswer>.Fail(unsupported);
 
         // No limit on the file sweep: R4.10's bound is on hits, and
         // stopping the walk early would make which files were searched
@@ -357,7 +376,11 @@ public sealed class Bench : IDisposable
             if (Judge(one.Value, path.Value) is { } refused)
                 return Result<IReadOnlyList<ReadSlice>>.Fail(refused);
 
-            slices.Add(one.Value);
+            // Numbered after the screen has judged the file's own text,
+            // so the prefix is never part of what is screened.
+            slices.Add(request.Numbered && one.Value.Image is null
+                ? one.Value with { Text = Numbered(one.Value.Text, one.Value.From) }
+                : one.Value);
         }
 
         return Result<IReadOnlyList<ReadSlice>>.Ok(slices);
@@ -521,8 +544,10 @@ public sealed class Bench : IDisposable
 
             for (int i = 0; i <= to - from; i++)
             {
-                Line line = file.Lines[(tailward ? to - i : from + i) - 1];
-                int cost = line.Text.Length + line.Ending.Length;
+                int number = tailward ? to - i : from + i;
+                Line line = file.Lines[number - 1];
+                int cost = line.Text.Length + line.Ending.Length
+                           + (request.Numbered ? PrefixLength(number) : 0);
 
                 // The first line goes whatever it costs. A single line
                 // past the whole budget is a minified file, and returning
@@ -551,12 +576,65 @@ public sealed class Bench : IDisposable
             Tree.Facts(path.Full, isDirectory: false), kind, null, budgeted));
     }
 
+    /// <summary>The width a line number is printed in: the terminal's
+    /// five columns, wider only for a number that needs more. One
+    /// spelling of a numbered line, on both front ends.</summary>
+    public const int NumberWidth = 5;
+
+    static int PrefixLength(int number) =>
+        Math.Max(NumberWidth, number.ToString().Length) + " | ".Length;
+
+    /// <summary>Each line of <paramref name="text"/> as <c>N | text</c>,
+    /// counting from <paramref name="from"/>, with each line keeping its
+    /// own ending.</summary>
+    public static string Numbered(string text, int from)
+    {
+        var numbered = new StringBuilder();
+        int number = from;
+        foreach (Line line in TextIo.SplitLines(text))
+            numbered.Append((number++).ToString().PadLeft(NumberWidth)).Append(" | ")
+                    .Append(line.Text).Append(line.Ending);
+
+        return numbered.ToString();
+    }
+
     static Result<string> Manifest(ContainedPath path)
     {
         Result<IReadOnlyList<ArchiveMember>> members = Archives.Members(path);
         return members.IsOk
             ? Result<string>.Ok(Archives.Manifest(members.Value))
             : members.Carry<string>();
+    }
+
+    /// <summary>
+    /// The whole text of one file in a tree, read as the source of a
+    /// script or of a script field such as <c>withFile</c>.
+    ///
+    /// <para><b>Through the boundary, because the alternative was a
+    /// hole.</b> A script field naming a file used to be opened with a
+    /// plain read from anywhere on disk. Over MCP the script comes from a
+    /// model, so the model could name any file, have it spliced into a
+    /// file in a tree, and read it back - past the read permission, the
+    /// hidden scopes and the screen. Resolving it here gives it all
+    /// three.</para>
+    ///
+    /// <para><b>Whole, without <c>read</c>'s caps.</b> The text is parsed
+    /// or spliced, not shown, and a script cut off at 40,000 characters
+    /// would be the very failure that a script named by path exists to
+    /// avoid.</para>
+    /// </summary>
+    public Result<string> ReadSource(string given)
+    {
+        Result<ContainedPath> path = Roots.Resolve(given, Permission.Read);
+        if (!path.IsOk) return path.Carry<string>();
+
+        Result<TextFile> read = TextIo.Read(path.Value);
+        if (!read.IsOk) return read.Carry<string>();
+
+        if (Disclosure.Check(read.Value.Text, path.Value.Screen, screener, path.Value.Display) is { } refused)
+            return Result<string>.Fail(refused);
+
+        return Result<string>.Ok(read.Value.Text);
     }
 
     public Result<IReadOnlyList<TaskDecl>> TaskList() => Tasks.Read(Roots);
@@ -775,12 +853,13 @@ public sealed class Bench : IDisposable
             }
 
             if (batch.Count == 0)
-                return Result<ReplaceAnswer>.Ok(new ReplaceAnswer([], 0, dryRun, []));
+                return Result<ReplaceAnswer>.Ok(new ReplaceAnswer([], 0, dryRun, [], files.Items.Count));
 
             Result<EditAnswer> applied = Editor.Apply(Roots, batch, dryRun);
             if (!applied.IsOk) return applied.Carry<ReplaceAnswer>();
 
-            return Result<ReplaceAnswer>.Ok(new ReplaceAnswer(plans, total, dryRun, applied.Value.Files));
+            return Result<ReplaceAnswer>.Ok(new ReplaceAnswer(
+                plans, total, dryRun, applied.Value.Files, files.Items.Count));
         }, cancel);
 
     public Task<Result<MadeReport>> NewFileAsync(string path, CancellationToken cancel = default) =>
@@ -848,6 +927,18 @@ public sealed class Bench : IDisposable
 
         return Result<string>.Fail(Outcome.Invalid,
             $"no tree called '{name}'. The trees are: {string.Join(", ", Roots.Names)}");
+    }
+
+    /// <summary>The refusal for the first <c>--exclude</c> using a glob
+    /// form this grammar does not have. <see cref="ExcludesFor"/> drops
+    /// an exclude that will not compile, and dropping one of these would
+    /// search exactly the files the caller asked to leave out.</summary>
+    static Failure? UnsupportedExclude(IReadOnlyList<string>? extra)
+    {
+        foreach (string pattern in extra ?? [])
+            if (Glob.Unsupported(pattern) is { } refused) return refused;
+
+        return null;
     }
 
     static Excludes ExcludesFor(bool includeGenerated, IReadOnlyList<string>? extra)

@@ -31,6 +31,7 @@ public sealed class Arguments
         "json", "overwrite", "recursive", "force", "dry-run", "stdin", "literal",
         "case-sensitive", "include-generated", "count", "files-only", "sort-modified",
         "preserve-times", "all", "on", "off", "help", "version", "no-documents",
+        "numbered",
 
         // the credential override
         "allow-credential",
@@ -83,7 +84,7 @@ public sealed class Arguments
         "case-sensitive", "context", "count", "files-only", "no-documents",
 
         // read
-        "from", "to", "tail", "member",
+        "from", "to", "tail", "member", "numbered",
 
         // extract
         "into",
@@ -100,7 +101,7 @@ public sealed class Arguments
 
         // edit, and the R5.11 spellings of the text it is given
         "expect", "dry-run", "between", "all", "insert-after", "delete",
-        "script", "script-inline",
+        "script", "script-inline", "script-path",
         "replace", "replace-file", "replace-stdin",
         "with", "with-file", "with-stdin",
         "text", "text-file", "text-stdin",

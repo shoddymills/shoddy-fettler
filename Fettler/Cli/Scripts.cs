@@ -4,15 +4,21 @@ using Fettler.Core;
 namespace Fettler.Cli;
 
 /// <summary>
-/// Turning the two script-carrying flags into core requests.
+/// Turning the script-carrying flags into core requests.
 ///
-/// <para><b>A script file is read as an argument, not as a tree
-/// operation.</b> It arrives from the shell that invoked <c>fettle</c>,
-/// the same way argv does, so it is read directly rather than resolved
-/// through R8's boundary - which guards what Fettler <em>operates on</em>,
-/// not what its caller hands it. The MCP front end never takes this
-/// path: there, a batch arrives inside the request as structured data,
-/// so there is no file and no question.</para>
+/// <para><b>A script file named by <c>--script FILE</c> is read as an
+/// argument, not as a tree operation.</b> It arrives from the shell that
+/// invoked <c>fettle</c>, the same way argv does, so it is read directly
+/// rather than resolved through R8's boundary - which guards what
+/// Fettler <em>operates on</em>, not what its caller hands it. The MCP
+/// front end never takes this path: there, a script arrives inline or
+/// as <c>script_path</c>, a tree path read through the boundary.</para>
+///
+/// <para><b>A path INSIDE a script is a tree path, on both front
+/// ends.</b> <c>replaceFile</c>, <c>withFile</c> and <c>textFile</c>
+/// name text the script splices into a file in a tree. Over MCP the
+/// script comes from a model, and a plain read let that model splice in
+/// any file on the disk and read it back.</para>
 /// </summary>
 /// <summary>
 /// Where an edit's text comes from: the flag itself, a file, or stdin.
@@ -73,12 +79,11 @@ public static class EditScript
     /// a batch from a file, and a batch spanning files from the same
     /// file (R5.7).
     /// </summary>
-    public static Result<IReadOnlyList<FileEdits>> Build(Arguments args, TextReader stdin)
+    public static Result<IReadOnlyList<FileEdits>> Build(Arguments args, TextReader stdin, Bench bench)
     {
-        // The MCP front end carries its script inside the request rather
-        // than in a file, so both spellings reach one parser.
-        if (args.Value("script-inline") is { } inline) return FromJson(Scripts.Parse(inline), args);
-        if (args.Value("script") is { } script) return FromJson(Scripts.Load(script), args);
+        // Inline, by tree path, or from a caller's file: every spelling
+        // reaches one parser.
+        if (Scripts.Given(args, bench) is { } script) return FromJson(script, args, bench);
 
         string? path = args.At(0);
         if (path is null)
@@ -161,7 +166,7 @@ public static class EditScript
         return Result<(int?, int?)>.Ok((from, to));
     }
 
-    static Result<IReadOnlyList<FileEdits>> FromJson(Result<JsonDocument> parsed, Arguments args)
+    static Result<IReadOnlyList<FileEdits>> FromJson(Result<JsonDocument> parsed, Arguments args, Bench bench)
     {
         if (!parsed.IsOk) return parsed.Carry<IReadOnlyList<FileEdits>>();
 
@@ -179,7 +184,7 @@ public static class EditScript
                     return Result<IReadOnlyList<FileEdits>>.Fail(Outcome.Invalid,
                         "every entry in \"files\" needs a \"path\"");
 
-                Result<IReadOnlyList<Edit>> edits = Edits(file);
+                Result<IReadOnlyList<Edit>> edits = Edits(file, bench);
                 if (!edits.IsOk) return edits.Carry<IReadOnlyList<FileEdits>>();
 
                 batch.Add(new FileEdits(path, Text(file, "expect"), edits.Value));
@@ -192,7 +197,7 @@ public static class EditScript
             return Result<IReadOnlyList<FileEdits>>.Fail(Outcome.Invalid,
                 "edit needs a path, or a script with a \"files\" array");
 
-        Result<IReadOnlyList<Edit>> one = Edits(root);
+        Result<IReadOnlyList<Edit>> one = Edits(root, bench);
         if (!one.IsOk) return one.Carry<IReadOnlyList<FileEdits>>();
 
         return Result<IReadOnlyList<FileEdits>>.Ok([
@@ -200,7 +205,7 @@ public static class EditScript
         ]);
     }
 
-    static Result<IReadOnlyList<Edit>> Edits(JsonElement owner)
+    static Result<IReadOnlyList<Edit>> Edits(JsonElement owner, Bench bench)
     {
         if (!owner.TryGetProperty("edits", out JsonElement edits) || edits.ValueKind != JsonValueKind.Array)
             return Result<IReadOnlyList<Edit>>.Fail(Outcome.Invalid, "the script needs an \"edits\" array");
@@ -216,12 +221,12 @@ public static class EditScript
             // "textFile" name a file holding the text, so a script that
             // moves a paragraph does not have to carry the paragraph
             // escaped into JSON.
-            Result<string?> find = Sourced(e, "replace");
+            Result<string?> find = Sourced(e, "replace", index, bench);
             if (!find.IsOk) return find.Carry<IReadOnlyList<Edit>>();
 
             if (find.Value is { } finding)
             {
-                Result<string?> with = Sourced(e, "with");
+                Result<string?> with = Sourced(e, "with", index, bench);
                 if (!with.IsOk) return with.Carry<IReadOnlyList<Edit>>();
 
                 built.Add(new Edit.Replace(
@@ -233,7 +238,7 @@ public static class EditScript
 
             if (Number(e, "insertAfter") is { } after)
             {
-                Result<string?> text = Sourced(e, "text");
+                Result<string?> text = Sourced(e, "text", index, bench);
                 if (!text.IsOk) return text.Carry<IReadOnlyList<Edit>>();
 
                 built.Add(new Edit.InsertAfter(after, text.Value ?? string.Empty));
@@ -255,18 +260,24 @@ public static class EditScript
 
     /// <summary>A script field, either inline or naming a file that
     /// holds it (R5.11). Null means the field was not given at all,
-    /// which is different from being given as empty.</summary>
-    static Result<string?> Sourced(JsonElement owner, string name)
+    /// which is different from being given as empty.
+    ///
+    /// <para>The file is a tree path, resolved through the boundary with
+    /// read, relative to the default tree or written as tree:path. The
+    /// refusal keeps its own outcome and names the edit and the field,
+    /// so the author of the script knows which line to fix.</para></summary>
+    static Result<string?> Sourced(JsonElement owner, string name, int index, Bench bench)
     {
         if (Text(owner, name) is { } inline) return Result<string?>.Ok(inline);
 
         if (Text(owner, name + "File") is not { } file) return Result<string?>.Ok(null);
 
-        try { return Result<string?>.Ok(File.ReadAllText(file)); }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        {
-            return Result<string?>.Fail(Outcome.NotFound, $"cannot read \"{name}File\": {e.Message}", file);
-        }
+        Result<string> read = bench.ReadSource(file);
+        if (read.IsOk) return Result<string?>.Ok(read.Value);
+
+        Failure failed = read.Failure!;
+        return Result<string?>.Fail(failed.Outcome,
+            $"edit {index}: {name}File {file}: {failed.Message}", failed.Path ?? file);
     }
 
     internal static string? Text(JsonElement owner, string name) =>
@@ -308,13 +319,7 @@ public sealed record BatchAnswer(IReadOnlyList<BatchStep> Steps, int Completed, 
 /// </summary>
 public static class BatchScript
 {
-    public static Task<Result<BatchAnswer>> RunAsync(Bench bench, string script, CancellationToken cancel) =>
-        RunAsync(bench, Scripts.Load(script), cancel);
-
-    public static Task<Result<BatchAnswer>> RunInlineAsync(Bench bench, string json, CancellationToken cancel) =>
-        RunAsync(bench, Scripts.Parse(json), cancel);
-
-    static async Task<Result<BatchAnswer>> RunAsync(
+    public static async Task<Result<BatchAnswer>> RunAsync(
         Bench bench, Result<JsonDocument> parsed, CancellationToken cancel)
     {
         if (!parsed.IsOk) return parsed.Carry<BatchAnswer>();
@@ -405,6 +410,36 @@ public static class BatchScript
 
 static class Scripts
 {
+    /// <summary>
+    /// The script, from whichever spelling was given: inline over MCP,
+    /// <c>--script-path</c> as a tree path, or <c>--script FILE</c> as a
+    /// caller's own file. Null when none was given.
+    ///
+    /// <para><b>Two spellings at once are refused</b> rather than ranked.
+    /// Picking one silently would run a script the caller may not have
+    /// meant, which is R3.14's wrong answer in another place.</para>
+    /// </summary>
+    public static Result<JsonDocument>? Given(Arguments args, Bench bench)
+    {
+        string? inline = args.Value("script-inline");
+        string? file = args.Value("script");
+        string? path = args.Value("script-path");
+
+        int given = (inline is null ? 0 : 1) + (file is null ? 0 : 1) + (path is null ? 0 : 1);
+        if (given == 0) return null;
+
+        if (given > 1)
+            return Result<JsonDocument>.Fail(Outcome.Invalid,
+                "the script was given more than one way. Give script or script_path "
+                + "(--script or --script-path), not both");
+
+        if (inline is not null) return Parse(inline);
+        if (file is not null) return Load(file);
+
+        Result<string> text = bench.ReadSource(path!);
+        return text.IsOk ? Parse(text.Value, path) : text.Carry<JsonDocument>();
+    }
+
     public static Result<JsonDocument> Load(string path)
     {
         try
