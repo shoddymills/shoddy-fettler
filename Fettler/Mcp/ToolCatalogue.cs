@@ -53,9 +53,10 @@ public static class ToolCatalogue
             }}
             """),
 
-        new("read", "Read files. Returns content, encoding, line ending, trailing-newline state and a content hash. Takes several paths in one call. Reads notebooks as cells, PDFs as text per page, spreadsheets as rows with their formulas, Word documents as paragraphs and tables, and images as facts plus the image itself. Rendered documents cannot be written back. Stops at 2000 lines unless `to` says otherwise, and at 40,000 characters per call; the answer says how many lines were left out. Use `tail` for the end of a log.", """
+        new("read", "Read files. Returns content, encoding, line ending, trailing-newline state and a content hash. Takes several paths in one call. Reads notebooks as cells, PDFs as text per page, spreadsheets as rows with their formulas, Word documents as paragraphs and tables, and images as facts plus the image itself. Rendered documents cannot be written back. Stops at 2000 lines unless `to` says otherwise, and at 40,000 characters per call; the answer says how many lines were left out. Use `tail` for the end of a log. With `numbered`, each line starts with its number and a bar, which is a rendering and not the file's content, so leave that prefix out of an edit.", """
             {"type":"object","required":["paths"],"properties":{
               "paths":{"type":"array","items":{"type":"string"}},
+              "numbered":{"type":"boolean","description":"start each line with its number and a bar"},
               "from":{"type":"integer"},
               "to":{"type":"integer","description":"last line to read; lifts the 2000-line default. The 40,000-character cap per call still applies."},
               "tail":{"type":"integer","description":"read the last n lines. Not combinable with from or to."},
@@ -81,12 +82,13 @@ public static class ToolCatalogue
             }}
             """),
 
-        new("edit", "Apply a batch of edits to one or more files. All of them apply, or none do.", """
-            {"type":"object","required":["script"],"properties":{
+        new("edit", "Apply a batch of edits to one or more files. All of them apply, or none do. A large script goes in a file in the scratch tree and is named by script_path.", """
+            {"type":"object","properties":{
               "path":{"type":"string","description":"the file, when the script does not carry a files array"},
               "expect":{"type":"string","description":"the hash read returned; the edit is refused if the file changed since"},
               "dry_run":{"type":"boolean"},
-              "script":{"type":"object","description":"either {edits:[...]} or {files:[{path,expect,edits:[...]}]}; an edit is {replace,with,from,to,all} or {insertAfter,text} or {deleteFrom,deleteTo}"}
+              "script":{"type":"object","description":"either {edits:[...]} or {files:[{path,expect,edits:[...]}]}; an edit is {replace,with,from,to,all} or {insertAfter,text} or {deleteFrom,deleteTo}"},
+              "script_path":{"type":"string","description":"a file in a tree holding the script, instead of script. Give one or the other"}
             }}
             """),
 
@@ -158,9 +160,10 @@ public static class ToolCatalogue
             }}
             """),
 
-        new("batch", "Run several operations in order, stopping at the first failure. Not transactional.", """
-            {"type":"object","required":["script"],"properties":{
-              "script":{"type":"object","description":"{operations:[{op,path,...}]}; op is mkdir, new, write, move, copy, delete or exec"}
+        new("batch", "Run several operations in order, stopping at the first failure. Not transactional. A large script goes in a file in the scratch tree and is named by script_path.", """
+            {"type":"object","properties":{
+              "script":{"type":"object","description":"{operations:[{op,path,...}]}; op is mkdir, new, write, move, copy, delete or exec"},
+              "script_path":{"type":"string","description":"a file in a tree holding the script, instead of script. Give one or the other"}
             }}
             """),
     ];
@@ -261,7 +264,7 @@ public static class ToolCatalogue
                     foreach (JsonElement path in paths.EnumerateArray())
                         if (path.ValueKind == JsonValueKind.String) argv.Add(path.GetString()!);
                 Flag("from", "from"); Flag("to", "to"); Flag("tail", "tail");
-                Flag("member", "member");
+                Flag("member", "member"); Flag("numbered", "numbered");
                 break;
 
             case "extract":
@@ -282,6 +285,7 @@ public static class ToolCatalogue
             case "edit":
                 Positional("path");
                 Flag("expect", "expect"); Flag("dry-run", "dry_run"); Inline("script");
+                Flag("script-path", "script_path");
                 break;
 
             case "replace":
@@ -333,7 +337,7 @@ public static class ToolCatalogue
                 break;
 
             case "batch":
-                Inline("script");
+                Inline("script"); Flag("script-path", "script_path");
                 break;
         }
 

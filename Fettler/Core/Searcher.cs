@@ -46,7 +46,12 @@ public sealed record SearchAnswer(
     /// because it could not be rendered at all. Reported rather than
     /// dropped: a clean-looking zero is the wrong answer to give somebody
     /// whose document was never opened.</summary>
-    int DocumentsSkipped = 0);
+    int DocumentsSkipped = 0,
+
+    /// <summary>How many files the glob matched, before binaries and
+    /// documents were set aside. Beside <c>FilesSearched</c> it tells a
+    /// glob that matched nothing from files that held no text.</summary>
+    int FilesMatched = 0);
 
 /// <summary>
 /// The search of R4.8, bounded by R4.10 and matched under R4.13.
@@ -217,7 +222,7 @@ public static class Searcher
         }
 
         return Result<SearchAnswer>.Ok(new SearchAnswer(
-            hits, filesWithHits.Count, searched, truncated, kind, patterns, excluded, skipped));
+            hits, filesWithHits.Count, searched, truncated, kind, patterns, excluded, skipped, files.Count));
     }
 
     /// <summary>What one hit will cost the answer: the matched line and

@@ -274,6 +274,7 @@ public sealed class McpServer : IDisposable
         + "When more than one tree is open, write a path as name:path. "
         + "Call roots first. It lists the trees, what each allows, and which tree an "
         + "unqualified path lands in. "
+        + "roots names the branch of a tree that is a checkout, and the fact is local, not what a remote holds. "
         + "A tree may be read-only, and a scope inside a tree may allow more or less than the tree. "
         + "read returns a hash; pass it as expect on an edit, and the edit is refused if the file changed. "
         + $"Tasks come from the \"tasks\" object in {RootsFile.FileName}. "

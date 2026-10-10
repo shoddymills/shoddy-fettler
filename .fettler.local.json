@@ -20,10 +20,10 @@
     }
   },
   "replacements": {
-    "feature-branch":  "anderson",
-    "bug-branch":      "anderson01", 
-    "release-version": "1.3.0",
-    "checkin-note":     "No more mannered prose."
+    "feature-branch":  "shop",
+    "bug-branch":      "shop01", 
+    "release-version": "2.0.0",
+    "checkin-note":     "Tools, Guardrails, and Screening are distinctly different configured."
   }
 }
 

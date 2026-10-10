@@ -23,6 +23,11 @@ namespace Fettler.Core;
 /// quietly differing on the one platform R9.1 does not require.</item>
 /// <item>Both <c>/</c> and <c>\</c> are accepted in a pattern and in a
 /// path, and results are written with <c>/</c> (R9.2).</item>
+/// <item><b>Braces, brackets and a leading <c>!</c> are refused.</b>
+/// Every other glob dialect gives them a meaning, and here they would
+/// mean the characters themselves, so <c>{a,b}/**</c> matched nothing
+/// and said nothing. An unknown flag is refused for the same reason:
+/// ignoring it produces a wrong answer, not a failure.</item>
 /// </list>
 ///
 /// <para>Names are compared in composed Unicode form, so a pattern typed
@@ -48,6 +53,8 @@ public sealed class Glob
         if (string.IsNullOrWhiteSpace(pattern))
             return Result<Glob>.Fail(Outcome.Invalid, "an empty pattern matches nothing; use ** for everything");
 
+        if (Unsupported(pattern) is { } refused) return Result<Glob>.Fail(refused);
+
         string translated = Translate(pattern);
         try
         {
@@ -59,6 +66,32 @@ public sealed class Glob
         {
             return Result<Glob>.Fail(Outcome.Invalid, $"the pattern will not compile: {e.Message}");
         }
+    }
+
+    /// <summary>
+    /// The refusal for a glob form other dialects have and this grammar
+    /// does not, or null when the pattern uses none.
+    ///
+    /// <para>Its own entry point because <c>--exclude</c> needs it too:
+    /// an exclude that fails to compile for any other reason is dropped,
+    /// and dropping one of these would search the files the caller asked
+    /// to leave out.</para>
+    /// </summary>
+    public static Failure? Unsupported(string pattern)
+    {
+        string? form = pattern.StartsWith('!') ? "a leading '!'" : null;
+
+        if (form is null)
+            foreach (char c in pattern)
+                if (c is '{' or '}' or '[' or ']') { form = $"'{c}'"; break; }
+
+        if (form is null) return null;
+
+        return new Failure(Outcome.Invalid,
+            $"the glob {pattern} uses {form}, which fettle globs do not support. "
+            + "A glob has * within a segment, ** across segments and ? for one character, "
+            + "and every other character is literal. For an alternation, run two searches. "
+            + "For a bracket, put ? or * in its place");
     }
 
     public bool Matches(string relativePath) =>
