@@ -3,7 +3,7 @@
 //   node scripts/fettler-verify-docs.js        (run from anywhere; finds the repo from its own path)
 //
 // Rebuilds ground truth from the tree on every run rather than comparing the
-// pages against a list somebody has to remember to update. Seven checks:
+// pages against a list somebody has to remember to update. Eight checks:
 //
 //   navigation - every page carries the same nav bar, AND no page's bar
 //                links to the page it is sitting on. Adding a page means
@@ -32,6 +32,8 @@
 //                half names the page it looks on - it finds it, so moving a
 //                section between pages is a docs decision and not a gate
 //                failure.
+//   findings   - every finding Doctor.cs can raise is a row of the findings
+//                table, and the row's first column names its level.
 //   encoding   - no tracked text file carries UTF-8 that has been round-
 //                tripped through CP1252. The repository this came from
 //                shipped ~400 mangled characters past a gate that had no
@@ -305,6 +307,41 @@ for (const p of pages) {
   }
 }
 
+// ---- findings: every doctor finding the code raises, with its level ----
+// R11.8. doctor reports a finding only for a level that is on, so a reader
+// needs each finding's level beside it. The numbers are read from the
+// source rather than listed here, so a finding added in Doctor.cs and left
+// out of the table fails the build. The page is found by its id, like the
+// screen section, so moving the table is a docs decision.
+{
+  const LEVELS = new Set(["tools", "guardrails", "screenings", "retired"]);
+  const doctor = read("Fettler/Clients/Doctor.cs");
+  const numbers = new Set([...doctor.matchAll(/new Finding\("([^"]+)"/g)].map(m => m[1]));
+  const companion = /CompanionCheck = "([^"]+)"/.exec(doctor);
+  if (companion) numbers.add(companion[1]);
+  numbers.add("2.15");   // retired, and kept in the table so the number is never reused
+
+  const carriers = pages.filter(p => p.startsWith("fettle") && read("docs/" + p).includes('id="findings"'));
+  if (carriers.length !== 1) {
+    fail('the fettle findings table (id="findings") should be on exactly one page; found ' + carriers.length);
+  } else {
+    const where = "docs/" + carriers[0];
+    const text = read(where);
+    const start = text.indexOf('id="findings"');
+    const end = text.indexOf("<h2", start + 1);
+    const section = text.slice(start, end === -1 ? text.length : end);
+    const rows = [...section.matchAll(/<tr>([\s\S]*?)<\/tr>/g)].map(r => r[1]);
+
+    for (const n of numbers) {
+      const row = rows.find(r => r.includes("<b>" + n + "</b>"));
+      if (!row) { fail(where + " #findings: finding " + n + " is not in the table"); continue; }
+      const first = /<td>([\s\S]*?)<\/td>/.exec(row);
+      const level = first ? first[1].replace(/<[^>]+>/g, "").trim() : "";
+      if (!LEVELS.has(level))
+        fail(where + " #findings: finding " + n + " names no level in its first column (found '" + level + "')");
+    }
+  }
+}
 
 // ---- encoding: no UTF-8 round-tripped through CP1252 or CP437/850 ----
 // The signature is a byte sequence that is valid UTF-8 but reads as the

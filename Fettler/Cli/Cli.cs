@@ -26,42 +26,38 @@ public sealed record CliResult(int ExitCode, string Stdout, string Stderr);
 /// </summary>
 public static class Command
 {
+    public static Task<CliResult> RunAsync(
+        IReadOnlyList<string> argv, TextReader stdin, CancellationToken cancel = default) =>
+        RunAsync(argv, stdin, Host.Real(), cancel);
+
+    /// <summary>
+    /// The same command on a given machine, which is how a test runs the
+    /// whole front end without reading the real home or temp folders.
+    ///
+    /// <para>With no configuration found, the launch folder is the tree
+    /// at the tools level, so every verb works, setup and doctor
+    /// included. A configuration that is present and malformed still
+    /// refuses, because falling back from a broken boundary is how a
+    /// boundary silently widens.</para>
+    /// </summary>
     public static async Task<CliResult> RunAsync(
-        IReadOnlyList<string> argv, TextReader stdin, CancellationToken cancel = default)
+        IReadOnlyList<string> argv, TextReader stdin, Host host, CancellationToken cancel = default)
     {
         Arguments args = Arguments.Parse(argv);
         bool json = args.Has("json");
 
         CliResult? early = Trivial(args, json);
-        if (early is not null) return early;
-
-        Result<Roots> roots = args.DeclaredRoots();
-
-        // setup and doctor configure a MACHINE; they do not work in a
-        // tree. Neither resolves a path through the boundary - both reach
-        // a compiled-in list of well-known configuration paths and
-        // nothing else - so requiring a declared tree bought no
-        // containment and cost the bootstrap entirely: setup carries the
-        // scaffolder for .fettler.json, which made the file it would
-        // write the file required to run it, and doctor refused to
-        // diagnose the commonest broken state there is. On a fresh
-        // machine no documented sequence worked.
-        //
-        // So these two, and only these two, fall back to the current
-        // directory READ-ONLY. That is not the old implicit-cwd fallback
-        // returning: it cannot widen anything, because read-only is all
-        // it grants and no verb that touches a tree is reachable this
-        // way. And only when NOTHING was declared - a configuration that
-        // is present and malformed still refuses, because falling back
-        // from a broken boundary is how a boundary silently widens.
-        if (!roots.IsOk
-            && args.Verb is "setup" or "doctor"
-            && roots.Failure!.Message == Roots.NothingDeclared)
+        if (early is not null)
         {
-            roots = Roots.Open(
-                [new TreeDecl("work", Directory.GetCurrentDirectory(), Permissions.ReadOnly)],
-                "the current directory, read-only, for setup and doctor");
+            // R1.4: help opens with the levels that are on where it was
+            // run. A boundary that will not open leaves the help as it is;
+            // the next real verb names what is wrong.
+            if (IsHelp(args) && args.DeclaredRoots(host) is { IsOk: true } here)
+                return new CliResult(early.ExitCode, LevelsLine(here.Value.Levels) + early.Stdout, early.Stderr);
+            return early;
         }
+
+        Result<Roots> roots = args.DeclaredRoots(host);
 
         if (!roots.IsOk) return Failed(roots.Failure!, json);
 
@@ -88,6 +84,13 @@ public static class Command
 
         return await Run(bench, args, json, stdin, cancel).ConfigureAwait(false);
     }
+
+    static bool IsHelp(Arguments args) =>
+        args.Verb.Length == 0 || args.Verb is "help" or "--help" or "-h" || args.Has("help");
+
+    /// <summary>One line naming each level and whether it is on here.</summary>
+    static string LevelsLine(Levels levels) =>
+        "here: " + string.Join("; ", Levels.Names.Select(l => $"{l} {levels.Describe(l)}")) + Environment.NewLine + Environment.NewLine;
 
     static CliResult? Trivial(Arguments args, bool json)
     {
@@ -566,7 +569,9 @@ public static class Command
             }));
 
         if (tasks.Value.Count == 0)
-            return Ok($"no tasks declared (no \"tasks\" in {RootsFile.FileName}){Environment.NewLine}");
+            return Ok(bench.Roots.Levels.GuardrailsOn
+                ? $"no tasks declared (no \"tasks\" under \"guardrails\" in {RootsFile.FileName}){Environment.NewLine}"
+                : $"no tasks declared. Tasks belong to the guardrails level, which is off{Environment.NewLine}");
 
         var text = new StringBuilder();
         int column = NameColumn(tasks.Value.Select(t => t.Name));
@@ -588,16 +593,32 @@ public static class Command
     /// </summary>
     static CliResult RootList(Bench bench, bool json)
     {
-        IReadOnlyList<string> names = bench.Roots.Names;
+        Roots roots = bench.Roots;
+        IReadOnlyList<string> names = roots.Names;
 
         if (json)
             return Ok(Json(w =>
             {
+                // R7.1: the levels first, with the files that turned each
+                // on, so a script can branch on them without reading the
+                // trees.
+                w.WriteStartObject("levels");
+                foreach (string level in Levels.Names)
+                {
+                    w.WriteStartObject(level);
+                    w.WriteBoolean("on", roots.Levels.IsOn(level));
+                    w.WriteStartArray("from");
+                    foreach (string file in roots.Levels.Sources(level)) w.WriteStringValue(file);
+                    w.WriteEndArray();
+                    w.WriteEndObject();
+                }
+                w.WriteEndObject();
+
                 w.WriteStartArray("roots");
                 foreach (string name in names)
                 {
-                    Grant grant = bench.Roots.GrantOf(name);
-                    string full = bench.Roots.PathOf(name);
+                    Grant grant = roots.GrantOf(name);
+                    string full = roots.PathOf(name);
 
                     w.WriteStartObject();
                     w.WriteString("name", name);
@@ -606,19 +627,20 @@ public static class Command
 
                     // Reported only where it is on. A "screen": "nothing"
                     // against every tree would be noise on the answer
-                    // almost every caller gets, and would read as a
-                    // feature that had failed rather than one nobody
-                    // asked for.
+                    // almost every caller gets.
                     if (grant.Screen != Screened.None)
                         w.WriteString("screen", Screens.Write(grant.Screen));
 
-                    WriteScreening(w, grant.Screen, bench.Roots.Models);
+                    WriteScreening(w, grant.Screen, roots.Models);
 
                     w.WriteBoolean("default", name.Equals(names[0], Core.Roots.PathComparison));
 
+                    // A tree fettle opened itself says how it was found.
+                    if (roots.HowFound(name) is { } how) w.WriteString("found", how);
+
                     // Read at the call, never cached, so a branch switched
                     // in a terminal shows on the next call.
-                    if (Checkouts.Of(full) is { } checkout)
+                    if (roots.HowFound(name) is null && Checkouts.Of(full) is { } checkout)
                     {
                         w.WriteString("branch", checkout.Name);
                         w.WriteBoolean("detached", checkout.Detached);
@@ -634,14 +656,12 @@ public static class Command
                             w.WriteString("path", Path.GetRelativePath(full, scope.Path).Replace('\\', '/'));
                             w.WriteString("can", Permissions.Write(scope.Can));
 
-                            // A scope that said nothing inherits, so what
-                            // is reported here is what the scope ITSELF
-                            // states - and its absence means "whatever the
-                            // tree says" rather than "nothing".
+                            // What the scope ITSELF states. Its absence
+                            // means "whatever the tree says".
                             if (scope.Screen is { } screened)
                             {
                                 w.WriteString("screen", Screens.Write(screened));
-                                WriteScreening(w, screened, bench.Roots.Models);
+                                WriteScreening(w, screened, roots.Models);
                             }
 
                             w.WriteEndObject();
@@ -656,22 +676,30 @@ public static class Command
 
                 // Named even when nothing is installed under it. "Where
                 // would a model go" and "is one there" are different
-                // questions, and somebody fixing the second needs the
-                // first.
-                if (bench.Roots.Models is { } where) w.WriteString("models", where);
+                // questions.
+                if (roots.Models is { } where) w.WriteString("models", where);
 
-                w.WriteString("source", bench.Roots.Origin);
+                w.WriteString("source", roots.Origin);
             }));
 
-        // B.9: what may be DONE in each tree, not only where it is. A
-        // boundary a caller can see only by being refused by it is one
-        // they learn by trial against a security check.
         var text = new StringBuilder();
-        int column = NameColumn(names);
-        foreach (string name in names)
+        int column = Math.Max(NameColumn(names), NameColumn(Levels.Names));
+
+        // R7.1: the levels first. A level that is off says so in one
+        // line, so a reader never has to infer it from an absence.
+        text.AppendLine("levels");
+        foreach (string level in Levels.Names)
+            text.Append("  ").Append(level.PadRight(column)).AppendLine(roots.Levels.Describe(level));
+
+        // B.9: what may be DONE in each tree, not only where it is.
+        var declared = names.Where(n => roots.HowFound(n) is null).ToList();
+        var found = names.Where(n => roots.HowFound(n) is not null).ToList();
+
+        text.AppendLine().AppendLine("trees");
+        foreach (string name in declared)
         {
-            Grant grant = bench.Roots.GrantOf(name);
-            string full = bench.Roots.PathOf(name);
+            Grant grant = roots.GrantOf(name);
+            string full = roots.PathOf(name);
 
             text.Append(name.PadRight(column)).Append(full)
                 .AppendLine(name.Equals(names[0], Core.Roots.PathComparison) ? "  (default)" : "");
@@ -690,52 +718,65 @@ public static class Command
                     text.Append(' ', column).Append("repository: ").AppendLine(checkout.Repository);
             }
 
-            if (grant.Screen != Screened.None)
-            {
-                text.Append(' ', column).Append("screen: ").AppendLine(Screens.Write(grant.Screen));
-
-                foreach ((Screened category, string said)
-                         in Screening(grant.Screen, bench.Roots.Models))
-                    text.Append(' ', column).Append("  ").Append(Screens.NameOf(category))
-                        .Append(": ").AppendLine(said);
-            }
-
             foreach (Scope scope in grant.Scopes)
-            {
                 text.Append(' ', column)
                     .Append(Path.GetRelativePath(full, scope.Path).Replace('\\', '/'))
-                    .Append("  can: ").Append(Permissions.Write(scope.Can));
+                    .Append("  can: ").AppendLine(Permissions.Write(scope.Can));
+        }
 
-                if (scope.Screen is { } screened)
-                    text.Append("  screen: ").Append(Screens.Write(screened));
+        // The screens under their own heading, so whether a project
+        // screens anything is one place to look.
+        var screened = new List<(string Key, Screened Screen)>();
+        foreach (string name in declared)
+        {
+            Grant grant = roots.GrantOf(name);
+            string full = roots.PathOf(name);
+            if (grant.Screen != Screened.None) screened.Add((name, grant.Screen));
+            foreach (Scope scope in grant.Scopes)
+                if (scope.Screen is { } s)
+                    screened.Add(($"{name}/{Path.GetRelativePath(full, scope.Path).Replace('\\', '/')}", s));
+        }
 
-                text.AppendLine();
+        if (screened.Count > 0 || roots.Models is not null)
+        {
+            text.AppendLine().AppendLine("screens");
+            int keyColumn = Math.Max(column, NameColumn(screened.Select(s => s.Key)));
 
-                // Only where the scope states a screen of its own. One
-                // that says nothing inherits the tree's, and repeating
-                // the tree's models under every scope would bury the
-                // scopes that actually differ.
-                if (scope.Screen is { } stated)
-                    foreach ((Screened category, string said)
-                             in Screening(stated, bench.Roots.Models))
-                        text.Append(' ', column).Append("    ").Append(Screens.NameOf(category))
-                            .Append(": ").AppendLine(said);
+            foreach ((string key, Screened screen) in screened)
+            {
+                text.Append(key.PadRight(keyColumn)).AppendLine(Screens.Write(screen));
+                foreach ((Screened category, string said) in Screening(screen, roots.Models))
+                    text.Append(' ', keyColumn).Append(Screens.NameOf(category)).Append(": ").AppendLine(said);
             }
+
+            if (roots.Models is { } models)
+                text.Append("models".PadRight(keyColumn)).AppendLine(models);
         }
 
         // R4.7: the model tiers are inert until somebody names a
         // directory, and a screen listing them without one reads as a
-        // protection that is running. Said once, about the whole
-        // configuration, and only where a category needing a model was
-        // actually asked for.
-        if (bench.Roots.Models is null && AnythingNeedsAModel(bench))
+        // protection that is running.
+        if (roots.Models is null && AnythingNeedsAModel(bench))
             text.AppendLine().Append("no \"models\" directory is declared, so the ")
                 .Append(ModelBackedWords())
                 .AppendLine(" categories screen nothing. Only identifiers are screened");
 
-        // Where the boundary came from, not only what it is: a caller
-        // who disagrees with it has to know which file to open.
-        text.AppendLine().Append("declared by ").AppendLine(bench.Roots.Origin);
+        // R6.11 and R12.2: the folders fettle opened itself, together,
+        // each with how it was found, so a wrong choice is seen at once.
+        if (found.Count > 0)
+        {
+            text.AppendLine().AppendLine("found by fettle");
+            foreach (string name in found)
+            {
+                text.Append(name.PadRight(column)).AppendLine(roots.PathOf(name));
+                text.Append(' ', column).Append("can: ").AppendLine(Permissions.Write(roots.GrantOf(name).Can));
+                text.Append(' ', column).Append("found: ").AppendLine(roots.HowFound(name));
+            }
+        }
+
+        // Where the boundary came from: a caller who disagrees with it
+        // has to know which file to open.
+        text.AppendLine().Append("declared by ").AppendLine(roots.Origin);
 
         return Ok(text.ToString());
     }
@@ -851,7 +892,7 @@ public static class Command
             var brief = new StringBuilder("fettle doctor:").AppendLine();
             foreach (ClientReport c in shown)
                 if (c.Verdict is Verdict.Broken or Verdict.Absent)
-                    brief.Append("  ").Append(c.Client).Append(' ').Append(Word(c.Level))
+                    brief.Append("  ").Append(c.Client).Append(' ').Append(Word(c.Reach))
                          .Append(": ").Append(Word(c.Verdict))
                          .Append(": ").AppendLine(c.Detail);
 
@@ -873,12 +914,24 @@ public static class Command
                 w.WriteString("inventory_of", Doctor.InventoryOf);
                 w.WriteEndObject();
 
+                w.WriteStartObject("levels");
+                foreach (string level in Levels.Names)
+                {
+                    w.WriteStartObject(level);
+                    w.WriteBoolean("on", diagnosis.Levels.IsOn(level));
+                    w.WriteStartArray("from");
+                    foreach (string file in diagnosis.Levels.Sources(level)) w.WriteStringValue(file);
+                    w.WriteEndArray();
+                    w.WriteEndObject();
+                }
+                w.WriteEndObject();
+
                 w.WriteStartArray("clients");
                 foreach (ClientReport c in shown)
                 {
                     w.WriteStartObject();
                     w.WriteString("client", c.Client);
-                    w.WriteString("level", Word(c.Level));
+                    w.WriteString("reach", Word(c.Reach));
                     w.WriteString("verdict", Word(c.Verdict));
                     w.WriteString("detail", c.Detail);
                     if (c.Where is { } where) w.WriteString("where", where);
@@ -891,9 +944,20 @@ public static class Command
                 {
                     w.WriteStartObject();
                     w.WriteString("check", f.Check);
+                    w.WriteString("level", f.Level);
                     w.WriteString("severity", f.Serious ? "serious" : "note");
                     w.WriteString("message", f.Message);
                     if (f.Where is { } where) w.WriteString("where", where);
+                    w.WriteEndObject();
+                }
+                w.WriteEndArray();
+
+                w.WriteStartArray("facts");
+                foreach (Fact fact in diagnosis.Facts)
+                {
+                    w.WriteStartObject();
+                    w.WriteString("level", fact.Level);
+                    w.WriteString("text", fact.Text);
                     w.WriteEndObject();
                 }
                 w.WriteEndArray();
@@ -905,26 +969,39 @@ public static class Command
             ? diagnosis.Install.PathBinary
             : "no. A registration that names a bare 'fettle' cannot start it");
 
-        // A closed list that has fallen behind reports exactly as clean
-        // as one that has not, so the date it was drawn is part of the
-        // answer rather than a footnote in the source.
-        text.Append("tool inventory dated ").Append(Doctor.InventoryOf)
-            .AppendLine(". Check 2.8 does not know tools added to the client since then");
-        text.AppendLine();
-
-        foreach (ClientReport c in shown)
+        // R7.2: one section per level, each opening with whether it is on.
+        // A level that is off is one line.
+        foreach (string level in Levels.Names)
         {
-            if (args.Has("quiet") && c.Verdict is Verdict.NotApplicable or Verdict.Healthy) continue;
-            text.Append(c.Client.PadRight(16)).Append(Word(c.Level).PadRight(8))
-                .Append(Word(c.Verdict).PadRight(10))
-                .AppendLine(c.Detail);
-            if (c.Where is { } where) text.Append(' ', 24).AppendLine(where);
-        }
+            text.AppendLine().Append(level).Append("  ").AppendLine(diagnosis.Levels.Describe(level));
 
-        if (diagnosis.Findings.Count > 0)
-        {
-            text.AppendLine().AppendLine("ways past Fettler on this machine:");
-            foreach (Finding f in diagnosis.Findings)
+            if (level == Levels.ToolsName)
+            {
+                foreach (ClientReport c in shown)
+                {
+                    if (args.Has("quiet") && c.Verdict is Verdict.NotApplicable or Verdict.Healthy) continue;
+                    text.Append("  ").Append(c.Client.PadRight(16)).Append(Word(c.Reach).PadRight(8))
+                        .Append(Word(c.Verdict).PadRight(10))
+                        .AppendLine(c.Detail);
+                    if (c.Where is { } where) text.Append(' ', 26).AppendLine(where);
+                }
+            }
+
+            if (!diagnosis.Levels.IsOn(level)) continue;
+
+            if (level == Levels.GuardrailsName)
+            {
+                // A closed list that has fallen behind reports exactly as
+                // clean as one that has not, so the date it was drawn is
+                // part of the answer.
+                text.Append("  tool inventory dated ").Append(Doctor.InventoryOf)
+                    .AppendLine(". Check 2.8 does not know tools added to the client since then");
+            }
+
+            foreach (Fact fact in diagnosis.Facts.Where(f => f.Level == level))
+                text.Append("  ").AppendLine(fact.Text);
+
+            foreach (Finding f in diagnosis.Findings.Where(f => f.Level == level))
             {
                 text.Append("  ").Append(f.Serious ? "! " : "- ").Append(f.Check).Append("  ").AppendLine(f.Message);
                 if (f.Where is { } where) text.Append(' ', 6).AppendLine(where);
@@ -932,6 +1009,7 @@ public static class Command
         }
 
         return new CliResult(Code(diagnosis), text.ToString(), string.Empty);
+
     }
 
     /// <summary>0 healthy or not applicable, 1 warnings only, 2 anything
@@ -939,7 +1017,7 @@ public static class Command
     static int Code(Diagnosis diagnosis) =>
         diagnosis.AnyBroken ? 2 : diagnosis.AnyWarning ? 1 : 0;
 
-    static string Word(Level level) => level == Level.Global ? "global" : "repo";
+    static string Word(Reach reach) => reach == Reach.Global ? "global" : "repo";
 
     /// <summary>The verdict as it reads in a column. "n/a" rather than
     /// "notapplicable", because the long form is both ugly and wider than
@@ -952,19 +1030,39 @@ public static class Command
         _ => "healthy",
     };
 
+    /// <summary>
+    /// R7.4: <c>setup LEVEL CLIENT</c>. The level comes first, because
+    /// what setup writes depends on it: <c>tools</c> registers,
+    /// <c>guardrails</c> writes the deny list and the instruction block,
+    /// <c>screenings</c> checks burler and the models.
+    /// </summary>
     static CliResult Setup(Bench bench, Arguments args, bool json)
     {
-        if (args.At(0) is not { } client && !args.Has("all"))
+        string? level = args.At(0);
+
+        // The old spelling named the client first. Saying the new one is
+        // the whole of the fix, so the refusal shows it.
+        if (level is not null && Places.Clients.Contains(level))
             return Failed(new Failure(Outcome.Invalid,
-                $"setup needs a client name or --all. The clients are: {string.Join(", ", Places.Clients)}"), json);
+                $"setup takes the level first, then the client. Run: fettle setup tools {level}, "
+                + $"fettle setup guardrails {level} or fettle setup screenings {level}"), json);
+
+        if (level is null || !Levels.Names.Contains(level, StringComparer.Ordinal))
+            return Failed(new Failure(Outcome.Invalid,
+                $"setup needs a level and a client, as fettle setup tools claude-code. The levels are: "
+                + $"{string.Join(", ", Levels.Names)}. The clients are: {string.Join(", ", Places.Clients)}"), json);
+
+        if (args.At(1) is null && !args.Has("all"))
+            return Failed(new Failure(Outcome.Invalid,
+                $"setup {level} needs a client name or --all. The clients are: {string.Join(", ", Places.Clients)}"), json);
 
         if (args.Has("global") && args.Has("local"))
             return Failed(new Failure(Outcome.Invalid, "setup takes --global or --local, not both"), json);
 
         Machine machine = MachineFor(bench);
-        Level level = args.Has("global") ? Level.Global : Level.Repo;
+        Reach reach = args.Has("global") ? Reach.Global : Reach.Repo;
 
-        IReadOnlyList<string> clients = args.Has("all") ? Places.Clients : [args.At(0)!];
+        IReadOnlyList<string> clients = args.Has("all") ? Places.Clients : [args.At(1)!];
 
         var changes = new List<Change>();
         var notes = new List<string>();
@@ -972,12 +1070,15 @@ public static class Command
         foreach (string one in clients)
         {
             Result<Scaffolding> done = Scaffold.Apply(machine, new Scaffold.Options(
-                one, level,
+                one, reach,
                 DryRun: args.Has("dry-run"),
                 Force: args.Has("force"),
                 Hooks: args.Has("hooks"),
                 Deny: args.Has("deny"),
-                Command: args.Value("command")), Version);
+                Command: args.Value("command"),
+                Level: level,
+                Models: bench.Roots.Models,
+                FirstTree: bench.Roots.Names[0]), Version);
 
             // --all skips what does not apply on this machine rather than
             // failing the run, which is the whole point of asking for all.
@@ -990,6 +1091,10 @@ public static class Command
             changes.AddRange(done.Value.Changes);
             notes.AddRange(done.Value.Notes);
         }
+
+        // --all runs once per client, and a note about the machine is
+        // the same note each time.
+        notes = [.. notes.Distinct(StringComparer.Ordinal)];
 
         if (json)
             return Ok(Json(w =>
@@ -1577,83 +1682,50 @@ public static class Command
         bench.Roots.IsSingle ? path.Display : path.Qualified;
 
     static string Help() => """
-        fettle - find, search, read, write, edit, move, copy and delete files inside
-        declared trees, unpack archives, and run declared tasks.
+        fettle - find, search, read and change files, with answers a script or a model
+        can hand straight back. Three levels: tools (always on), guardrails, screenings.
 
-        Global flags (every verb takes them):
-          --config PATH        use this .fettler.json instead of searching for one
-          --root PATH          open a tree for reading only; repeat as NAME=PATH.
-                               A tree is writable only through its own .fettler.json.
-                               With neither flag, the nearest .fettler.json at or above
-                               the current directory declares the trees. With no
-                               .fettler.json at all, fettle refuses.
-          --no-config          do not search for a .fettler.json
-          --json               machine-readable result on stdout, failures included
-          --include-generated  include bin, obj, .git, artifacts and node_modules
-          --exclude GLOB       skip more files; repeatable
-
-        Verbs:
+        tools - always on, no file needed. With no .fettler.json, the folder you are in
+        is the tree 'work'. fettle also opens the client's scratch, tool-results and
+        memory folders, and the --root of any companion server.
           find PATTERN [--sort mtime] [--limit N] [--since TIME]
           search PATTERN [-e PATTERN]... [--glob G] [--literal] [--case-sensitive]
                  [--context N] [--limit N] [--count] [--files-only] [--no-documents]
                  [--pattern-file PATH] [--pattern-stdin]
-                 PDFs are searched as text unless --no-documents is given.
           read PATH... [--from N] [--to N] [--tail N] [--member NAME] [--numbered]
-                 Reads text, notebooks, PDFs, spreadsheets, Word documents, images
-                 and archives. Stops at 2000 lines and at 40,000 characters per
-                 call; --to lifts the line cap only. --tail N reads the last N
-                 lines. An archive reads as its member list; --member NAME reads
-                 one member. --numbered starts each line of the text with its
-                 number and a bar, as this terminal form does.
-          extract ARCHIVE --into DIR [--overwrite]
-                 Refused whole if any member would land outside a tree or is a link.
+                 Text, notebooks, PDFs, spreadsheets, Word, images, archives. Stops at
+                 2000 lines and 40,000 characters a call. --to lifts the line cap.
           write PATH (--stdin | --text S | --text-file PATH) [--overwrite]
                 [--encoding E] [--eol lf|crlf]
-          edit PATH [--expect HASH] [--dry-run] and one of:
-                 --replace S --with S [--between 120-140] [--all]
-                 --insert-after N --text S
-                 --delete 150-151
-                 --script FILE
-                 --script-path PATH
-                 --replace, --with and --text also take --NAME-file PATH or
-                 --NAME-stdin. A large script goes in a file in a tree and is
-                 named by --script-path.
+          edit PATH [--expect HASH] [--dry-run] and one of: --replace S --with S
+                 [--between 120-140] [--all] | --insert-after N --text S |
+                 --delete 150-151 | --script FILE | --script-path PATH
           replace FIND WITH [--glob G] [--dry-run]
-          new PATH
-          mkdir PATH
-          move FROM TO [--overwrite]
-          copy FROM TO [--recursive] [--overwrite] [--preserve-times]
-          delete PATH [--recursive] [--force]
-          exec PATH --on | --off
-          tasks                 list the declared tasks and what each runs
-          roots                 list the trees, their paths, and what each allows
-          run NAME [--timeout SECONDS]
-                 Runs one declared task. A task takes no arguments.
+          new PATH | mkdir PATH | delete PATH [--recursive] [--force]
+          move FROM TO [--overwrite] | copy FROM TO [--recursive] [--overwrite]
+          extract ARCHIVE --into DIR [--overwrite] | exec PATH --on | --off
           batch --script FILE | --script-path PATH
-                 A large script goes in a file in a tree and is named by
-                 --script-path.
+          roots                 the levels, the trees, and what each tree allows
           doctor [--client NAME] [--quiet] [--hook]
-                 Reports whether fettle is registered with each assistant client,
-                 and what still lets the assistant reach files without it.
-          setup CLIENT | --all [--global | --local] [--dry-run] [--force]
-                [--hooks] [--deny] [--command PATH]
-                 Clients: claude-code, claude-desktop, vscode-copilot, github-copilot
+                 The wiring, then a section per level. Findings only for levels on.
+          setup tools CLIENT [--global | --local] [--dry-run] [--force] [--command PATH]
           serve                 run as an MCP server on stdin and stdout
 
-        Permissions, granted only by a .fettler.json:
-          list read create update rename delete execute
-          The tree holding the file gets all but execute. Every other tree gets
-          list and read. execute is never a default. A scope inside a tree
-          replaces the tree's permissions for that folder. A scope without list
-          is invisible to find and search. fettle never writes .fettler.json or
-          .fettler.local.json.
+        guardrails - on when .fettler.json has a "guardrails" section: declared trees,
+        permissions, scopes, tasks, and the client's deny list.
+          tasks | run NAME [--timeout SECONDS]
+          setup guardrails CLIENT [--global | --local] [--dry-run] [--hooks] [--deny]
+          Permissions: list read create update rename delete execute. The tree holding
+          the file gets all but execute. Every other tree gets list read.
 
-        A glob has * within a segment, ** across segments and ? for one character.
-        Every other character is literal. A glob holding {, }, [ or ], or starting
-        with !, is refused.
+        screenings - on when a file has a "screenings" section: the disclosure screen.
+          setup screenings CLIENT [--local] [--dry-run]
 
-        An unknown flag is refused. -e is the only short flag. A pattern or path
-        that starts with a hyphen goes after a bare --, or in --pattern-file.
+        Flags for every verb: --config PATH, --root [NAME=]PATH (read-only), --no-config,
+        --json, --include-generated, --exclude GLOB. Clients: claude-code,
+        claude-desktop, vscode-copilot, github-copilot. A glob has *, ** and ?. A glob
+        holding {, }, [ or ], or starting with !, is refused. fettle never writes
+        .fettler.json or .fettler.local.json.
 
         Exit codes: 0 ok, 2 invalid, 3 not-found, 4 outside-root, 5 target-exists,
                     6 stale, 7 conflict, 8 refused, 9 denied, 10 timed-out,

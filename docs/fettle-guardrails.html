@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Fettler's guardrails level, off until .fettler.json has a guardrails section: declared trees, scopes, hidden folders, tasks, the client's deny list, setup guardrails, doctor's findings, and how to prove the guardrails hold.">
+<title>Guardrails | Fettler</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* The workstation figures. Each drawing lives in media/ as a standalone
+   .svg and is referenced here rather than pasted in, so the README and
+   this page show one file. An <img> cannot inherit this sheet's custom
+   properties, so each .svg carries its own copy of the palette. What
+   stays here is the frame: the card, the caption, and the button that
+   shows the figure full screen. */
+.wsfig{position:relative; background:var(--card); border:1px solid var(--line);
+  border-radius:.6rem; padding:2.6rem .6rem .6rem}
+.wsfig img{display:block; width:100%; height:auto}
+.wsfs{position:absolute; top:.55rem; right:.6rem; z-index:2;
+  background:var(--madder); color:#fff; border:0; border-radius:.45rem;
+  padding:.45rem .85rem; font-family:inherit; font-size:.82rem; font-weight:650;
+  letter-spacing:.02em; cursor:pointer}
+.wsfs:hover{filter:brightness(1.12)}
+.wsfig:fullscreen{background:var(--paper); display:flex; align-items:center;
+  justify-content:center; overflow:auto; padding:0; border:0; border-radius:0}
+.wsfig:fullscreen img{height:96vh; width:auto; max-width:97vw}
+figure.wsdiag{margin:1.4rem 0}
+figure.wsdiag figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2rem 0}
+figure.level{margin:1.4rem 0; background:var(--card); border:1px solid var(--line);
+  border-radius:.6rem; padding:.6rem}
+figure.level img{display:block; width:100%; height:auto}
+figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2rem .1rem}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="inner">
+  <div class="row">
+    <a class="phase" href="index.html"><img class="mark" src="media/brand/shoddy-icon.svg" alt="" width="23" height="23">Shoddy &middot; Fettler</a>
+    <span class="spacer"></span>
+    <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
+  </div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick-guardrails.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-quickstart.html">Quick start</a><a href="fettle-install.html">Install</a><a href="fettle-tools.html">Tools</a><span class="here">Guardrails</span><a href="fettle-screenings.html">Screenings</a><a href="fettle-reference.html">Reference</a></nav></div>
+</div></div>
+<div class="wrap">
+<header class="mast">
+<p class="eyebrow">Shoddy &middot; Fettler</p>
+<h1 id="guardrails">Guardrails</h1>
+<p class="kicker">The second level. You name the folders, say what may be done in each, and close every other way to the disk.</p>
+</header>
+
+<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="fettle-tools.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Tools</span></span></a><a class="next" href="fettle-screenings.html"><span class="pnwrap"><span class="ttl">Screenings</span><span class="dir">Next &rarr;</span></span></a></nav>
+
+<p><b>This page describes the guardrails level, which is off until a <code>.fettler.json</code> has a <code>guardrails</code> section.</b> At the <a href="fettle-tools.html">tools level</a>, the launch folder is the tree and the client's own file tools still work beside Fettler. A guardrails section replaces the launch folder with the trees you declare. <code>fettle setup guardrails</code> then denies the client's built-in file, shell and output tools, so Fettler is the only route to a file.</p>
+
+<div class="onramp">
+<p><b>An assistant given guardrails cannot wander, because everything outside the trees is refused.</b> Every path it touches must sit inside a tree, a folder you named ahead of time. Outside those trees it may not write, read, list, or even learn that a file exists. There is no current folder to change, no path that climbs out of a tree, and no shell to go round it. So the assistant cannot open a sibling project, an old copy or your home folder, read the wrong thing, and answer from it.</p>
+<a class="shot" href="fettle-reference.html#boundary"><img src="media/fettler.svg" alt="A terminal showing two declared trees with their permissions, and a path from outside the boundary refused" loading="lazy"><span class="lab"><b>fettle</b><span>declared trees &middot; no shell</span></span></a>
+</div>
+
+<figure class="level">
+<img src="media/level-guardrails.svg" width="640" height="360" loading="lazy" alt="The guardrails level. A guardrails section in .fettler.json declares the trees, what each allows, its scopes and its tasks. The client's deny list closes the built-in tools, so fettle is the only route to a file. A path outside every tree is refused.">
+<figcaption><b>The guardrails level.</b> The <code>guardrails</code> section declares the trees, what each allows, its scopes and its tasks. The client's deny list closes the built-in tools, so fettle is the only route to a file. A path outside every tree is refused.</figcaption>
+</figure>
+
+<h2 id="workstation">The workstation, drawn</h2>
+
+<p><b>These two drawings show one machine with guardrails on.</b> The first is the disk: the folders a developer has, which ones the assistant may enter, and every way off the machine. The second is the mechanism that holds that arrangement in place. The first answers what the assistant can reach, and the second answers how that is enforced.</p>
+
+<p><b>No command produced this arrangement.</b> A person wrote every line of it into two short files at the top of the project. They are a checked-in <code>.fettler.json</code> and an uncommitted <code>.fettler.local.json</code> beside it. Both are printed in full under the map, so you can trace every block to the line that put it there.</p>
+
+<figure class="wsdiag">
+<div class="wsfig" id="dmfig">
+<button class="wsfs" id="dmfs" type="button" title="Show the diagram full screen">&#x26F6; Full screen</button>
+<img src="media/disk-map.svg" width="1280" height="990"
+  alt="A map of a developer's disk and the network beyond it. The machine is one hatched area meaning out of bounds by default. On the left, the code folder holds a sibling project that is out of bounds, a planning repository that grants nothing at its root but opens two folders by name while keeping two others invisible, and the shoddy project which is fully in bounds apart from a sealed pocket holding its own configuration files. On the right, the user's folder holds one permitted scratch directory and several refused ones: keys and credentials, Documents which contains a Dropbox folder, browser profiles, and the operating system. Below the machine is the network: two sanctioned exits lead from the shoddy project to github.com and nuget.org, every other address has no route, and the Dropbox folder has its own continuous sync door to dropbox.com that no task opens and nothing here can close.">
+</div>
+<figcaption><b>The disk, and every way off it.</b> The hatched ground is the whole machine, and it is out of bounds by default. The lit blocks are the full list of what the assistant can reach. A repository can be open at one folder and shut at the next, so <code>requirements\completed</code> is invisible while the folder beside it is writable. The files that define the boundary are sealed inside the tree that grants everything else. The two network exits open from one place only, because it is the one place allowed to run anything. <b>Then there is Dropbox</b>, a way off the machine that no task opens and nothing here can close. Leaving that folder dark shuts a route that would go round every other line on the map.</figcaption>
+</figure>
+
+<p id="config"><b>Here is what drew it.</b> Read these two files beside the map. Every lit block above is a line below, and every dark block is dark because no line mentions it.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>// .fettler.json - checked in, travels with the project
+{
+  "guardrails": {
+    "trees": {
+      "work": {
+        "path": ".",
+        "can": ["list", "read", "create", "update", "rename", "delete", "execute"]
+      }
+    },
+    "tasks": {
+      "build":   { "run": "pwsh -File build.ps1 build", "cwd": "." },
+      "test":    { "run": "pwsh -File build.ps1 test",  "cwd": "." },
+      "feature": { "run": "pwsh -File scripts/shoddy-branch.ps1 feature hebdenbridge", "cwd": "." },
+      "ship":    { "run": "pwsh -File scripts/shoddy-branch.ps1 ship -Yes", "cwd": "." }
+    }
+  }
+}</code></pre></div>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>// .fettler.local.json - not checked in; this machine's own trees
+{
+  "guardrails": {
+    "trees": {
+      "requirements": {
+        "path": "../shoddy-planning/requirements",
+        "can": [],
+        "scopes": {
+          "backlog":    { "can": ["list", "read", "create", "update", "rename"] },
+          "inprogress": { "can": ["list", "read", "create", "update", "rename"] },
+          "cancelled":  { "can": [] },
+          "completed":  { "can": [] }
+        }
+      }
+    }
+  }
+}</code></pre></div>
+
+<p>The table matches the map to the files. It includes the three things on the map that no line in either file could have put there.</p>
+
+<table>
+<tr><th>On the map</th><th>What says so</th></tr>
+<tr><td><code>c:\github\shoddy</code>, and the two exits below it</td><td>The <code>work</code> tree. It is the only tree whose <code>can</code> list ends in <code>execute</code>, so it is the only place on the machine where a task may run.</td></tr>
+<tr><td><code>github.com</code> and <code>nuget.org</code>, and no other address</td><td>The four declared tasks. Two of them run git, and two restore packages. Nothing names a third host, so there is no third route.</td></tr>
+<tr><td>The scratch folder is writable, but nothing may run there</td><td>No line. fettle finds this session's scratch folder itself and opens it at every level, and it never grants <code>execute</code> there.</td></tr>
+<tr><td><code>shoddy-planning</code> grants nothing at its top</td><td>The empty <code>can</code> list on the <code>requirements</code> tree.</td></tr>
+<tr><td><code>backlog</code> and <code>inprogress</code> are writable, yet nothing there can be deleted</td><td>The <code>can</code> lists on those two scopes, which leave out <code>delete</code>.</td></tr>
+<tr><td><code>completed</code> and <code>cancelled</code> are sealed, and not even listed</td><td>The empty <code>can</code> list on each. A scope replaces what its tree grants rather than adding to it, so an empty one grants nothing.</td></tr>
+<tr><td><code>shoddy-devilsdust</code>, <code>Documents</code>, <code>.ssh</code>, <code>AppData\Roaming</code>, and the rest of <code>C:\</code></td><td><b>No line at all.</b> Out of bounds is the default. These two files list the exceptions, and whatever they leave out stays dark.</td></tr>
+<tr><td>The sealed pocket inside <code>shoddy</code></td><td><b>No line, and no line could.</b> The nine governed files are refused by every write at every permission level. <a href="fettle-tools.html#checks">What every call checks</a> lists them.</td></tr>
+<tr><td>Dropbox copying files out to <code>dropbox.com</code></td><td><b>Neither file's doing.</b> That route belongs to another program, which is why the folder it watches is one of the ones left dark.</td></tr>
+</table>
+
+<p><b>Here is how it is held.</b> The next drawing shows the same arrangement as three boundaries. They are what the assistant is, the one program between it and the disk, and the disk as the declared trees present it.</p>
+
+<figure class="wsdiag">
+<div class="wsfig" id="wsfig">
+<button class="wsfs" id="wsfs" type="button" title="Show the diagram full screen">&#x26F6; Full screen</button>
+<img src="media/workstation.svg" width="1570" height="1180" loading="lazy"
+  alt="Component diagram of three boundaries. First, the model, Claude in VS Code, whose eleven built-in tools are every one of them struck through as denied: the six file tools Read, Write, Edit, NotebookEdit, Grep and Glob; then the three shells Bash, PowerShell and Monitor; and last the two output readers BashOutput and TaskOutput, which hand back the output of work already done. Second, the Fettler MCP server, whose boundary comes from .fettler.json and which refuses to write the files that govern it or the model. Third, the filesystem, visible only as the declared trees, with everything else refused as nonexistent.">
+</div>
+<figcaption><b>A workstation in fine fettle.</b> The client denies all eleven of its own built-in tools: the six file tools, the three shells, and the two output readers. The Fettler server is then the only route to the disk. The <code>Monitor</code> tool counts as a shell, because it runs the command it is given in the same way <code>Bash</code> does. The two output readers start nothing, but they hand back the output of work already done, and that output never passes the tree check or the screen. The server takes its trees from <code>.fettler.json</code> and refuses to write any file that governs it or the model. <b>Full screen</b> shows the drawing at reading size.</figcaption>
+</figure>
+
+<ul>
+<li><b>The model boundary has a part that persuades and a part that enforces.</b> The instruction files persuade the assistant to use Fettler. The deny list in the client's settings enforces it. The built-in tools are denied by name, and Fettler's tools have different names, so denying <code>Read</code> does not deny <code>mcp__fettler__read</code>.</li>
+<li><b>The tool boundary is fixed before the model says anything.</b> The server reads its trees from <code>.fettler.json</code>, and no tool takes a root or a configuration file as an argument. The files that govern the tool and the model are refused by every write. That is <a href="fettle-reference.html#rules">the rule that makes every other rule hold</a>.</li>
+<li><b>The filesystem boundary is what remains.</b> Outside the declared trees and the folders fettle found, nothing exists for the assistant. A path there is refused in the same words whether or not a file is there.</li>
+</ul>
+
+<h2 id="turnon">Turning guardrails on</h2>
+
+<p><b>Write the <code>guardrails</code> section yourself, before you run anything.</b> <code>fettle setup guardrails</code> writes a starter section when the file has none, but it declares only the launch folder as <code>work</code>. A file nobody read is still the boundary you are running under. Each step below needs the one before it.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code># 1. write a "guardrails" section in .fettler.json      &lt;- your trees; nothing below writes them
+# 2. add your machine's own trees to .fettler.local.json   &lt;- not checked in
+# 3. add "tasks" if anything needs running
+fettle doctor                                            # what is wired, and what goes round it
+fettle setup guardrails claude-code --local --dry-run    # what would change
+fettle setup guardrails claude-code --local --hooks      # change it
+fettle doctor                                            # confirm, and see what is left by hand</code></pre></div>
+
+<p><b>Run <code>doctor</code> again at the end.</b> <code>setup</code> clears each finding whose fix is to add something. A finding whose fix is to remove something, such as 2.6, 2.7, 2.11, 2.14 or B.17, is still there afterwards. You remove those entries yourself, in an editor.</p>
+
+<h2 id="declare">Declare your trees</h2>
+
+<p><b>A tree is a name, a path, and a list of what may be done there.</b> You may declare more than one, and a folder of code plus a sibling folder is the ordinary case. Put them under <code>trees</code> in the <code>guardrails</code> section of <code>.fettler.json</code>, at the top of the project, and check the file in.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "guardrails": {
+    "trees": {
+      "work": { "path": "." }
+    }
+  }
+}</code></pre></div>
+
+<p>That is the smallest useful section. Here is a fuller one, with a second tree kept read-only and one folder inside it hidden:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "guardrails": {
+    "trees": {
+      "work": { "path": "." },
+      "requirements": {
+        "path": "../shoddy-requirements",
+        "can": ["list", "read"],
+        "scopes": {
+          "backlog":           { "can": ["list", "read", "create", "update", "rename"] },
+          "backlog/cancelled": { "can": [] }
+        }
+      }
+    }
+  }
+}</code></pre></div>
+
+<h3 id="defaults">The defaults</h3>
+
+<p><b>The defaults are the narrow ones, and only the file can widen them.</b> <a href="fettle-reference.html#defaults">The reference</a> gives the full rules.</p>
+
+<table>
+<tr><th>Tree</th><th>When <code>can</code> is left out, it grants</th></tr>
+<tr><td>The tree holding the file</td><td><code>list read create update rename delete</code>, which is everything but <code>execute</code></td></tr>
+<tr><td>Every other tree</td><td><code>list read</code>, so you can look but not change</td></tr>
+<tr><td>Any tree, for <code>execute</code></td><td>Nothing, so you must name <code>execute</code> in the list, because it is never a default</td></tr>
+</table>
+
+<ul>
+<li><b>A guardrails section with no trees is refused.</b> To use the launch folder as the tree, leave the section out and stay at the tools level.</li>
+<li><b>Paths are relative, forward-slashed, and read from the file's own folder.</b> That is what lets the file be checked in. <a href="fettle-reference.html#paths">The spelling table</a> has the cases.</li>
+<li><b>A tree that does not exist is a startup failure.</b> So the checked-in file should name only trees that travel with the project. Anything else belongs in the overlay below.</li>
+<li><b>A tree may not be called <code>scratch</code>, <code>tool-results</code> or <code>memory</code>.</b> fettle gives those names to the client's folders, which it opens at every level.</li>
+</ul>
+
+<h3 id="scopes">Scopes and hidden folders</h3>
+
+<p><b>A scope states permissions for one folder inside a tree, and it replaces what the tree grants.</b> It does not add to the tree. A scope naming <code>create</code> and nothing else grants <code>create</code> and nothing else, not even <code>read</code>. <a href="fettle-reference.html#scopes">Saying it at a depth</a> has the rules for scopes inside scopes.</p>
+
+<p><b>A scope with an empty <code>can</code> list is hidden.</b> <code>find</code> and <code>search</code> do not show it, and a path into it is refused in the same words as a path outside every tree. In the example above, <code>backlog</code> may be reorganised but never deleted, and <code>backlog/cancelled</code> does not exist for the assistant.</p>
+
+<h3 id="worked">A worked guardrails file</h3>
+
+<p><b>On the left is a whole guardrails file, and on the right is what <code>roots</code> says with it in place.</b> Notice that the guardrails line now names the file. The <code>work</code> tree grants <code>execute</code> because the file says so, and the <code>shoddy</code> tree is read-only by default.</p>
+
+<div class="fixpair">
+<div class="promptbox"><button class="copy">Copy</button><pre><code>// C:\github\app\.fettler.json
+{
+  "guardrails": {
+    "trees": {
+      "work": {
+        "path": ".",
+        "can": ["list", "read", "create",
+                "update", "rename", "delete",
+                "execute"],
+        "scopes": {
+          "secrets": { "can": [] }
+        }
+      },
+      "shoddy": { "path": "../shoddy" }
+    },
+    "tasks": {
+      "build": {
+        "run": "pwsh -NoProfile -File app-build.ps1",
+        "cwd": "."
+      }
+    }
+  }
+}</code></pre></div>
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle roots
+levels
+  tools         on, always
+  guardrails    on, from C:\github\app\.fettler.json
+  screenings    off
+
+trees
+work          C:\github\app  (default)
+              can: list read create update rename delete execute
+              branch: main (local)
+              secrets  can: nothing
+shoddy        C:\github\shoddy
+              can: list read
+              branch: main (local)
+
+found by fettle
+scratch       C:\Users\you\AppData\Local\Temp\claude\...\scratchpad
+              ...
+tool-results  C:\Users\you\.claude\projects\c--github-app\...\tool-results
+              ...
+memory        C:\Users\you\.claude\projects\c--github-app\memory
+              ...
+
+declared by C:\github\app\.fettler.json</code></pre></div>
+</div>
+
+<p><b>The folders fettle found are still there.</b> Guardrails replace the launch folder with your trees, and they leave the client's folders open. <a href="fettle-tools.html#folders">The client's folders</a> describes each one.</p>
+
+<h3 id="local">The personal overlay</h3>
+
+<p><b>An uncommitted <code>.fettler.local.json</code> beside the project file is merged over it.</b> Your machine's own trees go there, so they never appear in anybody else's checkout. Keep it out of source control.</p>
+
+<ul>
+<li><b>The overlay merges section by section.</b> It may hold any of the three sections, and each one it holds is merged over the same section in the project file.</li>
+<li><b>Inside a section, an entry named in both files is the overlay's entirely.</b> A tree named in both takes the overlay's version, not a mix of fields. Nobody reading two files side by side could say what a field-by-field merge produced.</li>
+<li><b>An entry only one file names is kept.</b> So the overlay can add a tree without repeating the project's trees.</li>
+</ul>
+
+<p><b>A changed file applies on the next call.</b> The server re-reads the file it found before every call, so you do not restart anything. The server still cannot widen its own boundary, because it refuses to write that file.</p>
+
+<h2 id="tasks">Declare your tasks</h2>
+
+<p><b>Declare a task only if something in this project needs running.</b> <code>run</code> starts only what the file declares, and it never builds a shell command. It also needs the tree to grant <code>execute</code>, which is never a default.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "guardrails": {
+    "trees": {
+      "work": { "path": ".", "can": ["list", "read", "create", "update", "rename", "delete", "execute"] }
+    },
+    "replacements": {
+      "feature-branch": "hebdenbridge"
+    },
+    "tasks": {
+      "build":   { "run": "pwsh -File shoddy-build.ps1" },
+      "gate":    { "run": "node scripts/gate/driver.mjs gate --resume", "cwd": "." },
+      "sign":    { "run": "signtool sign /f \"C:\\keys\\my cert.pfx\" bin/app.exe" },
+      "feature": { "run": "pwsh -File scripts/shoddy-feature.ps1 new {feature-branch}" }
+    }
+  }
+}</code></pre></div>
+
+<ul>
+<li><b>Name the program that is installed.</b> A task naming <code>pwsh</code> on a machine that has only Windows PowerShell fails when it starts, not when you declare it.</li>
+<li><b>A task takes no arguments from its caller.</b> A variant is a second declared task, or a value the file declares. <a href="fettle-reference.html#grammar">The command grammar</a> is exact about quoting and backslashes.</li>
+<li><b>A value that changes each time goes in <code>replacements</code>.</b> Today's branch name is a fresh string each time, so it cannot be a second task. Declare its name once, write it in braces on the command line, and keep the value in the overlay. <a href="fettle-reference.html#replacements">Values the file supplies</a> has the rules.</li>
+<li><b><code>cwd</code> is optional.</b> It is the folder the task runs in. It defaults to the top of the default tree, and it must sit inside a tree like any other path.</li>
+<li><b>Start script and task names with your project's own name.</b> Use <code>shoddy-build.ps1</code> rather than <code>build.ps1</code>, and a <code>checkin</code> task rather than <code>commit</code>. The client's own permission check reads these names, and it can refuse a task named with a bare git word as if it were that git command.</li>
+</ul>
+
+<div class="takeaway"><b>The task list is trusted input.</b> The tree check guards paths. It cannot guard a command list, which is read from a file inside the tree. Whoever can write that file chooses what a caller, a model included, can run. That is why Fettler refuses to write it.</div>
+
+<h2 id="setup">Run fettle setup guardrails</h2>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>fettle setup guardrails &lt;client&gt; | --all [--local | --global] [--hooks] [--deny] [--dry-run] [--force] [--command PATH]
+
+  clients: claude-code &middot; claude-desktop &middot; vscode-copilot &middot; github-copilot</code></pre></div>
+
+<p><b>The level is the first word.</b> <code>fettle setup tools</code> writes the registration and nothing else, and <a href="fettle-install.html">installing it</a> covers it. <code>fettle setup guardrails</code> writes the files on this page and never registers. The old spelling, <code>fettle setup claude-code</code>, is refused, and the message shows the new spellings.</p>
+
+<table>
+<tr><th>It writes</th><th>Where, and when</th></tr>
+<tr><td>The deny list</td><td>In the client's settings. At <code>--local</code> it is written. At <code>--global</code> it is only offered, unless you add <code>--deny</code>.</td></tr>
+<tr><td>The instruction block</td><td>In the client's instruction file, such as <code>CLAUDE.md</code>. It holds the tools paragraph and the guardrails paragraph, which <a href="#block">the instruction block</a> shows.</td></tr>
+<tr><td>The session hook</td><td>Only with <code>--hooks</code>, for Claude Code. It runs <code>doctor</code> at the start of each session.</td></tr>
+<tr><td>A starter <code>guardrails</code> section</td><td>Only at <code>--local</code>, and only when the project file has none. It declares the launch folder as <code>work</code>, and it never changes a section that exists.</td></tr>
+</table>
+
+<h3 id="exclusions">The deny list</h3>
+
+<p><b>The deny list names the client's built-in tools that could reach a file without Fettler.</b> It lives in the client's settings, such as <code>.claude/settings.json</code>. Setup writes it at <code>--local</code>, and it never writes <code>settings.local.json</code>, because that file is somebody's own and is not committed. Here is the list it writes for Claude Code:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "permissions": {
+    "deny": ["Read", "Write", "Edit", "NotebookEdit", "Grep", "Glob",
+             "Bash", "PowerShell", "Monitor",
+             "BashOutput", "TaskOutput"]
+  }
+}</code></pre></div>
+
+<table>
+<tr><th>Group</th><th>Tools</th><th>Why they are denied</th></tr>
+<tr><td>The file tools</td><td><code>Read</code>, <code>Write</code>, <code>Edit</code>, <code>NotebookEdit</code>, <code>Grep</code>, <code>Glob</code></td><td>Fettler replaces each one. The list is short and closed, and it is the same on every platform.</td></tr>
+<tr><td>The shells</td><td><code>Bash</code>, <code>PowerShell</code>, <code>Monitor</code></td><td>A shell is a complete route round the trees. <code>Monitor</code> counts as a shell, because it runs the command it is given in the same environment as <code>Bash</code>.</td></tr>
+<tr><td>The output readers</td><td><code>BashOutput</code>, <code>TaskOutput</code></td><td>They start nothing and write nothing. But they hand back the output of work already done, and that output never passes the tree check, the credential check or the screen.</td></tr>
+</table>
+
+<ul>
+<li><b>The deny is by tool name, and Fettler's tools have other names.</b> Denying <code>Read</code> does not deny <code>mcp__fettler__read</code>. So the deny sends the assistant to Fettler rather than leaving it with no tools.</li>
+<li><b>Tools that start work of their own are not denied.</b> An agent or a skill runs its own tools, and whether the deny list reaches that work is the client's decision. fettle knows these tools by name, so 2.18 does not report them, but it leaves them open.</li>
+<li><b>The list of tools is dated.</b> <code>doctor</code> prints the date it was last checked against a real client. Finding 2.18 reports any tool a settings file names that this fettle does not know.</li>
+</ul>
+
+<h3 id="shell">The shell is denied by name, never by command</h3>
+
+<p><b>No list of writing commands can close a shell, so the shell itself is denied.</b> <code>echo x &gt; file</code> turns any command into one that writes a file. <code>python -c</code> does the same, and so does a redirect on any command at all. A list of forbidden commands could never be finished.</p>
+
+<p><b>Denying the three shell names is short and closed, like denying the six file tools.</b> What cannot be finished is the list of commands behind them, and that is the allow list's job. Deny the shell, then allow back the few commands this project needs:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "permissions": {
+    "allow": ["Bash(git status:*)", "Bash(git diff:*)"],
+    "deny":  ["Read", "Write", "Edit", "NotebookEdit", "Grep", "Glob",
+              "Bash", "PowerShell", "Monitor",
+              "BashOutput", "TaskOutput"]
+  }
+}</code></pre></div>
+
+<ul>
+<li><b>Build and git commands through the shell stop when the deny lands.</b> Setup says so in its report. Allow back each command you need, or declare it as a <a href="#tasks">task</a>, which runs through Fettler with <code>execute</code>.</li>
+<li><b>Never allow back a command that writes files.</b> An allow entry such as <code>Bash(rm:*)</code> or <code>PowerShell(Set-Content:*)</code> runs without a prompt, and it is a complete route round the trees. <code>doctor</code> reports each one as 2.6.</li>
+</ul>
+
+<h3 id="precedence">On deny versus allow</h3>
+
+<p><b>Whether a deny beats an allow is the client's decision, and fettle cannot see it.</b> fettle is a separate program, so it cannot watch how another program resolves its rules. So <code>doctor</code> reports the conflict, as B.17, and names the fix that is right either way: remove the allow entry.</p>
+
+<ul>
+<li><b>A narrowed shell allow beside the shell deny is not a conflict.</b> <code>allow: Bash(git status:*)</code> with <code>deny: Bash</code> is the shape the section above asks for, so B.17 leaves it alone.</li>
+<li><b>A narrowed allow on a file tool is still a hole.</b> <code>Read(//c/work/**)</code> beside a denied <code>Read</code> is reported, because reading is what Fettler does. <code>doctor</code> reports an allow on a replaced tool as 2.7.</li>
+<li><b>Setup never removes an allow entry.</b> It is your own configuration, so setup names the entries that conflict and leaves them for you.</li>
+</ul>
+
+<h3 id="block">The instruction block</h3>
+
+<p><b>The instruction block tells the assistant how to work here, and the deny list makes it so.</b> Setup writes the block into the client's instruction file, such as <code>CLAUDE.md</code>, between markers it can find again. The block holds a tools paragraph, which says to call <code>roots</code> first and that there is no working folder. <code>setup guardrails</code> adds the guardrails paragraph, as written:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>**Guardrails are on.** The built-in Read, Write, Edit, NotebookEdit, Grep and
+Glob are denied. Use the Fettler tools for every file operation.
+
+**A tree may be read-only.** A scope inside a tree may allow more or less
+than the tree does. Running a declared task needs `execute`, which is never
+a default.
+
+`.fettler.json` and `.fettler.local.json` say what Fettler may do. Fettler
+does not write them. A person edits them.</code></pre></div>
+
+<p>Running setup again rewrites the block between its markers and changes nothing else in the file. <code>CLAUDE.md</code> is not a governed file, because it persuades rather than permits, and an assistant keeping a project's instructions up to date is ordinary work.</p>
+
+<h3 id="hooks">The session hook</h3>
+
+<p><b>The session hook runs <code>fettle doctor --hook</code> each time a session starts.</b> It is for Claude Code only, and you ask for it with <code>--hooks</code>. When nothing is wrong it prints nothing. When something is wrong, it prints the broken or missing registrations and the serious findings, then the line <code>run: fettle doctor</code>.</p>
+
+<ul>
+<li><b>It always exits 0.</b> A check that could stop a session from starting would soon be removed.</li>
+<li><b>It is added once, however often you run setup.</b> It does not depend on whether the deny list needed changing, so asking for it on a project already denied still adds it.</li>
+<li><b>It names the fettle you ran setup with</b>, by its full path, unless <code>--command</code> names another.</li>
+</ul>
+
+<p>The entry it adds to the client's settings file:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [
+          { "type": "command", "command": "\"C:\\tools\\fettle\\fettle.exe\" doctor --hook", "timeout": 10 }
+      ] }
+    ]
+  }
+}</code></pre></div>
+
+<h3 id="flags">Every flag, and what it decides</h3>
+
+<table>
+<tr><th>Flag</th><th>What it does</th></tr>
+<tr><td><code>&lt;client&gt;</code></td><td>One of <code>claude-code</code>, <code>claude-desktop</code>, <code>vscode-copilot</code> or <code>github-copilot</code>.</td></tr>
+<tr><td><code>--all</code></td><td>Every client this machine has. A client that is not installed is skipped, not created.</td></tr>
+<tr><td><code>--local</code></td><td>This project's files, which you can review in source control. The deny list is written here, because asking for guardrails in a project is asking for Fettler to be the route in it.</td></tr>
+<tr><td><code>--global</code></td><td>The files that apply to every project on the machine. It declares no tree, and it only offers the deny list.</td></tr>
+<tr><td><code>--deny</code></td><td>Writes the deny list at <code>--global</code> too. It is a separate flag, because changing how the assistant works in every project should never be a side effect.</td></tr>
+<tr><td><code>--hooks</code></td><td>Adds the session hook that runs <code>doctor</code>, for Claude Code only. It is added once, however often you run setup.</td></tr>
+<tr><td><code>--command PATH</code></td><td>Names the path to fettle that the hook runs. Without it, the hook names the fettle you ran setup with.</td></tr>
+<tr><td><code>--dry-run</code></td><td>Prints the same report and writes nothing, so run this first.</td></tr>
+<tr><td><code>--force</code></td><td>Replaces an existing entry that says something different, rather than leaving it alone.</td></tr>
+</table>
+
+<h3 id="corrects">What it will and will not correct</h3>
+
+<ul>
+<li><b>It merges into JSON and never overwrites.</b> These files hold other servers, other permission grants and other hooks. Setup adds its own entries, keeps everything else, and makes a backup at <code>&lt;file&gt;.fettler-backup</code> before its first write.</li>
+<li><b>It does not remove your policy.</b> An existing <code>allow</code> entry is your own configuration, and removing it changes how you work. Setup names the entries that conflict and leaves them.</li>
+<li><b>It creates a guardrails section, and never changes one.</b> Creating one where none exists is a starting point. Rewriting one is the escape that <a href="fettle-reference.html#rules">the governed-file refusal</a> closes, so it belongs to a person with an editor.</li>
+<li><b>Running it twice changes nothing.</b> A registration or entry that already says something different needs <code>--force</code>, so setup never quietly reshapes somebody else's choice.</li>
+</ul>
+
+<h2 id="doctor">Run fettle doctor</h2>
+
+<p><b><code>doctor</code> reports one section per level, and it reports findings only for a level that is on.</b> A finding is a way round the boundary, with a number and the fix that clears it. At the tools level its section shows the registrations, the client's folders and any companions. With guardrails on, it adds the guardrails section below. It never writes anything, and it never prints a secret.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle doctor
+fettle 2.1.0  C:\tools\fettle\fettle.exe
+on PATH: C:\tools\fettle\fettle.exe
+
+tools  on, always
+  claude-code     global  healthy   registered; runs C:\tools\fettle\fettle.exe
+                          C:\Users\you\.claude.json
+  claude-code     repo    absent    'fettler' is not registered in this file
+                          C:\github\app\.mcp.json
+  scratch: C:\Users\you\AppData\Local\Temp\claude\c--github-app\...\scratchpad, found as ...
+
+guardrails  on, from C:\github\app\.fettler.json
+  tool inventory dated 2026-08-20. Check 2.8 does not know tools added to the client since then
+  - 2.8  deny does not list the built-in Read, Write, Edit, NotebookEdit, Grep, Glob, Bash, PowerShell, Monitor, BashOutput, TaskOutput. Run: fettle setup guardrails claude-code --local
+      C:\github\app\.claude\settings.json
+  - 2.17  1 other MCP server is registered here: sparky. ...
+      C:\Users\you\.claude.json
+
+screenings  off</code></pre></div>
+
+<p><b>Exit 0 means healthy, 1 means warnings, and 2 means broken.</b> A broken registration and finding 2.19 are the two things that give exit&nbsp;2. <code>!</code> marks a serious finding, and <code>-</code> marks one worth knowing. <a href="fettle-reference.html#findings">Everything doctor can report</a> gives a row for each finding, with the edit that clears it.</p>
+
+<table>
+<tr><th>Finding</th><th>What it reports</th></tr>
+<tr><td>2.6 <code>!</code></td><td>An allow entry pre-approves a shell command that writes files.</td></tr>
+<tr><td>2.7 <code>!</code></td><td>An allow entry grants a built-in tool that Fettler replaces.</td></tr>
+<tr><td>2.8 <code>-</code></td><td>The deny list does not name a built-in tool. <code>fettle setup guardrails CLIENT --local</code> clears it.</td></tr>
+<tr><td>2.9 <code>-</code></td><td>The client's extra folders setting names a folder outside every tree.</td></tr>
+<tr><td>2.10 <code>-</code></td><td>An instruction file does not mention Fettler.</td></tr>
+<tr><td>2.13 <code>-</code></td><td><code>settings.local.json</code> is present, so its permissions are not committed and nobody else sees them.</td></tr>
+<tr><td>2.14 <code>!</code></td><td>VS Code's setting that approves every tool call without asking is on.</td></tr>
+<tr><td>2.16 <code>-</code></td><td>A task fills a declared value into a string that a shell reads.</td></tr>
+<tr><td>2.17 <code>-</code></td><td>Other MCP servers are registered, and the deny list does not cover their tools.</td></tr>
+<tr><td>2.18 <code>-</code></td><td>A policy file names a tool this fettle does not know.</td></tr>
+<tr><td>2.19 <code>!</code></td><td>A companion's folder is inside a declared tree, a screened tree, or a folder that holds a governed file. This gives exit&nbsp;2.</td></tr>
+<tr><td>B.17 <code>!</code></td><td>One rule appears in both the allow list and the deny list.</td></tr>
+</table>
+
+<p>Finding 2.11, two spellings of one project folder, belongs to the tools level and is reported there. Finding 2.15 is retired, and its number is not reused, because fettle now opens the scratch folder itself.</p>
+
+<h3 id="deny-files">How 2.8 reads the client's files</h3>
+
+<p><b>2.8 judges the deny list the way the client merges its files.</b> A deny in <code>.claude/settings.json</code> holds whatever <code>.claude/settings.local.json</code> says. So a tool counts as missing only when no project-level settings file of that client denies it. The finding names <code>.claude/settings.json</code>, which is the file <code>fettle setup guardrails CLIENT --local</code> writes. Running that command clears the finding.</p>
+
+<h3 id="companion">When a companion's folder is inside a tree</h3>
+
+<p><b>A companion reads and writes every file under its folder, with none of Fettler's rules.</b> With guardrails off, that is one line of fact. With guardrails on, doctor reports 2.19 as serious when the companion's folder sits in any of these places:</p>
+
+<ul>
+<li><b>Inside a declared tree.</b> The tree's permissions and scopes mean nothing to the companion. A folder that is exactly a declared tree is reported as a fact instead, because the two share files on purpose.</li>
+<li><b>Inside a screened tree or scope.</b> The companion reads those files with no screen.</li>
+<li><b>In a folder that holds a governed file.</b> The companion could rewrite the file that turns guardrails on and off.</li>
+</ul>
+
+<p><b>The fix is to move the companion's folder outside every tree.</b> Change the <code>--root</code> in its registration. Do not deny the companion, because that would remove the thing it is for.</p>
+
+<h3 id="verdicts">The four verdicts</h3>
+
+<table>
+<tr><th>Verdict</th><th>Means</th><th>Exit</th></tr>
+<tr><td><code>n/a</code></td><td>The client is not installed, or has nothing at this reach. Claude Desktop has no project files, so its project row always says this.</td><td>never a failure</td></tr>
+<tr><td><code>absent</code></td><td>The client is installed, and fettle is not registered with it.</td><td>warning</td></tr>
+<tr><td><code>broken</code></td><td>The registration is wrong. The command does not start, or the file is not valid JSON.</td><td>failure</td></tr>
+<tr><td><code>healthy</code></td><td>The registration is there, and the command it names starts.</td><td>none</td></tr>
+</table>
+
+<h2 id="verify">Verify the guardrails hold</h2>
+
+<p><b>Prove the boundary holds. Do not trust that it does.</b> Correct wiring and a boundary that holds are two different claims, and only the second one matters. Ask the assistant to do each of these, and watch what comes back.</p>
+
+<table>
+<tr><th>Ask the assistant to&hellip;</th><th>What a correct setup does</th></tr>
+<tr><td>list the tools it has</td><td>The Fettler tools appear, and <code>doctor</code> is among them.</td></tr>
+<tr><td>ask for the roots</td><td>The levels come first, with guardrails on. Then the trees come back with what may be done in each, and they are the trees you declared.</td></tr>
+<tr><td>read a file</td><td>The assistant uses the Fettler tool, and the answer carries an encoding, a line ending and a hash.</td></tr>
+<tr><td>read <code>/etc/passwd</code> or <code>C:\Windows\win.ini</code></td><td>Refused as outside every declared tree, exit&nbsp;4, in the same words whether or not the file is there.</td></tr>
+<tr><td>read a file in an older session's folder</td><td>Refused in the same words, because only this session's folder is a tree.</td></tr>
+<tr><td>write <code>.fettler.json</code></td><td>Refused as <code>governed</code>, exit&nbsp;11, whatever the tree grants.</td></tr>
+<tr><td>write <code>.claude/settings.json</code></td><td>Refused as <code>governed</code> too. A model does not edit the file that names the tools it may call.</td></tr>
+<tr><td>write a file that holds a cloud access key or a private key</td><td>Refused as <code>credential</code>, exit&nbsp;12, naming the line and the detector but never the secret.</td></tr>
+<tr><td>run a task in a tree with no <code>execute</code></td><td>The run is refused with exit&nbsp;8, and the refusal names the missing grant.</td></tr>
+<tr><td>edit a file with the built-in editor</td><td>Refused by the deny list, and the assistant reaches for Fettler instead.</td></tr>
+<tr><td>stage a draft in its scratch folder</td><td>It writes, because fettle opened that folder itself. If this fails, run <code>roots</code> and read the <code>found:</code> line for <code>scratch</code>.</td></tr>
+</table>
+
+<nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
+  <a href="fettle-tools.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Tools</span></span></a>
+  <a class="next" href="fettle-screenings.html"><span class="pnwrap"><span class="ttl">Screenings</span><span class="dir">Next &rarr;</span></span></a>
+</nav>
+<footer>Named for the shoddy mills of the West Riding: Useless Things Made
+Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>
+&copy; 2026 Stephen Vincent Foster</footer>
+</div>
+<script src="copy.js"></script>
+<script>
+(function () {
+  // Every figure on the page, so a second diagram needs no second copy.
+  var figs = document.querySelectorAll(".wsfig");
+  Array.prototype.forEach.call(figs, function (fig) {
+    var btn = fig.querySelector(".wsfs");
+    if (!btn) return;
+    if (!fig.requestFullscreen) { btn.style.display = "none"; return; }
+    btn.addEventListener("click", function () {
+      if (document.fullscreenElement) { document.exitFullscreen(); }
+      else { fig.requestFullscreen(); }
+    });
+  });
+  document.addEventListener("fullscreenchange", function () {
+    Array.prototype.forEach.call(document.querySelectorAll(".wsfs"), function (btn) {
+      var mine = btn.parentNode === document.fullscreenElement;
+      btn.innerHTML = mine ? "&#10005; Exit full screen" : "&#x26F6; Full screen";
+    });
+  });
+})();
+</script>
+</body>
+</html>

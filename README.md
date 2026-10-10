@@ -7,17 +7,25 @@ no shell between them and the data.**
 | `fettle`: the files | `pick`: the SQL Server |
 |---|---|
 | <a href="https://shoddymills.github.io/shoddy-fettler/fettle-reference.html#boundary"><img src="docs/media/fettler.svg" width="320" alt="A terminal showing two declared trees with their permissions, and a path from outside the boundary refused"></a> | <a href="https://shoddymills.github.io/shoddy-fettler/pick-reference.html#gate"><img src="docs/media/picker.svg" width="320" alt="A terminal showing one declared database with its grants and scoped objects, and a query naming an undeclared database refused"></a> |
-| **Find, search, read and edit inside *declared trees*, and nothing else.** No current directory, no path that climbs out, no shell to get past it. Batches land all or not at all. Refused edits stop happening. | **SELECT and DESCRIBE inside *declared databases*, and nothing else.** No default database, no `USE`, no linked servers, no system catalog. Tables, views and columns are scoped one by one. One statement goes through a fail-closed parser gate. |
+| **Find, search, read and edit files, with answers the next call takes as they are.** Batches land all or not at all. With guardrails on, every path sits inside a *declared tree*: no current directory, no path that climbs out, no shell to get past it. | **SELECT and DESCRIBE, one checked statement at a time.** No default database, no `USE`, no linked servers, no system catalog. With guardrails on, only *declared databases* exist, and tables, views and columns are scoped one by one. |
 | A disclosure screen can refuse regulated data leaving a tree you name. | The same screen, over the rows coming out: same categories, same models, same `burler`. |
 | [Docs](https://shoddymills.github.io/shoddy-fettler/) &middot; [Quick start](https://shoddymills.github.io/shoddy-fettler/fettle-quickstart.html) | [Docs](https://shoddymills.github.io/shoddy-fettler/pick.html) &middot; [Quick start](https://shoddymills.github.io/shoddy-fettler/pick-quickstart.html) &middot; [Reference](https://shoddymills.github.io/shoddy-fettler/pick-reference.html) |
 
-An assistant given Fettler cannot wander. Every path it touches must sit
-inside a *tree*, a folder you named ahead of time. Outside those trees
-everything is refused: writing, reading, listing, even learning that a file
-exists. There is no current directory to change, no path can climb out of a
-tree, and there is no shell to get past it with. So it cannot wander into a
-sibling project, an old copy, or your home directory, read the wrong thing,
-and then answer from it with complete confidence.
+Both programs work in **three levels**. You turn a level on by writing a
+section of that name in the configuration file.
+
+| Level | On when | What it gives you |
+|---|---|---|
+| **tools** | always, with no file | the operations: search, read, edit, batches and typed reads for files; SELECT and DESCRIBE through the query gate for data |
+| **guardrails** | the file has a `guardrails` section | a declared list of trees or databases and what each allows. Nothing else exists |
+| **screenings** | the file has a `screenings` section | the screen that refuses to disclose regulated data |
+
+**With guardrails on, an assistant given Fettler cannot wander.** Every path
+it touches must sit inside a *tree*, a folder you named ahead of time.
+Outside those trees everything is refused: writing, reading, listing, even
+learning that a file exists. **With no file at all**, the folder fettle
+starts in is the one tree, and fettle also opens the client's own scratch,
+tool-results and memory folders for this session.
 
 **Nothing it does changes how _you_ work.** Your shell, your file explorer,
 your editor and your git stay exactly as they were.
@@ -37,7 +45,7 @@ your editor and your git stay exactly as they were.
 &nbsp;&middot;&nbsp;
 [Installing it](https://shoddymills.github.io/shoddy-fettler/fettle-install.html)
 &nbsp;&middot;&nbsp;
-[In a project](https://shoddymills.github.io/shoddy-fettler/fettle-setup.html)
+[Guardrails](https://shoddymills.github.io/shoddy-fettler/fettle-guardrails.html)
 
 The project, the lane and the MCP server are **Fettler**. The thing a person
 or a script types is **`fettle`**, the imperative, because
@@ -48,10 +56,10 @@ The SQL twin follows the same arrangement. The project is **Picker** and the
 command is **`pick`**. It is named for the rag pickers of the shoddy trade,
 who picked and graded the stock by hand and altered none of it.
 
-## The fettled workstation
+## The fettled workstation, with guardrails on
 
 <p align="center">
-  <a href="https://shoddymills.github.io/shoddy-fettler/fettle-workstation.html">
+  <a href="https://shoddymills.github.io/shoddy-fettler/fettle-guardrails.html">
     <img src="docs/media/disk-map.svg" width="900"
          alt="A map of a developer's disk and the network beyond it. The whole machine is hatched, meaning out of bounds by default; a handful of lit blocks are the entire list of what is reachable. One repository is opened at one folder and shut at the next. The files that define the boundary are sealed inside the very tree that grants everything else. Two sanctioned network exits lead from one project only - and a Dropbox folder has its own sync door that no task opens and nothing here can close.">
   </a>
@@ -70,7 +78,7 @@ that folder is not about privacy. It shuts a route that would bypass every
 other line on the map.
 
 <p align="center">
-  <a href="https://shoddymills.github.io/shoddy-fettler/fettle-workstation.html">
+  <a href="https://shoddymills.github.io/shoddy-fettler/fettle-guardrails.html">
     <img src="docs/media/workstation.svg" width="900"
          alt="A component diagram of three boundaries. First the model, whose eleven built-in tools are every one of them struck through as denied: six file tools, three shells, and two output readers. Second the Fettler MCP server, whose boundary comes from .fettler.json and which refuses to write the files that govern it or the model. Third the filesystem, visible only as the declared trees, with everything else refused as nonexistent.">
   </a>
@@ -89,16 +97,16 @@ nothing and write nothing. But they hand back the output of work already
 done, and those bytes reached the model without passing the tree boundary,
 the secret scan or the disclosure screen.
 
-**[Both diagrams full size, with the reasoning behind every line](https://shoddymills.github.io/shoddy-fettler/fettle-workstation.html)**
+**[Both diagrams full size, with the reasoning behind every line](https://shoddymills.github.io/shoddy-fettler/fettle-guardrails.html)**
 
-## The picked workstation
+## The picked workstation, with guardrails on
 
 `fettle`'s map is a whole disk. `pick`'s world is one server, one declared
 database, and one way in. There is less to draw than on the fettled
 workstation, because SQL needs less: one database, one statement, no shell.
 
 <p align="center">
-  <a href="https://shoddymills.github.io/shoddy-fettler/pick-workstation.html">
+  <a href="https://shoddymills.github.io/shoddy-fettler/pick-guardrails.html">
     <img src="docs/media/pick-map.svg" width="900"
          alt="A map of a SQL Server as pick sees it. The whole server is one hatched area meaning out of bounds by default. Inside it, one database, Sales, is lit: dbo.Orders may be selected and described, dbo.Customers may be selected without its ssn and dob columns which do not exist here, dbo.TopCustomers is a view whose columns answer and whose stored text never does, and the audit schema is sealed and never even listed. The rest of the server is dark: the system databases, an adjacent undeclared database, the system catalog, and linked servers. A strip across the bottom of the server names the login pick connects as, granted only SELECT and VIEW DEFINITION. Below the server is the one way in: pick, carrying one SELECT at a time, parsed whole, rewritten three-part and screened on the way back; beside it, everything else - there is no shell, no EXEC, no second statement, and no write verb exists to try.">
   </a>
@@ -118,7 +126,7 @@ commands: one `SELECT` at a time, parsed whole, rewritten, and screened on
 the way back.
 
 <p align="center">
-  <a href="https://shoddymills.github.io/shoddy-fettler/pick-workstation.html">
+  <a href="https://shoddymills.github.io/shoddy-fettler/pick-guardrails.html">
     <img src="docs/media/pick-workstation.svg" width="900"
          alt="Component diagram of three boundaries. First, the model, Claude in VS Code - the same client that runs fettle, with no built-in SQL tool to deny, so the one route is the five picker tools. Second, the Picker MCP server, pick, whose boundary comes from .picker.json and is re-read before every call, offering only catalogs, objects, select, describe and doctor, with no write verb to deny. Third, the SQL Server, visible only as the declared databases: one database Sales with a hidden audit schema and excluded columns, a least-privilege login granted only SELECT and VIEW DEFINITION, and everything undeclared, including the system catalog and linked servers, refused in the same words as a table that was never there.">
   </a>
@@ -134,7 +142,7 @@ from a governed file it re-reads before every call and refuses to write. The
 server exists only as the declared databases, behind a login that could not
 do more even if the gate failed.
 
-**[Both diagrams full size, with the reasoning behind every line](https://shoddymills.github.io/shoddy-fettler/pick-workstation.html)**
+**[Both diagrams full size, with the reasoning behind every line](https://shoddymills.github.io/shoddy-fettler/pick-guardrails.html)**
 
 ## What is here
 
@@ -157,7 +165,8 @@ do more even if the gate failed.
 ## Building and working on it
 
 **This repository is set up for Fettler, and builds itself with itself.**
-`.fettler.json` declares one tree and the tasks below, so an assistant
+The `guardrails` section of `.fettler.json` declares one tree and the tasks
+below, so an assistant
 working here reaches the build through `run` and never through a shell. That
 is the tool's own argument applied to the tool. `run` executes only what the
 configuration declares, never composes a command line, and needs the tree to
@@ -285,19 +294,17 @@ here can drift out of step with it.
 
 | You want | Page |
 |---|---|
-| Installed and turned on, in about five minutes | [Quick start](https://shoddymills.github.io/shoddy-fettler/fettle-quickstart.html) |
-| What the boundary looks like on a disk, drawn | [The workstation](https://shoddymills.github.io/shoddy-fettler/fettle-workstation.html) |
-| Per-machine wiring and client registrations | [Install](https://shoddymills.github.io/shoddy-fettler/fettle-install.html) |
-| Declaring trees, scopes and tasks | [In a project](https://shoddymills.github.io/shoddy-fettler/fettle-setup.html) |
-| Refusing to disclose regulated data | [Screening](https://shoddymills.github.io/shoddy-fettler/fettle-screening.html) |
-| The models the clinical, legal and scientific tiers need | [The models](https://shoddymills.github.io/shoddy-fettler/fettle-models.html) |
-| SELECT and DESCRIBE inside declared SQL Server databases | [Pick](https://shoddymills.github.io/shoddy-fettler/pick.html) |
-| pick's boundary, drawn on the same workstation | [Pick: the workstation](https://shoddymills.github.io/shoddy-fettler/pick-workstation.html) |
-| A first bounded SELECT, in about five minutes | [Pick: quick start](https://shoddymills.github.io/shoddy-fettler/pick-quickstart.html) |
+| Installed and working, in about five minutes | [Quick start](https://shoddymills.github.io/shoddy-fettler/fettle-quickstart.html) |
+| Per-machine wiring, client registrations and the machine file | [Install](https://shoddymills.github.io/shoddy-fettler/fettle-install.html) |
+| The tools level: no file, the client's folders, companion servers | [Tools](https://shoddymills.github.io/shoddy-fettler/fettle-tools.html) |
+| The guardrails level: trees, scopes, tasks, the deny list, drawn | [Guardrails](https://shoddymills.github.io/shoddy-fettler/fettle-guardrails.html) |
+| The screenings level: refusing regulated data, and the models | [Screenings](https://shoddymills.github.io/shoddy-fettler/fettle-screenings.html) |
+| SELECT and DESCRIBE in SQL Server databases | [Pick](https://shoddymills.github.io/shoddy-fettler/pick.html) |
+| A first SELECT, in about five minutes | [Pick: quick start](https://shoddymills.github.io/shoddy-fettler/pick-quickstart.html) |
 | pick's per-machine wiring, and burler beside it | [Pick: install](https://shoddymills.github.io/shoddy-fettler/pick-install.html) |
-| Declaring servers, databases, scopes and columns for `pick` | [Pick, in a project](https://shoddymills.github.io/shoddy-fettler/pick-setup.html) |
-| Refusing to disclose regulated rows | [Pick: screening](https://shoddymills.github.io/shoddy-fettler/pick-screening.html) |
-| pick's models, chosen and licensed | [Pick: the models](https://shoddymills.github.io/shoddy-fettler/pick-models.html) |
+| pick's tools level: a connection and the query gate | [Pick: tools](https://shoddymills.github.io/shoddy-fettler/pick-tools.html) |
+| pick's guardrails level: databases, scopes and columns, drawn | [Pick: guardrails](https://shoddymills.github.io/shoddy-fettler/pick-guardrails.html) |
+| pick's screenings level: refusing regulated rows, and the models | [Pick: screenings](https://shoddymills.github.io/shoddy-fettler/pick-screenings.html) |
 | The query gate refusal by refusal, DESCRIBE's rules, pick's exit codes | [Pick: the reference](https://shoddymills.github.io/shoddy-fettler/pick-reference.html) |
 | The boundary in full, every verb, every refusal, every exit code, the threat model | [Reference](https://shoddymills.github.io/shoddy-fettler/fettle-reference.html) |
 | Why any of it is shaped the way it is | the source. The reasoning sits beside the code it explains |

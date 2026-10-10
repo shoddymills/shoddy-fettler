@@ -217,17 +217,30 @@ public sealed class McpServer : IDisposable
     /// at the moment a tool is chosen, shipping with the tool.
     /// </summary>
     public const string Instructions =
-        "SELECT and DESCRIBE over declared SQL Server databases. "
-        + "There is no default database and no USE: names resolve against the declared "
-        + "databases only, and an object outside them does not exist to any caller. "
-        + "Call catalogs first. It lists the servers and databases, what each grants, "
-        + "and what is screened. "
+        "SELECT and DESCRIBE over SQL Server databases. "
+        + "There is no default database and no USE: names resolve against the databases "
+        + "catalogs lists, and an object outside them does not exist to any caller. "
+        + "Call catalogs first. It names the levels that are on, then lists the servers and "
+        + "databases, what each grants, and what is screened. "
         + "The verbs are select (one SELECT statement, tables and views only), "
         + "describe (columns, keys and indexes; never a view's definition text) and "
         + "objects (what is here). A column can be hidden; a hidden column does not "
         + "exist, and SELECT * expands to the columns that do. "
         + $"{ConfigFile.FileName} and {ConfigFile.LocalFileName} say what this tool may do. "
         + "The tool does not write them; a person edits them, and an edit applies on the next call.";
+
+    /// <summary>The instructions for one launch: the tools first, then one
+    /// sentence each on whether guardrails and screenings are on.</summary>
+    public static string InstructionsFor(Levels levels) =>
+        Instructions + " "
+        + (levels.GuardrailsOn
+            ? "Guardrails are on for this launch: only the declared databases exist, and a scope may "
+              + "narrow the verbs and hide columns. "
+            : "Guardrails are off for this launch: every database the login can reach is there, "
+              + "through the same query gate. ")
+        + (levels.ScreeningsOn
+            ? "Screenings are on: an answer that would disclose a screened category is refused with exit 13."
+            : "Screenings are off.");
 
     static string Describe(Failure failure) =>
         $"{ExitCodes.NameOf(failure.Outcome)}: {failure.Message}"
@@ -266,7 +279,7 @@ public sealed class McpServer : IDisposable
             w.WriteString("name", "picker");
             w.WriteString("version", Command.Version);
             w.WriteEndObject();
-            w.WriteString("instructions", Instructions);
+            w.WriteString("instructions", InstructionsFor(bench.Boundary.Levels));
             w.WriteEndObject();
         };
     }

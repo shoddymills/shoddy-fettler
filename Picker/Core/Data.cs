@@ -19,7 +19,7 @@ namespace Picker.Core;
 /// network declines is <see cref="Outcome.Denied"/>, because it is not
 /// Picker's decision and must never read as one.</para>
 /// </summary>
-public sealed class SqlData : ICatalogSource, IQuerySource, IConstraintSource
+public sealed class SqlData : ICatalogSource, IQuerySource, IConstraintSource, IDatabaseSource
 {
     /// <summary>How long one statement may run before it is a refusal
     /// rather than a wait, unless the call says otherwise.</summary>
@@ -83,6 +83,47 @@ public sealed class SqlData : ICatalogSource, IQuerySource, IConstraintSource
                 + "or raise the timeout", server.Name)
             : new Failure(Outcome.Denied,
                 $"server '{server.Name}' refused the query: {Trimmed(e)}", server.Name);
+
+    // ---- the databases an open server lists ----
+
+    /// <summary>
+    /// The online databases this login can enter, for a server at the
+    /// tools level.
+    ///
+    /// <para><b>The four system databases are left out</b>: master,
+    /// tempdb, model and msdb hold the server's own state, not anybody's
+    /// data, and the gate refuses their catalogs anyway. A person who
+    /// wants one declares it under guardrails.</para>
+    /// </summary>
+    public Task<Result<IReadOnlyList<string>>> DatabasesAsync(ServerDecl server, CancellationToken cancel) =>
+        Task.Run(() => Databases(server), cancel);
+
+    Result<IReadOnlyList<string>> Databases(ServerDecl server)
+    {
+        Result<SqlConnection> opened = Open(server);
+        if (!opened.IsOk) return opened.Carry<IReadOnlyList<string>>();
+
+        using SqlConnection connection = opened.Value;
+        const string sql = """
+            SELECT name FROM sys.databases
+            WHERE database_id > 4 AND state = 0 AND HAS_DBACCESS(name) = 1
+            ORDER BY name
+            """;
+
+        var names = new List<string>();
+        try
+        {
+            using var command = new SqlCommand(sql, connection) { CommandTimeout = timeoutSeconds };
+            using SqlDataReader reader = command.ExecuteReader();
+            while (reader.Read()) names.Add(reader.GetString(0));
+        }
+        catch (SqlException e)
+        {
+            return Result<IReadOnlyList<string>>.Fail(Declined(server, e));
+        }
+
+        return Result<IReadOnlyList<string>>.Ok(names);
+    }
 
     // ---- the catalog ----
 

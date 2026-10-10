@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Pick's guardrails level, off until .picker.json has a guardrails section: declared databases per server, the verbs each allows, scopes, hidden columns, the local file, the least-privilege login, and proving the boundary holds.">
+<title>Guardrails | Picker</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* A file beside the answer it produces, and the level drawing. */
+.beside{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:.8rem; align-items:start; margin:1rem 0}
+.beside .promptbox{margin:0}
+.beside pre{overflow-x:auto}
+.beside h4{margin:0 0 .35rem; font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft)}
+@media (max-width:700px){.beside{grid-template-columns:1fr}}
+figure.levelfig{margin:1.4rem 0}
+figure.levelfig img{display:block; width:100%; max-width:640px; height:auto; border-radius:.5rem}
+figure.levelfig figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2rem 0}
+/* The large drawings: the card, the caption, and the button that hands the
+   figure the whole screen. The diagrams are standalone SVGs under media/. */
+.wsfig{position:relative; background:var(--card); border:1px solid var(--line);
+  border-radius:.6rem; padding:2.6rem .6rem .6rem}
+.wsfig img{display:block; width:100%; height:auto}
+.wsfs{position:absolute; top:.55rem; right:.6rem; z-index:2;
+  background:var(--madder); color:#fff; border:0; border-radius:.45rem;
+  padding:.45rem .85rem; font-family:inherit; font-size:.82rem; font-weight:650;
+  letter-spacing:.02em; cursor:pointer}
+.wsfs:hover{filter:brightness(1.12)}
+.wsfig:fullscreen{background:var(--paper); display:flex; align-items:center;
+  justify-content:center; overflow:auto; padding:0; border:0; border-radius:0}
+.wsfig:fullscreen img{height:96vh; width:auto; max-width:97vw}
+figure.wsdiag{margin:1.4rem 0}
+figure.wsdiag figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2rem 0}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="inner">
+  <div class="row">
+    <a class="phase" href="index.html"><img class="mark" src="media/brand/shoddy-icon.svg" alt="" width="23" height="23">Shoddy &middot; Fettler</a>
+    <span class="spacer"></span>
+    <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
+  </div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle-guardrails.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><a href="pick.html">Overview</a><a href="pick-quickstart.html">Quick start</a><a href="pick-install.html">Install</a><a href="pick-tools.html">Tools</a><span class="here">Guardrails</span><a href="pick-screenings.html">Screenings</a><a href="pick-reference.html">Reference</a></nav></div>
+</div></div>
+<div class="wrap">
+<header class="mast">
+<p class="eyebrow">Shoddy &middot; Picker</p>
+<h1 id="guardrails">Guardrails</h1>
+<p class="kicker">The second level. You name the databases, and the picker grades what is in them: which tables answer, which verbs they allow, and which columns are not there at all.</p>
+</header>
+
+<nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a href="pick-tools.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Tools</span></span></a><a class="next" href="pick-screenings.html"><span class="pnwrap"><span class="ttl">Screenings</span><span class="dir">Next &rarr;</span></span></a></nav>
+
+<p><b>This page describes the guardrails level. It is off until <code>.picker.json</code> has a <code>guardrails</code> section.</b> With it off, pick opens every database the login can reach, as <a href="pick-tools.html">Tools</a> shows. With it on, only the databases you declare exist, and a scope can narrow what a table allows or hide some of its columns.</p>
+
+<p><b>Guardrails add to the tools level. They do not replace it.</b> The query gate, the caps and the five verbs stay the same, and the <code>tools</code> section still holds each server and its connection.</p>
+
+<figure class="levelfig">
+<img src="media/pick-level-guardrails.svg" width="640" height="320" loading="lazy" alt="The pick guardrails level. A guardrails section declares the database Sales on server main, with the verbs list and select, and scopes. For the caller, Sales holds dbo.Customers with the columns ssn and dob hidden, and dbo.Orders. The audit schema is not there. Finance is not declared, so it is not there either. A hidden column is absent from the select list, the WHERE clause, the star and DESCRIBE alike. Hidden and absent answer in the same words, so a refusal cannot be used to map the server.">
+<figcaption><b>The guardrails level.</b> The declared database is the whole list, and inside it a scope can seal a schema or hide a column. What is hidden answers in the same words as what was never there.</figcaption>
+</figure>
+
+<h2 id="file">A guardrails file, and what it gives you</h2>
+
+<p><b>Add a <code>guardrails</code> section beside <code>tools</code>, listing the databases on each server.</b> Here is one database with two scopes, beside the answer <code>pick catalogs</code> gives for it.</p>
+
+<div class="beside">
+<div>
+<h4>.picker.json</h4>
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "tools": {
+    "servers": {
+      "main": { "connect": "env:MAIN_SQL" }
+    }
+  },
+  "guardrails": {
+    "servers": {
+      "main": {
+        "databases": {
+          "Sales": {
+            "can": ["list", "select", "describe"],
+            "scopes": [
+              { "object": "dbo.Customers",
+                "can": ["list", "select"],
+                "columns": ["-ssn", "-dob"] },
+              { "object": "audit.*", "can": [] }
+            ]
+          }
+        }
+      }
+    }
+  }
+}</code></pre></div>
+</div>
+<div>
+<h4>pick catalogs</h4>
+<pre><code>levels
+  tools       on, always; settings from C:\github\app\.picker.json
+  guardrails  on, from C:\github\app\.picker.json
+  screenings  off
+
+main  (connect: env:MAIN_SQL)
+  Sales: list select describe
+    dbo.Customers: list select  columns: -dob -ssn
+    audit.*: nothing
+source: C:\github\app\.picker.json</code></pre>
+</div>
+</div>
+
+<ul>
+<li><b>The <code>guardrails</code> line now says <code>on</code></b>, and names the file that turned it on.</li>
+<li><b>The server no longer says "every database this login can reach".</b> It lists <code>Sales</code>, because <code>Sales</code> is now the only database there is.</li>
+<li><b>Each scope shows on its own line, with its verbs and its column rule.</b> The word <code>nothing</code> means the scope allows no verb at all.</li>
+</ul>
+
+<p>Three rules about where things go:</p>
+
+<ul>
+<li><b>A server under <code>guardrails</code> must also be under <code>tools</code>.</b> Otherwise the file is refused, and the message says to declare the server under <code>tools</code> with its <code>connect</code>.</li>
+<li><b>A <code>connect</code> under <code>guardrails</code> is refused</b>, because a connection belongs to the tools level.</li>
+<li><b>With guardrails on, a server the section does not list has no databases.</b> Guardrails apply to every server in the file, so declare what each one should show.</li>
+</ul>
+
+<h2 id="map">The server, as pick sees it</h2>
+
+<p><b>No command made this picture.</b> Every line of it was written by hand into <code>.picker.json</code> and its local twin, and pick refuses to write either file.</p>
+
+<figure class="wsdiag">
+<div class="wsfig" id="pmfig">
+<button class="wsfs" id="pmfs" type="button" title="Show the diagram full screen">&#x26F6; Full screen</button>
+<img src="media/pick-map.svg" width="1280" height="900" loading="lazy"
+  alt="A map of a SQL Server as pick sees it. The whole server is one hatched area meaning out of bounds by default. Inside it, one database, Sales, is lit: dbo.Orders may be selected and described, dbo.Customers may be selected without its ssn and dob columns which do not exist here, dbo.TopCustomers is a view whose columns answer and whose stored text never does, and the audit schema is sealed and never even listed. The rest of the server is dark: the system databases, an adjacent undeclared database, the system catalog, and linked servers. A strip across the bottom of the server names the login pick connects as, granted only SELECT and VIEW DEFINITION. Below the server is the one way in: pick, carrying one SELECT at a time, parsed whole, rewritten three-part and screened on the way back; beside it, everything else - there is no shell, no EXEC, no second statement, and no write verb exists to try.">
+</div>
+<figcaption><b>The server, and the one way onto it.</b> The hatched ground is the whole server, and it is the default. The lit database is the whole list, and inside it the scopes decide: a schema sealed, two columns that do not exist here, a view that gives its columns and never its text. The system databases, the other databases, the catalog and the linked servers are not on the map at all. Asking for any of them answers in the same words as asking for a table that never existed.</figcaption>
+</figure>
+
+<table>
+<tr><th>On the map</th><th>What says so</th></tr>
+<tr><td><code>Sales</code> lit, and nothing else</td><td>the one entry under <code>databases</code>. Whatever is not declared stays dark</td></tr>
+<tr><td><code>audit.*</code> sealed, never listed</td><td><code>"can": []</code> on its scope. A scope replaces what the database allows, so an empty one allows nothing</td></tr>
+<tr><td><code>ssn</code> and <code>dob</code> missing from <code>Customers</code></td><td><code>"columns": ["-ssn", "-dob"]</code>. They are taken out of <code>SELECT *</code> before the server sees the query, and refused anywhere else</td></tr>
+<tr><td>the view's text never answering</td><td><b>no line, and no line could.</b> View text names the tables under it, which may be what a scope hides</td></tr>
+<tr><td>the login's short reach</td><td><b>not pick's file at all.</b> A person grants it on the server, as <a href="#login">the login</a> shows</td></tr>
+<tr><td>the one way in</td><td>the <code>connect</code> under <code>tools</code>, and the gate in front of it, which no line turns off</td></tr>
+</table>
+
+<h2 id="declared">Declared databases: the whole list</h2>
+
+<p><b>A database the file does not declare does not exist.</b> pick does not say that it is hidden, and answers in the same words as for a table that was never there.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ pick select "SELECT * FROM Finance.dbo.Ledger"
+pick: there is no table or view called 'Finance.dbo.Ledger' in the declared databases. Run objects to list what is here (Finance.dbo.Ledger)
+$ pick select "SELECT * FROM Sales.dbo.NoSuchTable"
+pick: there is no table or view called 'Sales.dbo.NoSuchTable' in the declared databases. Run objects to list what is here (Sales.dbo.NoSuchTable)</code></pre></div>
+
+<p><b>The two refusals match on purpose.</b> If they differed, a caller could map the server by reading refusals. This rule is called <b>hidden is absent</b>, and it holds for databases, tables and columns alike.</p>
+
+<ul>
+<li><b>There is no default database.</b> A short name such as <code>Customers</code> is looked for in the declared databases only. The connection's own database is never asked.</li>
+<li><b>A short name found in two declared databases is refused</b>, naming both, and the fix is to write the full name. Every declared database takes part in that search, so declare only what you use.</li>
+<li><b>One statement reaches one server.</b> A query may join declared databases on the same server, but not on two servers.</li>
+<li><b>The same database name on two servers cannot be told apart, so naming it is refused.</b> Declare it on one server, and reach the other through its own <code>.picker.json</code>, using <code>--config PATH</code>.</li>
+</ul>
+
+<h2 id="can">What a database allows</h2>
+
+<p><b><code>can</code> lists the verbs a database allows.</b> There are three grant words, and each one lets a caller do one thing with a table.</p>
+
+<table>
+<tr><th>Word</th><th>Lets a caller</th></tr>
+<tr><td><code>list</code></td><td>see the table in <code>objects</code>, and learn that it exists</td></tr>
+<tr><td><code>select</code></td><td>read its rows with <code>select</code></td></tr>
+<tr><td><code>describe</code></td><td>read its columns, indexes and keys with <code>describe</code></td></tr>
+</table>
+
+<ul>
+<li><b>Without <code>list</code>, a table is absent.</b> It is missing from <code>objects</code>, and a query that names it is refused as not there, with exit code 3.</li>
+<li><b>Listed but without <code>select</code>, a table is refused plainly, with exit code 8.</b> The refusal names what the table does allow, because the listing already showed that it exists.</li>
+<li><b>A misspelt word refuses the whole file</b>, and the message names the three words. Otherwise <code>"selct"</code> would take a verb away without anyone noticing.</li>
+</ul>
+
+<h2 id="scopes">Scopes replace. The most specific wins</h2>
+
+<p><b>A scope sets the rules for some of the tables in a database.</b> It names an <code>object</code> pattern, <code>schema.object</code>, where <code>*</code> stands for a whole part. For example, <code>audit.*</code> matches every table in the <code>audit</code> schema.</p>
+
+<p><b>A scope replaces the database's rules for the tables it matches, and does not add to them.</b> An exact table name beats a whole schema. A table that matches no scope gets the database's own <code>can</code>.</p>
+
+<ul>
+<li><b>A scope must state its <code>can</code>.</b> A scope with no <code>can</code> is refused, because silence could mean either "allow nothing" or "allow what the database allows".</li>
+<li><b><code>"can": []</code> hides the tables it matches.</b> That is how <code>audit.*</code> above seals a whole schema.</li>
+<li><b>A scope's screen is not set here.</b> Screens go under <code>screenings</code>, keyed by the database and the scope's pattern, as <a href="pick-screenings.html#keys">Screenings</a> shows.</li>
+</ul>
+
+<h2 id="columns">Hidden columns</h2>
+
+<p><b><code>columns</code> on a scope decides which columns exist for the caller.</b> There are three ways to write it, and one that is refused.</p>
+
+<table>
+<tr><th>You write</th><th>The caller sees</th></tr>
+<tr><td><code>"columns": true</code>, or nothing</td><td>every column</td></tr>
+<tr><td><code>"columns": ["name", "city"]</code></td><td>only those columns</td></tr>
+<tr><td><code>"columns": ["-ssn", "-dob"]</code></td><td>every column except those</td></tr>
+<tr><td><code>"columns": ["name", "-ssn"]</code></td><td><b>refused when the file is read.</b> One list cannot both include and exclude</td></tr>
+</table>
+
+<p><b>A hidden column does not exist anywhere.</b> It is refused in the select list, in <code>WHERE</code>, <code>ON</code>, <code>GROUP BY</code> and <code>ORDER BY</code>, and inside expressions. A filter such as <code>WHERE ssn = &hellip;</code> would let a caller guess a column one row at a time, so it is refused too.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ pick select "SELECT name FROM Sales.dbo.Customers WHERE ssn = '123-45-6789'"
+pick: 'ssn' is not a column of Sales.dbo.Customers. Run describe to see its columns (ssn)</code></pre></div>
+
+<ul>
+<li><b>The refusal is the one for a column that does not exist</b>, and it never says "hidden".</li>
+<li><b><code>SELECT *</code> is not a way round it.</b> The star becomes the allowed columns before the server sees the query, and the answer shows the list it chose.</li>
+<li><b><code>describe</code> leaves hidden columns out.</b> An index or key that uses a hidden column is left out whole, because a note saying "one column not shown" would tell the caller the column exists.</li>
+</ul>
+
+<h2 id="several">More than one database, more than one server</h2>
+
+<p><b><code>servers</code> and <code>databases</code> are both plural.</b> A staging database beside a warehouse, and a second server beside the first, fit in one file like this.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "tools": {
+    "servers": {
+      "warehouse": { "connect": "env:WAREHOUSE_SQL" },
+      "ops":       { "connect": "env:OPS_SQL" }
+    }
+  },
+  "guardrails": {
+    "servers": {
+      "warehouse": {
+        "databases": {
+          "Staging": { "can": ["list", "select", "describe"] },
+          "Sales":   { "can": ["list", "select", "describe"] }
+        }
+      },
+      "ops": {
+        "databases": {
+          "Orders": { "can": ["list", "describe"] }
+        }
+      }
+    }
+  }
+}</code></pre></div>
+
+<ul>
+<li><b>A query may join databases on one server.</b> <code>SELECT &hellip; FROM Staging.load.Batch b JOIN Sales.dbo.Orders o ON &hellip;</code> is one statement on one connection. Each table keeps its own scope and column rule.</li>
+<li><b>A query that reaches two servers is refused</b>, naming both, so run two selects instead. pick returns what a server produced, and does not build a joined answer that no server made.</li>
+<li><b>Each server has its own <code>connect</code>, and should have its own narrow login.</b> The next two sections cover both.</li>
+</ul>
+
+<h2 id="local">The local file</h2>
+
+<p><b><code>.picker.local.json</code> sits beside <code>.picker.json</code>, and you keep it out of source control.</b> It holds the facts that belong to one machine: connection strings, and where the screening models are. It may hold those two things and nothing else.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "tools": {
+    "servers": {
+      "main": {
+        "connect": "Server=db.internal;Integrated Security=true;TrustServerCertificate=true"
+      }
+    }
+  },
+  "screenings": { "models": "C:/models/screening" }
+}</code></pre></div>
+
+<ul>
+<li><b>The local file may supply <code>tools.servers.NAME.connect</code> and <code>screenings.models</code>.</b> Anything else in it refuses the load.</li>
+<li><b>It cannot add to what is declared.</b> A server named only in the local file is refused, and so is a <code>guardrails</code> section, a <code>databases</code> entry or a <code>screen</code>. Each would be a rule that nobody reviewed.</li>
+<li><b>If both files give a <code>connect</code>, the local one wins.</b> Pick one place per server, so that the next reader is not left guessing.</li>
+<li><b>pick reads both files again before every call</b>, so an edit takes effect on the next call with no restart.</li>
+</ul>
+
+<h3 id="trustroot">Who can write these two files</h3>
+
+<p><b>Whoever can write these two files decides what pick allows.</b> The next call obeys any edit, because pick reads them every time. pick itself cannot write them, because it has no write verb, but another tool the assistant holds probably can.</p>
+
+<ul>
+<li><b>If the machine also runs fettle, the files are already protected.</b> fettle refuses to write <code>.picker.json</code> and <code>.picker.local.json</code>, just as it refuses to write its own configuration.</li>
+<li><b>If it does not, set both files read-only</b>, so that an assistant's file tools cannot rewrite them by accident.</li>
+</ul>
+
+<div class="plat win"><span class="os">Windows &middot; PowerShell</span><div class="body">
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>Set-ItemProperty .picker.json, .picker.local.json -Name IsReadOnly -Value $true</code></pre></div>
+
+</div></div>
+
+<div class="plat mac"><span class="os">macOS and Linux</span><div class="body">
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>chmod a-w .picker.json .picker.local.json</code></pre></div>
+
+</div></div>
+
+<p class="note"><span class="lab">Note</span> <b>Read-only slows a tool down. It does not stop one.</b> A tool that can run a shell can clear the setting with one command, so denying the shell is the stronger protection.</p>
+
+<h2 id="login">Connect as a login that could not do more</h2>
+
+<p><b>Connect as a login granted only <code>SELECT</code> and <code>VIEW DEFINITION</code> on the declared databases.</b> pick enforces its rules inside pick, but the server has rules of its own, and the two should agree. Then even a fault in pick has nothing wider to use.</p>
+
+<p><b>Declaring a database grants the login nothing.</b> If the login cannot enter a declared database, the server says so, and pick reports that as <code>denied</code>, exit code 9, meaning the server declined. It never reports it as <code>refused</code>, which means pick declined, so nobody debugs a boundary that is working.</p>
+
+<div class="takeaway"><b>A SQL login is one way to do this. It is not required.</b> Most teams connect with integrated security (<code>Integrated Security=true</code>), where the connection arrives as a Windows or Entra account with no password anywhere. Grant the same two rights to that account, to a group, or to a role the account belongs to. Only the name in the T-SQL changes.</div>
+
+<p>An administrator runs the grant once, and it is all that pick's login can ever do. With a SQL login of its own, it looks like this:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>CREATE LOGIN pick_reader WITH PASSWORD = 'a-strong-generated-password';
+USE Sales;
+CREATE USER pick_reader FOR LOGIN pick_reader;
+GRANT SELECT          TO pick_reader;   -- the rows
+GRANT VIEW DEFINITION TO pick_reader;   -- the metadata describe reads</code></pre></div>
+
+<p>With integrated security, the same two grants go to the account or its group. Or they go to a role, so that membership is the only thing that ever changes:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>CREATE LOGIN [DOMAIN\report-readers] FROM WINDOWS;  -- a group: membership stays AD's job
+USE Sales;
+CREATE USER [DOMAIN\report-readers] FOR LOGIN [DOMAIN\report-readers];
+CREATE ROLE pick_reading;
+GRANT SELECT, VIEW DEFINITION TO pick_reading;
+ALTER ROLE pick_reading ADD MEMBER [DOMAIN\report-readers];</code></pre></div>
+
+<p>On a development machine with LocalDB, integrated security covers all of this, because the instance is yours alone. On a shared server, the grants are the whole task. A SQL login's password goes in the local file or an environment variable, never in the checked-in file.</p>
+
+<h2 id="boundaries">How the boundary is held</h2>
+
+<figure class="wsdiag">
+<div class="wsfig" id="pwfig">
+<button class="wsfs" id="pwfs" type="button" title="Show the diagram full screen">&#x26F6; Full screen</button>
+<img src="media/pick-workstation.svg" width="1570" height="1150" loading="lazy"
+  alt="Component diagram of three boundaries. First, the model, Claude in VS Code - the same client that runs fettle, with no built-in SQL tool to deny, so the one route is the five picker tools. Second, the Picker MCP server, pick, whose boundary comes from .picker.json and is re-read before every call, offering only catalogs, objects, select, describe and doctor, with no write verb to deny. Third, the SQL Server, visible only as the declared databases: one database Sales with a hidden audit schema and excluded columns, a least-privilege login granted only SELECT and VIEW DEFINITION, and everything undeclared, including the system catalog and linked servers, refused in the same words as a table that was never there.">
+</div>
+<figcaption><b>Three boundaries.</b> The assistant has no built-in SQL tool, so adding pick adds one route and closes nothing. pick takes its rules from a file it reads before every call and never writes. The server shows only the declared databases, behind a login that could not do more even if the gate failed. <b>Full screen</b> shows the drawing at a size you can read.</figcaption>
+</figure>
+
+<ul>
+<li><b>The assistant needs nothing new denied.</b> Its built-in tools work on files and shells, and none of them speaks SQL, so registering pick is one entry in the client's settings.</li>
+<li><b>pick's boundary is a file it reads before every call.</b> No verb takes a connection string or a database name, so no call can widen it, and pick has no write verb at all.</li>
+<li><b>The server's boundary is the declared databases.</b> There is no default database, no <code>USE</code>, no <code>sys.*</code> and no linked server. <a href="pick-reference.html">The reference</a> holds every refusal.</li>
+<li><b>Under all of it is the login</b>, granted only <code>SELECT</code> and <code>VIEW DEFINITION</code>, so the server keeps a boundary of its own.</li>
+</ul>
+
+<h2 id="doctor">Check the wiring</h2>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ pick doctor
+pick X.Y.Z
+  ok tools: on, always; settings from C:\github\app\.picker.json
+  ok guardrails: on, from C:\github\app\.picker.json
+  ok screenings: off
+  ok configuration: C:\github\app\.picker.json
+  ok server main: connects (1 database(s) declared)</code></pre></div>
+
+<p><b><code>doctor</code> never prints a connection string.</b> It says whether the server answered, not how pick reached it. Then run <code>pick catalogs</code> to see what is declared, and <code>pick objects</code> to see what a caller may list.</p>
+
+<h2 id="verify">Verifying the boundary</h2>
+
+<p><b>Prove it. Do not trust it.</b> A correct file and a boundary that holds are two different claims, and only the second one matters. Try each of these yourself, or ask the assistant to, and check what comes back.</p>
+
+<table>
+<tr><th>Try to&hellip;</th><th>A correct setup&hellip;</th></tr>
+<tr><td>select from a database the file does not declare</td><td>refuses with exit&nbsp;3, in the words for a table that never existed, whether or not the database is real</td></tr>
+<tr><td>select from a table whose scope is <code>"can": []</code></td><td>refuses with exit&nbsp;3, and <code>objects</code> never listed it</td></tr>
+<tr><td>select from a table that allows <code>list</code> but not <code>select</code></td><td>refuses with exit&nbsp;8, naming what the table does allow</td></tr>
+<tr><td>select a column the scope hides, then filter on it with <code>WHERE</code></td><td>refuses both with exit&nbsp;3, in the words for a column that does not exist</td></tr>
+<tr><td><code>SELECT *</code> from that same table</td><td>returns every column except the hidden ones, and names the columns it chose</td></tr>
+<tr><td>run <code>DELETE</code>, <code>EXEC</code>, or a second statement</td><td>refuses with exit&nbsp;8, each with its own reason</td></tr>
+<tr><td>read <code>sys.tables</code>, or call <code>OBJECT_DEFINITION()</code></td><td>refuses with exit&nbsp;8. The catalog answers through <code>describe</code>, under the scopes</td></tr>
+<tr><td>describe a view</td><td>gives its columns and never its stored text</td></tr>
+<tr><td>connect with the login and a plain SQL client, and try an <code>INSERT</code></td><td>the <b>server</b> refuses. The login's grant stops at <code>SELECT</code></td></tr>
+<tr><td>edit <code>.picker.json</code>, then call again without restarting</td><td>the change applies, because pick reads the file before every call</td></tr>
+</table>
+
+<p>If a screen is declared, add the screening checks, which <a href="pick-screenings.html#prove">Prove it refuses</a> lists.</p>
+
+<nav class="pagenav pagenav-bottom" aria-label="Picker, in order">
+  <a href="pick-tools.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Tools</span></span></a>
+  <a class="next" href="pick-screenings.html"><span class="pnwrap"><span class="ttl">Screenings</span><span class="dir">Next &rarr;</span></span></a>
+</nav>
+<footer>Named for the shoddy mills of the West Riding: Useless Things Made
+Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>
+&copy; 2026 Stephen Vincent Foster</footer>
+</div>
+<script src="copy.js"></script>
+<script>
+(function () {
+  var figs = document.querySelectorAll(".wsfig");
+  Array.prototype.forEach.call(figs, function (fig) {
+    var btn = fig.querySelector(".wsfs");
+    if (!btn) return;
+    if (!fig.requestFullscreen) { btn.style.display = "none"; return; }
+    btn.addEventListener("click", function () {
+      if (document.fullscreenElement) { document.exitFullscreen(); }
+      else { fig.requestFullscreen(); }
+    });
+  });
+  document.addEventListener("fullscreenchange", function () {
+    Array.prototype.forEach.call(document.querySelectorAll(".wsfs"), function (btn) {
+      var mine = btn.parentNode === document.fullscreenElement;
+      btn.innerHTML = mine ? "&#10005; Exit full screen" : "&#x26F6; Full screen";
+    });
+  });
+})();
+</script>
+</body>
+</html>

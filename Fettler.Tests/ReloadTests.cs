@@ -65,7 +65,7 @@ public sealed class ReloadTests : IDisposable
     [Fact]
     public async Task ATaskDeclaredAfterLaunchIsListedOnTheNextRequest()
     {
-        Declare("""{"trees":{"work":{"path":"."}}}""");
+        Declare("""{"guardrails":{"trees":{"work":{"path":"."}}}}""");
         using McpServer server = Server(out Bench bench);
         using Bench _ = bench;
 
@@ -73,7 +73,7 @@ public sealed class ReloadTests : IDisposable
         Assert.False(beforeError, before);
         Assert.DoesNotContain("probe", before);
 
-        Declare("""{"trees":{"work":{"path":"."}},"tasks":{"probe":{"run":"echo hello"}}}""");
+        Declare("""{"guardrails":{"trees":{"work":{"path":"."}},"tasks":{"probe":{"run":"echo hello"}}}}""");
 
         (string after, bool afterError) = Answer(await server.AnswerAsync(Call(2, "tasks")));
         Assert.False(afterError, after);
@@ -83,7 +83,7 @@ public sealed class ReloadTests : IDisposable
     [Fact]
     public async Task ARevocationBindsOnTheNextRequest()
     {
-        Declare("""{"trees":{"work":{"path":"."}}}""");
+        Declare("""{"guardrails":{"trees":{"work":{"path":"."}}}}""");
         File.WriteAllText(Path.Combine(dir, "a.txt"), "alpha\n");
         using McpServer server = Server(out Bench bench);
         using Bench _ = bench;
@@ -96,7 +96,7 @@ public sealed class ReloadTests : IDisposable
         // The person narrows the tree to list alone. No restart follows,
         // because none is needed - and none must be needed, or the wider
         // boundary outlives the file that granted it.
-        Declare("""{"trees":{"work":{"path":".","can":["list"]}}}""");
+        Declare("""{"guardrails":{"trees":{"work":{"path":".","can":["list"]}}}}""");
 
         (string revoked, bool revokedError) = Answer(
             await server.AnswerAsync(Call(2, "read", """{"paths":["a.txt"]}""")));
@@ -107,7 +107,7 @@ public sealed class ReloadTests : IDisposable
     [Fact]
     public async Task AMalformedEditRefusesEveryRequestUntilItIsFixed()
     {
-        Declare("""{"trees":{"work":{"path":"."}}}""");
+        Declare("""{"guardrails":{"trees":{"work":{"path":"."}}}}""");
         File.WriteAllText(Path.Combine(dir, "a.txt"), "alpha\n");
         using McpServer server = Server(out Bench bench);
         using Bench _ = bench;
@@ -122,7 +122,7 @@ public sealed class ReloadTests : IDisposable
         Assert.Contains("JSON", broken);
         Assert.DoesNotContain("alpha", broken);
 
-        Declare("""{"trees":{"work":{"path":"."}}}""");
+        Declare("""{"guardrails":{"trees":{"work":{"path":"."}}}}""");
 
         (string fixedUp, bool fixedError) = Answer(
             await server.AnswerAsync(Call(2, "read", """{"paths":["a.txt"]}""")));
@@ -138,9 +138,9 @@ public sealed class ReloadTests : IDisposable
         // instead: re-reading means the file found at launch, and a walk
         // up from where it was is how a boundary widens on its own.
         string child = Directory.CreateDirectory(Path.Combine(dir, "child")).FullName;
-        File.WriteAllText(Path.Combine(dir, RootsFile.FileName), """{"trees":{"wide":{"path":"."}}}""");
+        File.WriteAllText(Path.Combine(dir, RootsFile.FileName), """{"guardrails":{"trees":{"wide":{"path":"."}}}}""");
         string childFile = Path.Combine(child, RootsFile.FileName);
-        File.WriteAllText(childFile, """{"trees":{"work":{"path":"."}}}""");
+        File.WriteAllText(childFile, """{"guardrails":{"trees":{"work":{"path":"."}}}}""");
 
         Result<Core.Roots> opened = RootsFile.Reopen(childFile);
         Assert.True(opened.IsOk, opened.Failure?.Message);
@@ -168,7 +168,7 @@ public sealed class ReloadTests : IDisposable
         using var bench = new Bench(opened.Value);
         using var server = new McpServer(bench, TextReader.Null, TextWriter.Null);
 
-        Declare("""{"trees":{"work":{"path":"."}},"tasks":{"probe":{"run":"echo hello"}}}""");
+        Declare("""{"guardrails":{"trees":{"work":{"path":"."}},"tasks":{"probe":{"run":"echo hello"}}}}""");
 
         (string text, bool isError) = Answer(await server.AnswerAsync(Call(1, "tasks")));
         Assert.False(isError, text);

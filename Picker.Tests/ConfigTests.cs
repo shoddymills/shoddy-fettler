@@ -3,8 +3,9 @@ using Xunit;
 
 namespace Picker.Tests;
 
-/// <summary>The two files: what they declare, what they refuse, and the
-/// line between them.</summary>
+/// <summary>The two files: the three sections, what they declare, what
+/// they refuse, and the line between the checked-in file and the local
+/// one.</summary>
 public sealed class ConfigTests : IDisposable
 {
     readonly string dir;
@@ -34,32 +35,36 @@ public sealed class ConfigTests : IDisposable
     {
         Result<Boundary> opened = Load("""
             {
-              "servers": {
-                "reporting": {
-                  "connect": "env:REPORTING_SQL",
-                  "databases": {
-                    "Sales": {
-                      "can": ["list", "select", "describe"],
-                      "screen": ["identifiers"],
-                      "scopes": [
-                        { "object": "dbo.Customers",
-                          "can": ["list", "select"],
-                          "columns": ["-ssn", "-dob"] },
-                        { "object": "ref.*",
-                          "can": ["list", "select", "describe"],
-                          "screen": false },
-                        { "object": "audit.*", "can": [] }
-                      ]
+              "tools": { "servers": { "reporting": { "connect": "env:REPORTING_SQL" } } },
+              "guardrails": {
+                "servers": {
+                  "reporting": {
+                    "databases": {
+                      "Sales": {
+                        "can": ["list", "select", "describe"],
+                        "scopes": [
+                          { "object": "dbo.Customers",
+                            "can": ["list", "select"],
+                            "columns": ["-ssn", "-dob"] },
+                          { "object": "ref.*",
+                            "can": ["list", "select", "describe"] },
+                          { "object": "audit.*", "can": [] }
+                        ]
+                      }
                     }
                   }
                 }
-              }
+              },
+              "screenings": { "screen": { "Sales": ["identifiers"], "Sales/ref.*": false } }
             }
             """);
 
         Assert.True(opened.IsOk, opened.Failure?.Message);
         ServerDecl server = Assert.Single(opened.Value.Servers);
         Assert.Equal("env:REPORTING_SQL", server.Connect.Display);
+        Assert.False(server.Open);
+        Assert.True(opened.Value.Levels.GuardrailsOn);
+        Assert.True(opened.Value.Levels.ScreeningsOn);
 
         DatabaseDecl sales = Assert.Single(server.Databases);
         Assert.Equal(Screened.Identifiers, sales.Screen);
@@ -77,23 +82,29 @@ public sealed class ConfigTests : IDisposable
     public void ADatabaseThatSaysNothingGrantsNothing()
     {
         Result<Boundary> opened = Load("""
-            { "servers": { "s": { "connect": "env:X",
-              "databases": { "Sales": {} } } } }
+            { "tools": { "servers": { "s": { "connect": "env:X" } } },
+              "guardrails": { "servers": { "s": { "databases": { "Sales": {} } } } } }
             """);
 
         Assert.True(opened.IsOk, opened.Failure?.Message);
         Assert.Equal(Verb.None, opened.Value.Servers[0].Databases[0].Can);
     }
 
+    const string Tools = """ "tools": { "servers": { "s": { "connect": "env:X" } } } """;
+
     [Theory]
-    [InlineData("""{ "servers": { "s": { "connect": "env:X", "databases": { "d": { "can": ["selct"] } } } } }""", "not a verb")]
-    [InlineData("""{ "servers": { "s": { "connect": "env:X", "databases": { "d": { "screen": ["lgal"] } } } } }""", "not a screening category")]
-    [InlineData("""{ "servers": { "s": { "connect": "env:X", "databases": { "d": { "screen": ["identifiers", "-legal"] } } } } }""", "mixes included and excluded")]
-    [InlineData("""{ "servers": { "s": { "connect": "env:X", "databases": { "d": { "scopes": [ { "object": "dbo.T", "can": ["list"], "columns": ["a", "-b"] } ] } } } } }""", "mixes included and excluded")]
+    [InlineData("""{ "tools": { "servers": { "s": { "connect": "env:X" } } }, "guardrails": { "servers": { "s": { "databases": { "d": { "can": ["selct"] } } } } } }""", "not a verb")]
+    [InlineData("""{ "tools": { "servers": { "s": { "connect": "env:X" } } }, "guardrails": { "servers": { "s": { "databases": { "d": { } } } } }, "screenings": { "screen": { "d": ["lgal"] } } }""", "not a screening category")]
+    [InlineData("""{ "tools": { "servers": { "s": { "connect": "env:X" } } }, "guardrails": { "servers": { "s": { "databases": { "d": { } } } } }, "screenings": { "screen": { "d": ["identifiers", "-legal"] } } }""", "mixes included and excluded")]
+    [InlineData("""{ "tools": { "servers": { "s": { "connect": "env:X" } } }, "guardrails": { "servers": { "s": { "databases": { "d": { "scopes": [ { "object": "dbo.T", "can": ["list"], "columns": ["a", "-b"] } ] } } } } } }""", "mixes included and excluded")]
     [InlineData("""{ "wrong": {} }""", "not something")]
-    [InlineData("""{ "servers": { "s": { "connect": "env:X", "typo": {} } } }""", "not something")]
-    [InlineData("""{ "servers": { "s": { "connect": "env:X", "databases": { "d": { "scopes": [ { "object": "dbo.T" } ] } } } } }""", "no \"can\"")]
-    [InlineData("""{ "servers": { "s": { "connect": "env:X", "databases": { "d": { "scopes": [ { "can": ["list"] } ] } } } } }""", "no \"object\"")]
+    [InlineData("""{ "tools": { "servers": { "s": { "connect": "env:X", "typo": {} } } } }""", "not something")]
+    [InlineData("""{ "tools": { "servers": { "s": { "connect": "env:X" } } }, "guardrails": { "servers": { "s": { "databases": { "d": { "scopes": [ { "object": "dbo.T" } ] } } } } } }""", "no \"can\"")]
+    [InlineData("""{ "tools": { "servers": { "s": { "connect": "env:X" } } }, "guardrails": { "servers": { "s": { "databases": { "d": { "scopes": [ { "can": ["list"] } ] } } } } } }""", "no \"object\"")]
+    [InlineData("""{ "tools": { "servers": { "s": { "connect": "env:X" } } }, "guardrails": { "servers": { "s": { "databases": { "d": { "screen": true } } } } } }""", "\"screenings\"")]
+    [InlineData("""{ "tools": { "servers": { "s": { "connect": "env:X", "databases": {} } } } }""", "\"guardrails\"")]
+    [InlineData("""{ "tools": { "servers": { "s": { "connect": "env:X" } } }, "guardrails": { "servers": { "other": { "databases": {} } } } }""", "does not declare")]
+    [InlineData("""{ "tools": { "servers": { "s": { "connect": "env:X" } } }, "screenings": { "screen": { "Sales/dbo.T": true } } }""", "guardrails level")]
     public void AnUnknownOrAmbiguousWordRefusesTheLoadNamingTheProblem(
         string json, string expected)
     {
@@ -102,13 +113,29 @@ public sealed class ConfigTests : IDisposable
         Assert.Contains(expected, opened.Failure!.Message);
     }
 
+    /// <summary>R8.6: the flat shape is refused with its own entries under
+    /// the new sections.</summary>
+    [Fact]
+    public void TheFlatShapeIsRefusedWithItsOwnEntriesRewritten()
+    {
+        Result<Boundary> opened = Load("""
+            { "servers": { "s": { "connect": "env:X",
+                "databases": { "Sales": { "can": ["list"], "screen": true } } } },
+              "models": "models" }
+            """);
+
+        Assert.False(opened.IsOk);
+        string message = opened.Failure!.Message;
+        Assert.Contains("\"tools\":{\"servers\":{\"s\":{\"connect\":\"env:X\"}}}", message);
+        Assert.Contains("\"guardrails\":{\"servers\":{\"s\":{\"databases\":{\"Sales\":{\"can\":[\"list\"]}}}}}", message);
+        Assert.Contains("\"screenings\":{\"models\":\"models\",\"screen\":{\"Sales\":true}}", message);
+    }
+
     [Fact]
     public void APasswordLiteralInTheCheckedInFileIsRefusedAtLoad()
     {
         Result<Boundary> opened = Load("""
-            { "servers": { "s": {
-              "connect": "Server=db;User Id=sa;Password=hunter2",
-              "databases": { "d": {} } } } }
+            { "tools": { "servers": { "s": { "connect": "Server=db;User Id=sa;Password=hunter2" } } } }
             """);
 
         Assert.False(opened.IsOk);
@@ -121,11 +148,12 @@ public sealed class ConfigTests : IDisposable
     {
         Result<Boundary> opened = Load(
             """
-            { "servers": { "s": { "databases": { "d": { "can": ["list"] } } } } }
+            { "tools": { "servers": { "s": {} } },
+              "guardrails": { "servers": { "s": { "databases": { "d": { "can": ["list"] } } } } } }
             """,
             """
-            { "servers": { "s": { "connect": "Server=db;User Id=sa;Password=local-is-fine" } },
-              "models": "models" }
+            { "tools": { "servers": { "s": { "connect": "Server=db;User Id=sa;Password=local-is-fine" } } },
+              "screenings": { "models": "models" } }
             """);
 
         Assert.True(opened.IsOk, opened.Failure?.Message);
@@ -134,23 +162,30 @@ public sealed class ConfigTests : IDisposable
 
         // Databases declared only locally are a boundary nobody
         // reviewed, and are refused as such.
-        Result<Boundary> widened = Load(
-            """
-            { "servers": { "s": { "connect": "env:X", "databases": { "d": { "can": ["list"] } } } } }
-            """,
-            """
-            { "servers": { "s": { "databases": { "extra": { "can": ["select"] } } } } }
-            """);
+        foreach (string widening in new[]
+        {
+            """{ "tools": { "servers": { "s": { "databases": { "extra": { "can": ["select"] } } } } } }""",
+            """{ "guardrails": { "servers": { "s": { "databases": { "extra": { "can": ["select"] } } } } } }""",
+            """{ "screenings": { "screen": { "d": false } } }""",
+        })
+        {
+            Result<Boundary> widened = Load(
+                """
+                { "tools": { "servers": { "s": { "connect": "env:X" } } },
+                  "guardrails": { "servers": { "s": { "databases": { "d": { "can": ["list"] } } } } } }
+                """,
+                widening);
 
-        Assert.False(widened.IsOk);
-        Assert.Contains("may supply models and connect only", widened.Failure!.Message);
+            Assert.False(widened.IsOk);
+            Assert.Contains("may supply models and connect only", widened.Failure!.Message);
+        }
     }
 
     [Fact]
     public void AServerWithNoConnectAnywhereIsRefusedPointingAtBothOptions()
     {
         Result<Boundary> opened = Load("""
-            { "servers": { "s": { "databases": { "d": {} } } } }
+            { "tools": { "servers": { "s": {} } } }
             """);
 
         Assert.False(opened.IsOk);
@@ -166,5 +201,63 @@ public sealed class ConfigTests : IDisposable
         Assert.False(resolved.IsOk);
         Assert.Contains("PICKER_TEST_UNSET_VARIABLE", resolved.Failure!.Message);
         Assert.Equal("env:PICKER_TEST_UNSET_VARIABLE", connect.Display);
+    }
+
+    // ---- R8.2: the tools level is a connection and nothing else ----
+
+    /// <summary>A tools-only file leaves guardrails and screenings off and
+    /// every server open.</summary>
+    [Fact]
+    public void AToolsOnlyFileOpensEveryServer()
+    {
+        Result<Boundary> opened = Load($$"""{ {{Tools}} }""");
+
+        Assert.True(opened.IsOk, opened.Failure?.Message);
+        Assert.True(opened.Value.Servers[0].Open);
+        Assert.Empty(opened.Value.Servers[0].Databases);
+        Assert.False(opened.Value.Levels.GuardrailsOn);
+        Assert.False(opened.Value.Levels.ScreeningsOn);
+    }
+
+    /// <summary>Acceptance criterion 10: with a tools-only file, catalogs
+    /// says guardrails and screenings are off, and a SELECT runs through
+    /// the gate against a database the file never named.</summary>
+    [Fact]
+    public async Task AtTheToolsLevelASelectRunsAgainstADatabaseNobodyDeclared()
+    {
+        Result<Boundary> opened = Load($$"""{ {{Tools}} }""");
+        Assert.True(opened.IsOk, opened.Failure?.Message);
+
+        using var bench = new Bench(opened.Value, Fixture.Catalog());
+
+        CatalogsAnswer catalogs = bench.Catalogs();
+        Assert.False(catalogs.Levels.GuardrailsOn);
+        Assert.False(catalogs.Levels.ScreeningsOn);
+        Assert.Equal(["s"], catalogs.Open);
+
+        Result<SelectAnswer> selected = await bench.SelectAsync("SELECT name FROM Customers");
+        Assert.True(selected.IsOk, selected.Failure?.Message);
+        Assert.Contains("[Sales].[dbo].[Customers]", selected.Value.Ran);
+
+        // The gate is unchanged at the tools level.
+        Result<SelectAnswer> system = await bench.SelectAsync("SELECT name FROM sys.objects");
+        Assert.False(system.IsOk);
+        Result<SelectAnswer> write = await bench.SelectAsync("DELETE FROM Customers");
+        Assert.False(write.IsOk);
+    }
+
+    /// <summary>A screen at the tools level names a database, and applies
+    /// when the server lists it.</summary>
+    [Fact]
+    public async Task AToolsLevelScreenAppliesToTheListedDatabase()
+    {
+        Result<Boundary> opened = Load($$"""{ {{Tools}}, "screenings": { "screen": { "Sales": ["identifiers"] } } }""");
+        Assert.True(opened.IsOk, opened.Failure?.Message);
+
+        using var bench = new Bench(opened.Value, Fixture.Catalog());
+        Result<ObjectsAnswer> listed = await bench.ObjectsAsync("Customers");
+
+        Assert.True(listed.IsOk, listed.Failure?.Message);
+        Assert.Equal(Screened.Identifiers, opened.Value.OpenScreens["Sales"]);
     }
 }

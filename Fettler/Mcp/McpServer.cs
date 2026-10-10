@@ -268,19 +268,35 @@ public sealed class McpServer : IDisposable
     /// directory at all, so there is nothing for the habit to be for.</para>
     /// </summary>
     public const string Instructions =
-        "File, search and edit operations over declared trees. "
-        + "There is no working directory: paths resolve against the declared trees, "
+        "File, search and edit operations: find, search, read, write, edit, move, copy and delete, "
+        + "typed reads of documents, and batches that apply whole or not at all. "
+        + "There is no working directory: paths resolve against the trees, "
         + "and changing directory does nothing. "
         + "When more than one tree is open, write a path as name:path. "
-        + "Call roots first. It lists the trees, what each allows, and which tree an "
-        + "unqualified path lands in. "
+        + "Call roots first. It names the levels that are on, lists the trees, what each allows, "
+        + "and which tree an unqualified path lands in. "
         + "roots names the branch of a tree that is a checkout, and the fact is local, not what a remote holds. "
-        + "A tree may be read-only, and a scope inside a tree may allow more or less than the tree. "
         + "read returns a hash; pass it as expect on an edit, and the edit is refused if the file changed. "
-        + $"Tasks come from the \"tasks\" object in {RootsFile.FileName}. "
-        + "Running one needs the tree to grant execute, which is never a default. "
+        + "The scratch, tool-results and memory trees are the client's own folders, which fettle finds itself. "
         + $"{RootsFile.FileName} and {RootsFile.LocalFileName} say what this tool may do. "
         + "The tool does not write them; a person edits them, and an edit applies on the next call.";
+
+    /// <summary>
+    /// The instructions for one launch: the tools first, then one sentence
+    /// each on whether guardrails and screenings are on (R7.8).
+    /// </summary>
+    public static string InstructionsFor(Levels levels) =>
+        Instructions + " "
+        + (levels.GuardrailsOn
+            ? "Guardrails are on for this launch. A tree may be read-only, and a scope inside a tree may "
+              + "allow more or less than the tree. Tasks come from the \"tasks\" object under \"guardrails\", "
+              + "and running one needs the tree to grant execute, which is never a default. "
+            : "Guardrails are off for this launch, so the launch folder is the tree work. run has no "
+              + "tasks to run, because a task is declared under guardrails and needs execute, which is "
+              + "never a default. ")
+        + (levels.ScreeningsOn
+            ? "Screenings are on: a read that would disclose a screened category is refused with exit 13."
+            : "Screenings are off.");
 
     static string Describe(Failure failure) =>
         $"{ExitCodes.NameOf(failure.Outcome)}: {failure.Message}"
@@ -324,7 +340,7 @@ public sealed class McpServer : IDisposable
             w.WriteString("name", "fettler");
             w.WriteString("version", Command.Version);
             w.WriteEndObject();
-            w.WriteString("instructions", Instructions);
+            w.WriteString("instructions", InstructionsFor(bench.Roots.Levels));
             w.WriteEndObject();
         };
     }

@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Fettler's screenings level, off until a configuration file has a screenings section: the disclosure screen, its first tier that needs nothing installed, proving it refuses with exit 13, and the burler models for the other three categories.">
+<title>Screenings | Fettler</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+figure.level{margin:1.4rem 0; background:var(--card); border:1px solid var(--line);
+  border-radius:.6rem; padding:.6rem}
+figure.level img{display:block; width:100%; height:auto}
+figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2rem .1rem}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="inner">
+  <div class="row">
+    <a class="phase" href="index.html"><img class="mark" src="media/brand/shoddy-icon.svg" alt="" width="23" height="23">Shoddy &middot; Fettler</a>
+    <span class="spacer"></span>
+    <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
+  </div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick-screenings.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-quickstart.html">Quick start</a><a href="fettle-install.html">Install</a><a href="fettle-tools.html">Tools</a><a href="fettle-guardrails.html">Guardrails</a><span class="here">Screenings</span><a href="fettle-reference.html">Reference</a></nav></div>
+</div></div>
+<div class="wrap">
+<header class="mast">
+<p class="eyebrow">Shoddy &middot; Fettler</p>
+<h1 id="screenings">Screenings</h1>
+<p class="kicker">The third level. Stop a regulated document leaving a tree by accident. The first tier needs nothing installed and one line of configuration.</p>
+</header>
+
+<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="fettle-guardrails.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Guardrails</span></span></a><a class="next" href="fettle-reference.html"><span class="pnwrap"><span class="ttl">Reference</span><span class="dir">Next &rarr;</span></span></a></nav>
+
+<p><b>This page describes the screenings level, which is off until a configuration file has a <code>screenings</code> section.</b> With it on, Fettler checks what a read or a search is about to send back. If the answer holds regulated data, such as a patient's record number, Fettler refuses the whole answer. Most projects never turn this level on, and you can turn it on with or without <a href="fettle-guardrails.html">guardrails</a>.</p>
+
+<div class="takeaway"><b>Read <a href="#need">do you need this</a> before anything else.</b> The screen refuses whole answers, so in a tree it does not belong in, it refuses a great deal of ordinary work. People get out of that by turning it off, which leaves them worse off than never turning it on. Point it at the tree that holds the records, and at nothing else.</div>
+
+<figure class="level">
+<img src="media/level-screenings.svg" width="640" height="300" loading="lazy" alt="The screenings level. A read from a screened tree passes the tier one patterns, then the models burler runs. One detection refuses the whole answer with exit 13. A clean answer is served.">
+<figcaption><b>The screenings level.</b> A read from a screened tree passes the tier one patterns first, then the models that burler runs. One detection refuses the whole answer with exit&nbsp;13, and a clean answer is served.</figcaption>
+</figure>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code># 1. decide whether you need it at all             &lt;- most trees do not
+# 2. add a "screenings" section to .fettler.json      &lt;- works on the next call
+fettle roots                                        # confirm what is screened
+fettle read one-of-the-records.pdf                  # confirm it refuses</code></pre></div>
+
+<p><b>For most people who want the screen, those two steps are all of it.</b> Names, addresses, conditions and free text need a model, which is a second program and a download you fetch yourself. <a href="#models">The models</a>, in the second half of this page, covers that part. Nothing in the first half depends on it.</p>
+
+<h2 id="need">Do you need this?</h2>
+
+<p><b>Turn it on when a tree holds records about people, and a person outside your team could read the transcript.</b> Fettler reads PDF, Word and Excel files, which are the formats regulated data lives in. What it returns goes into the assistant's context, then into a transcript, a log, and wherever those are sent. The screen sits between the file and that chain.</p>
+
+<table>
+<tr><th>Your tree holds</th><th>Turn it on?</th></tr>
+<tr><td>Patient notes, discharge summaries, lab results</td><td><b>Yes.</b> This is the case the screen was built for.</td></tr>
+<tr><td>Customer records with names, addresses, card or account numbers</td><td><b>Yes</b>, with <code>identifiers</code> at least, which catches the card numbers. The names and addresses need a model. See <a href="#categories">the categories</a>.</td></tr>
+<tr><td>Signed contracts, credit files, student records</td><td><b>Probably.</b> Read <a href="#limits">what it does not do</a> first, because two of those three kinds of record are not covered categories.</td></tr>
+<tr><td>Source code, build scripts, documentation</td><td><b>No.</b> The email-address detector alone will refuse a great deal of it. See the note below.</td></tr>
+<tr><td>Anonymised or made-up data</td><td><b>No.</b> If it sits inside a screened tree, give its folder a screen of <code>false</code>. <a href="#carve">Carving out a folder</a> shows how.</td></tr>
+</table>
+
+<p class="note"><span class="lab">Note</span> <b>Do not screen a source tree to see what happens.</b> One of the patterns matches any email address, and source trees hold many of them, in comments, test files and package details. Every read that touches one will refuse. That is the detector working correctly, in a tree nobody meant to screen.</p>
+
+<h3 id="what">What gets screened</h3>
+
+<p><b>The screen judges the two verbs that hand content back, <code>read</code> and <code>search</code>.</b> No other verb returns file content, so no other verb is screened. <code>find</code> returns paths, <code>roots</code> returns your own configuration, and <code>extract</code> writes files inside the tree rather than sending them out.</p>
+
+<p><b>The screen judges what is being sent, not the whole file.</b> A document may hold a patient's details on page 40. If you read page 2 and it discloses nothing, page 2 is sent. Judging the whole file would lock every useful tree, and people would turn the screen off to get out of that.</p>
+
+<p>A <code>search</code> is judged one file at a time. The screen sees the matched lines plus whatever context you asked for, which is exactly what you would have seen.</p>
+
+<h2 id="tier-one">Turn on the first tier</h2>
+
+<p><b>The first tier needs nothing installed, and it works on the next call.</b> Add a <code>screenings</code> section with a <code>screen</code> entry that names the tree holding the records:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "guardrails": {
+    "trees": {
+      "work":    { "path": "." },
+      "records": { "path": "../records", "can": ["list", "read"] }
+    }
+  },
+  "screenings": {
+    "screen": { "records": ["identifiers", "clinical"] }
+  }
+}</code></pre></div>
+
+<p><b>Each key in <code>screen</code> is a tree name, or a tree name, a slash and a scope.</b> A scope is a folder inside a tree that the <code>guardrails</code> section declares. The name must be a declared tree or scope, or else the file is refused. With guardrails off, the only tree is <code>work</code>, the launch folder, so <code>"screen": { "work": true }</code> is the one key you can write.</p>
+
+<p>There are four ways to write a value, and one mixed form that is refused:</p>
+
+<table>
+<tr><th>You write</th><th>It screens</th></tr>
+<tr><td><code>true</code></td><td>All four categories. Forgetting to name one cannot happen this way.</td></tr>
+<tr><td><code>["identifiers", "clinical"]</code></td><td>Only those two. A list of plain words includes what it names.</td></tr>
+<tr><td><code>["-scientific"]</code></td><td>Everything except <code>scientific</code>. A list of words that start with a minus sign excludes what it names.</td></tr>
+<tr><td><code>false</code></td><td>Nothing. A tree that no key names gets this too.</td></tr>
+<tr><td><code>["identifiers", "-scientific"]</code></td><td><b>Refused when the file is read.</b> It could mean identifiers only, or everything but scientific, and those differ by two whole categories. fettle does not guess which you meant.</td></tr>
+</table>
+
+<p>A misspelt category is refused too. If <code>"lgal"</code> were accepted, it would quietly remove a screen, and you would not find out until data left a tree you believed was covered.</p>
+
+<p class="note"><span class="lab">Note</span> <b>Three words that name a regulation are refused, and the message says what to write instead.</b> <code>phi</code>, <code>pii</code> and <code>sci</code> each promise coverage that arrives only once a model is installed. They are refused rather than translated, because a translation would keep them alive in configurations for good.</p>
+
+<table>
+<tr><th>Refused</th><th>Write instead</th></tr>
+<tr><td><code>phi</code></td><td><code>identifiers</code> for the labelled patterns, and <code>clinical</code> for model screening of clinical text</td></tr>
+<tr><td><code>pii</code></td><td><code>identifiers</code></td></tr>
+<tr><td><code>sci</code></td><td><code>scientific</code></td></tr>
+</table>
+
+<p><b>A <code>screen</code> written inside a tree entry is refused.</b> In the last release a screen sat inside the tree it screened. Now it lives only in the <code>screenings</code> section, so you can see whether a project screens anything by reading one place. The refusal shows where it goes, as <code>{"screenings":{"screen":{"records":true}}}</code>. A file written entirely in the old flat shape is refused too, and the message holds its entries rewritten under the three sections, ready to paste.</p>
+
+<h3 id="categories">The four categories</h3>
+
+<table>
+<tr><th>Word</th><th>Concern</th><th>What does the checking</th></tr>
+<tr><td><code>identifiers</code></td><td>Identifiers with a fixed shape, whoever they belong to</td><td><b>Six patterns that run inside fettle.</b> It is the only category that works with nothing installed, and it never uses a model.</td></tr>
+<tr><td><code>clinical</code></td><td>Clinical text, which United States health privacy law (HIPAA) covers</td><td><b>A model you install, and nothing until you do.</b> Look for a de-identification model from the BioBERT or ClinicalBERT family.</td></tr>
+<tr><td><code>legal</code></td><td>Contract and consumer-report content</td><td><b>A model you install, and nothing until you do.</b> Look for a contract-clause model trained on CUAD, or LegalBERT.</td></tr>
+<tr><td><code>scientific</code></td><td>Research and scientific data</td><td><b>A model you install, and nothing until you do.</b> Look for a SciBERT model trained to find entities.</td></tr>
+</table>
+
+<div class="takeaway"><b>Out of the box, the screen catches identifiers with a fixed shape or a label, and nothing else.</b> That means a social security number, a valid card number, a formatted phone number, an email address, a labelled record number and a labelled date of birth. <b>Names, addresses, conditions and free text are caught only by a model you install.</b> A tree that names <code>clinical</code>, <code>legal</code> or <code>scientific</code> with no models directory is screened in name only, and <code>roots</code> says so.</div>
+
+<h3 id="patterns">What the patterns catch</h3>
+
+<p>These patterns run inside fettle itself, with no model, no second program and no download.</p>
+
+<table>
+<tr><th>Detector</th><th>It matches</th></tr>
+<tr><td><code>ssn</code></td><td>A United States social security number, written with hyphens, in a range that is actually issued.</td></tr>
+<tr><td><code>credit-card</code></td><td>13 to 19 digits, written in groups the way cards are printed, that pass the card number's check digit.</td></tr>
+<tr><td><code>phone</code></td><td>A phone number that starts with a plus sign, or one written in separated groups.</td></tr>
+<tr><td><code>email</code></td><td>An email address, written in the usual form of a name, an at sign and a domain.</td></tr>
+<tr><td><code>medical-record-number</code></td><td>An identifier that comes after its own label, such as <code>MRN</code>, <code>patient id</code> or <code>medical record no.</code></td></tr>
+<tr><td><code>date-of-birth</code></td><td>A date that comes after its own label, such as <code>DOB</code>, <code>date of birth</code> or <code>born on</code>.</td></tr>
+</table>
+
+<p><b>All six belong to one category, <code>identifiers</code>.</b> Each one is an identifier with a shape somebody fixed, or a label announcing it. None of them reads clinical language, so a refusal from any of them reports as <code>identifiers</code>.</p>
+
+<p><b>The patterns are narrow on purpose, and two of them depend on a label.</b> No two hospitals agree on the shape of a record number, so the reliable thing to match is the label in front of it. Matching any number of the right length would refuse every part number in every spreadsheet, and a check that refuses too often is a check somebody turns off. So nine digits with no hyphens do not match as a social security number, because they are an order number far more often.</p>
+
+<h3 id="carve">Carving out a folder that does not need it</h3>
+
+<p><b>A scope's screen replaces the tree's screen, in the same way its <code>can</code> list does.</b> That is what lets one folder take the screen away. Declare the folder as a scope under <code>guardrails</code>, then give it its own key:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "guardrails": {
+    "trees": {
+      "records": {
+        "path": "../records",
+        "can": ["list", "read"],
+        "scopes": {
+          "anonymised": { "can": ["list", "read"] },
+          "exports":    { "can": ["list", "read"] }
+        }
+      }
+    }
+  },
+  "screenings": {
+    "screen": {
+      "records":            true,
+      "records/anonymised": false,
+      "records/exports":    ["identifiers"]
+    }
+  }
+}</code></pre></div>
+
+<ul>
+<li><b>A scope that no key names inherits the tree's screen.</b> Reading silence as "screen nothing here" would open a hole in every screened tree that has scopes.</li>
+<li><b>A screen is not a permission.</b> The seven permissions are named for what happens to a file. A screen is about content leaving the boundary, so it lives in its own section.</li>
+</ul>
+
+<h2 id="setup">Run fettle setup screenings</h2>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>fettle setup screenings &lt;client&gt; [--local] [--dry-run]</code></pre></div>
+
+<p><b><code>setup screenings</code> checks what the screen needs, and writes a starter section if the file has none.</b> It checks that burler is in the same folder as fettle. It checks the models directory, if the file names one. Then, at <code>--local</code>, it writes a starter <code>screenings</code> section that screens the default tree for every category.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle setup screenings claude-code --local
+create, with a "screenings" section: C:\github\app\.fettler.json
+  screening the tree 'work' for every category
+burler is beside fettle at C:\tools\fettle\burler.exe
+no models directory is named, so only identifiers are screened. Name one as "models" under "screenings"</code></pre></div>
+
+<p><b>Edit the starter section before you rely on it.</b> It screens the default tree, which is often a source tree, and a source tree is the case the note above warns about. Change the key to the tree or scope that holds the records. Setup never changes a <code>screenings</code> section that already exists. At <code>--global</code> it writes no project file, and it tells you to run it with <code>--local</code> in each project that wants screenings.</p>
+
+<h2 id="check">Check it, then prove it</h2>
+
+<p><b>Ask for the roots first.</b> On the left is a whole file that screens a records tree and carves out one folder. On the right is what <code>roots</code> says with it in place.</p>
+
+<div class="fixpair">
+<div class="promptbox"><button class="copy">Copy</button><pre><code>// C:\github\app\.fettler.json
+{
+  "guardrails": {
+    "trees": {
+      "work": { "path": "." },
+      "records": {
+        "path": "../records",
+        "can": ["list", "read"],
+        "scopes": {
+          "anonymised": {
+            "can": ["list", "read"]
+          }
+        }
+      }
+    }
+  },
+  "screenings": {
+    "screen": {
+      "records": ["identifiers",
+                  "clinical"],
+      "records/anonymised": false
+    }
+  }
+}</code></pre></div>
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle roots
+levels
+  tools         on, always
+  guardrails    on, from C:\github\app\.fettler.json
+  screenings    on, from C:\github\app\.fettler.json
+
+trees
+work          C:\github\app  (default)
+              can: list read create update rename delete
+              branch: main (local)
+records       C:\github\records
+              can: list read
+              anonymised  can: list read
+
+screens
+records             identifiers clinical
+records/anonymised  nothing
+
+no "models" directory is declared, so the clinical, legal, scientific categories screen nothing. Only identifiers are screened
+
+found by fettle
+scratch       C:\Users\you\AppData\Local\Temp\claude\...\scratchpad
+              ...
+
+declared by C:\github\app\.fettler.json</code></pre></div>
+</div>
+
+<p><b>The screens heading lists every tree and scope that a key names.</b> A scope with no line of its own is inheriting the tree's screen. The heading appears only when something is screened or a models directory is named.</p>
+
+<div class="takeaway"><b>Read the line under the screens before you believe the screens.</b> The tree says it screens <code>clinical</code>, but a model judges <code>clinical</code>, and none is installed yet. So right now it screens nothing, and <code>roots</code> says so. Once you install a model, <code>roots</code> names it instead, as <a href="#name">naming the directory</a> shows.</div>
+
+<p>Now read a file you know holds an identifier:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle read records:ward-round.docx
+refused: this response would disclose regulated data: 2 in identifiers. The matches are
+not quoted, because the refusal would then disclose them. Read a narrower range, or
+take the screen off this scope if the content is not regulated.
+$ echo $LASTEXITCODE
+13</code></pre></div>
+
+<p><b>The refusal gives a category and a count, and never the text itself.</b> A refusal that named what it found would write it into the log and the transcript, which is the harm the screen exists to prevent. Every screening refusal exits with <code>13</code>, the outcome <code>screened</code>.</p>
+
+<p>The two findings are the labelled <code>MRN:</code> line and the labelled <code>DOB:</code> line. That is why the count is two and the category is <code>identifiers</code>. Nothing read the clinical text around them, because no model is installed.</p>
+
+<div class="takeaway"><b>If the first tier is all you need, stop here.</b> It is real protection with no new program, no download and no second process. It is also the whole of what the screen catches until you install a model. <a href="#models">The models</a> is the only way <code>clinical</code>, <code>legal</code> and <code>scientific</code> ever screen anything.</div>
+
+<h2 id="prove">Prove it refuses</h2>
+
+<p><b>A correct configuration and a screen that holds are two different claims, and only the second one matters.</b> Ask the assistant to do each of these, and watch what comes back.</p>
+
+<table>
+<tr><th>Ask the assistant to&hellip;</th><th>What a working screen does</th></tr>
+<tr><td>ask for the roots</td><td>The screenings line says <code>on</code>. The screens heading names your categories, and your carved-out scope shows <code>nothing</code>.</td></tr>
+<tr><td>read a file holding a social security number or a card number</td><td>Refused, exit&nbsp;13, with a count in <code>identifiers</code> and never the number.</td></tr>
+<tr><td>read a file with a date of birth after its own label, such as <code>DOB:</code></td><td>Refused, with a count in <code>identifiers</code>.</td></tr>
+<tr><td>read the same file from the carved-out scope</td><td>Served, because a scope's screen replaces the tree's.</td></tr>
+<tr><td>search the tree for a common word that appears near an identifier</td><td>Refused, because the matched lines and their context are what would have been sent.</td></tr>
+<tr><td>read an image in a screened scope</td><td>Refused, because nothing here reads pictures, and a photographed record is the case this exists for.</td></tr>
+<tr><td>read an ordinary file with no identifiers in it</td><td>The file is served. If this one refuses, the screen is on a tree it does not belong on.</td></tr>
+</table>
+
+<h2 id="trouble">When it refuses and you did not expect it</h2>
+
+<p><b>Every refusal names its own cause in its first few words.</b> They say whether something was found, or whether the screen could not run. Those are two different problems with two different fixes.</p>
+
+<table>
+<tr><th>It says</th><th>Do this</th></tr>
+<tr><td><code>this response would disclose regulated data:</code></td><td><b>The screen worked.</b> Read a narrower range, or take the screen off that scope if the content is not regulated. The count says how many it found, and the category says which kind.</td></tr>
+<tr><td><code>this response could not be screened, so it is not served:</code></td><td><b>The screen broke.</b> One of the rows below follows. Nothing was checked, so nothing is served.</td></tr>
+<tr><td><code>&hellip; burler, the screening sidecar, is not installed</code></td><td>burler is not in the same folder as fettle, and the message says where it looked. Redo <a href="#install">the burler install</a>, or take the screen off that tree.</td></tr>
+<tr><td><code>&hellip; would not start:</code></td><td>The file is there and will not start. Usually it is the wrong platform's archive, or the file has no permission to run. On macOS, check the quarantine mark.</td></tr>
+<tr><td><code>&hellip; refused:</code> and then burler's own words</td><td>burler declined and said why: a category with no folder, a model that would not load, or a manifest with a missing field. <a href="#byhand">Drive it by hand</a> to see the whole message.</td></tr>
+<tr><td><code>&hellip; did not answer within 30 seconds</code></td><td>burler is running and stuck. fettle stops it, so the next read starts a fresh one. A very large payload on a slow machine can cause this.</td></tr>
+<tr><td><code>&hellip; failed:</code> and then <code>it said:</code></td><td>burler started and then stopped, and its last words are quoted. Those words are usually the real answer.</td></tr>
+<tr><td><code>&hellip; answered something that is not JSON</code>, or a similar line</td><td>The two programs did not understand each other. Almost always that means a fettle and a burler from different releases, so unpack matching versions.</td></tr>
+<tr><td><code>this scope is screened, and the screen cannot read an image</code></td><td>This is expected, because nothing here reads pictures. Move the image to a scope with no screen if it holds nothing regulated.</td></tr>
+</table>
+
+<p><a href="fettle-reference.html#refusals">When it refuses</a>, on the reference page, lists every message the screen can produce.</p>
+
+<h3 id="closed">Why every one of these refuses</h3>
+
+<p><b>Sending content because the check broke is the one outcome this must never produce.</b> A burler that will not start, a model that will not load, an answer nobody can read and a check that ran out of time all refuse, and each says which. A fault nobody planned for becomes a refusal too. That looks like an outage, and it is the intended trade, because a screen that quietly stopped screening would be worse.</p>
+
+<h2 id="cost">What it costs</h2>
+
+<table>
+<tr><th>When</th><th>What happens</th></tr>
+<tr><td>Every screened read</td><td>The patterns run inside fettle. Each one has a limit of one second, and in practice they take too little time to measure.</td></tr>
+<tr><td>The first screened read after a quiet spell</td><td>burler starts and loads a model, which takes a few seconds. fettle allows up to 90 seconds for this, because a timeout would refuse an answer that was going to be served.</td></tr>
+<tr><td>Every read after that</td><td>Tens of milliseconds, because burler stays running. After 30 seconds with no answer, something is wrong rather than slow.</td></tr>
+<tr><td>Five minutes with nothing to screen</td><td>burler is stopped and its memory released. A tool open in an editor all day should not hold hundreds of megabytes for one document.</td></tr>
+<tr><td>The same content twice</td><td>Answered from memory. The last 256 verdicts are kept, matched on the content and on the manifests of the models that judged it.</td></tr>
+</table>
+
+<ul>
+<li><b>Only the categories you screen cost anything.</b> Models load one at a time, when a category is first needed. A tree screening only <code>identifiers</code> loads none and never starts burler.</li>
+<li><b>Long documents are split into pieces that overlap.</b> These models read a few hundred words at a time. The overlap stops an entity that sits on a cut being missed by both pieces.</li>
+<li><b>The memory of past verdicts has a fixed size on purpose.</b> One with no limit would keep growing and hold the very text nobody wants held.</li>
+</ul>
+
+<h2 id="limits">What it does not do</h2>
+
+<div class="takeaway"><b>The screen is a safety net, not a boundary.</b> Models miss entities, and patterns miss anything written in a way they do not expect. A number split across two lines gets past every one of them. <b>A clean verdict is evidence that nothing is there, never proof of it.</b> Anyone who believes a screened tree cannot leak has been misled, and that belief is the real hazard.</div>
+
+<p>What it stops is the ordinary accident: a regulated document read into a transcript by an assistant that was only trying to help. It is not built to stop a person who is trying to get the data out.</p>
+
+<table>
+<tr><th>It does not</th><th>Because</th></tr>
+<tr><td>Cover credit reports or student records as such</td><td>Those records are mostly identifiers with a fixed shape, and <code>identifiers</code> catches those. That is all it does. Nothing here makes a project meet the laws that cover those records.</td></tr>
+<tr><td>Offer a sensitivity setting</td><td>Any detection refuses. A setting would get turned down until the check was off.</td></tr>
+<tr><td>Read images</td><td>Nothing here reads pictures, so an image in a screened scope is refused rather than sent unchecked.</td></tr>
+<tr><td>Hide or blank out parts of an answer</td><td>It refuses the whole answer. A document with holes in it would look like a safe copy of the original, and it would not be one.</td></tr>
+<tr><td>Screen what you write into a tree</td><td>That is the credential check, which judges what a write adds. <a href="fettle-reference.html#refusals">When it refuses</a> covers it.</td></tr>
+<tr><td>Stop anything outside Fettler</td><td>A shell command, an allowed built-in reader, or a person with the file open reads it as normal. <a href="fettle-guardrails.html#doctor"><code>fettle doctor</code></a> is what finds those routes.</td></tr>
+</table>
+
+<h2 id="models">The models</h2>
+
+<p class="note"><span class="lab">Note</span> <b>None of this second half is needed for the first tier.</b> <code>identifiers</code> runs inside fettle with nothing installed. This half covers the other three categories, <code>clinical</code>, <code>legal</code> and <code>scientific</code>, and each of them needs a model.</p>
+
+<p><b>A model here is a trained program that reads text and marks the words that name something.</b> It might mark a person, a date or a record number. Three things make the second tier work: burler, the program that runs the models; the model files you fetch; and a <code>models</code> entry that says where those files are.</p>
+
+<h2 id="install">Install burler, the model host</h2>
+
+<p><b>burler is a second program, in its own archive.</b> In a woollen mill, the burler was the worker who picked the faults out of finished cloth before it left the mill. This program does the same job for answers leaving a tree. fettle talks to it over a pipe, and the two share no code.</p>
+
+<p><b>It is separate because of what the models need.</b> Running them needs ONNX Runtime, a library with separate native files for each operating system. fettle is built so that it stays one file you copy onto a machine, and those native files would break that. Folding the models in would also make every download pay for a feature most trees never use.</p>
+
+<div class="takeaway"><b>Unpack burler into the same folder as fettle.</b> That is the only place fettle looks for it, and it never searches <code>PATH</code>. A program that decides what may leave your tree should not be one an environment variable can swap out.</div>
+
+<div class="plat win"><span class="os">Windows &middot; PowerShell</span><div class="body">
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$dir = "$env:LOCALAPPDATA\Programs\fettle"   # wherever fettle.exe already is
+Expand-Archive burler-X.Y.Z-win-x64.zip -DestinationPath $dir -Force
+Get-ChildItem $dir -Recurse | Unblock-File
+Get-ChildItem $dir\burler.exe                # it should be beside fettle.exe</code></pre></div>
+
+</div></div>
+
+<div class="plat mac"><span class="os">macOS and Linux</span><div class="body">
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>tar -xzf burler-X.Y.Z-osx-arm64.tar.gz -C ~/.local/bin
+xattr -d com.apple.quarantine ~/.local/bin/burler   # macOS only
+ls -l ~/.local/bin/burler                           # beside fettle</code></pre></div>
+
+</div></div>
+
+<p>burler is published for the same four platforms as fettle: <code>win-x64</code>, <code>linux-x64</code>, <code>osx-x64</code> and <code>osx-arm64</code>. Take the one that matches the fettle you installed, because the two run as a pair on one machine.</p>
+
+<p><b>Nothing happens yet, because burler with no models does nothing</b>, and fettle does not start it until a models directory is named. Installing it early does no harm, and <code>fettle setup screenings</code> confirms where it is.</p>
+
+<h2 id="choose">Choose the models</h2>
+
+<div class="takeaway"><b>Nothing here ships a model, and nothing here downloads one for you.</b> The models come to a few hundred megabytes, and fettle's own download is a few megabytes. Several of the useful models also carry terms that would forbid this project passing them on. So you fetch them, you read their licence, and you decide.</div>
+
+<h3 id="kind">What kind of model this needs</h3>
+
+<p><b>It needs a model that labels each word of a sentence.</b> It is handed a piece of text and answers which words are a person, a date, an identifier, and so on. burler reads those labels, works out where each entity starts and stops, and reports how many it found.</p>
+
+<p><b>A base model is not one of these, so check before you download.</b> BioBERT and SciBERT are base models, which understand clinical or scientific language but have not been taught to label anything. What you need is a model that somebody has trained further on a labelling task, such as removing patient details from clinical notes. Look for a model card that names a task, not only a subject.</p>
+
+<p>Any model in the BERT family works, as long as it labels words and can be exported to the ONNX format. Nothing here is tied to one model.</p>
+
+<h3 id="where">Where to start looking</h3>
+
+<table>
+<tr><th>Category</th><th>Family</th><th>What to look for</th></tr>
+<tr><td><code>clinical</code></td><td>BioBERT, ClinicalBERT</td><td>A model trained to find patient details. The i2b2 and n2c2 research datasets are the usual training data, and such models label names, dates and record numbers that no pattern here finds.</td></tr>
+<tr><td><code>scientific</code></td><td>SciBERT</td><td>A model trained to find entities in scientific text, rather than the base model.</td></tr>
+<tr><td><code>legal</code></td><td>A general model with an open licence, or LegalBERT</td><td>Contract-clause models trained on CUAD are the readiest. LegalBERT is stronger, and its licence has a condition, which the table below explains.</td></tr>
+</table>
+
+<p><b>There is no row for <code>identifiers</code>, and there cannot be.</b> It is the pattern tier, so it takes no model and no folder. If you want names of people and places caught, that is a model under one of the three categories above.</p>
+
+<h3 id="licences">Read the licence at the source, every time</h3>
+
+<p><b>Read the licence before you adopt a model.</b> Some clinical models carry data-use terms that forbid passing them on, and a models folder you share with a colleague is passing them on. Two rules make the rest simple:</p>
+
+<ul>
+<li><b>A licence must exist at the source.</b> No licence anywhere means no permission. Wide use is not a licence, and neither is a copy somebody uploaded.</li>
+<li><b>A copy with no licence tag is not a model with no licence.</b> Model hosts often lose the tag in copying. Go to the project's own repository, read the licence file there, and record that place as the model's provenance.</li>
+</ul>
+
+<p>These were checked against the model cards and source repositories on 20 August 2026. Check again before you rely on them, because terms change, and this table is a starting point rather than legal advice.</p>
+
+<table>
+<tr><th>Model</th><th>What was found</th><th>What that means for you</th></tr>
+<tr><td>BioBERT</td><td>Apache-2.0, in the licence file of <code>dmis-lab/biobert</code> on GitHub. The copies on model hosts carry no tag.</td><td>Usable. Record the GitHub repository as provenance, not the copy you downloaded.</td></tr>
+<tr><td>SciBERT</td><td>Apache-2.0, on <code>allenai/scibert</code>, with the same untagged copies.</td><td>Usable, with the same provenance rule.</td></tr>
+<tr><td>ClinicalBERT, and the i2b2 models trained to find patient details</td><td>Tagged MIT by the groups that held the agreements for the underlying data.</td><td>Usable on that grant. Record the revision as well as the source, because the grant covers what they published.</td></tr>
+<tr><td>LegalBERT</td><td>CC-BY-SA-4.0, a licence that passes its own terms on to anything built from it.</td><td>Usable as your own add-on. <b>Do not train a new model from it</b>, because its terms would carry into whatever you build.</td></tr>
+<tr><td>Anything with no licence anywhere</td><td>none</td><td><b>Do not adopt it</b>, however good its scores are.</td></tr>
+</table>
+
+<h2 id="prepare">Prepare them</h2>
+
+<p><b>burler runs models in the ONNX format, so you convert each model once.</b> ONNX is a portable way of saving a trained model, so that programs other than the one that trained it can run it. Most published models are not in that format yet.</p>
+
+<h3 id="export">Export to ONNX</h3>
+
+<p>Hugging Face's <code>optimum</code> tool does the conversion in one command. The task name matters, because <code>token-classification</code> is the name for a model that labels each word.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>pip install optimum[onnxruntime]
+optimum-cli export onnx --model ORG/CHECKPOINT --task token-classification out/</code></pre></div>
+
+<p><b>Shrinking the model afterwards is optional, and it pays.</b> This step, called quantising, stores the model's numbers with less precision, typically 8 bits instead of 32. It cuts the file to about a quarter of its size and makes it several times faster, at a small cost in accuracy. <code>optimum</code> can do this too, and the sizes on this page assume you did.</p>
+
+<h3 id="layout">Lay the files out</h3>
+
+<p>Give each category its own folder, named for the category, under one parent folder:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>screening-models/
+  clinical/
+    model.onnx
+    vocab.txt
+    labels.json
+    manifest.json
+  legal/
+    model.onnx
+    vocab.txt
+    labels.json
+    manifest.json</code></pre></div>
+
+<p><b>Only the categories you screen need a folder.</b> A category that no screen names is never looked for, and <code>identifiers</code> never needs a folder.</p>
+
+<table>
+<tr><th>File</th><th>What it is</th></tr>
+<tr><td><code>model.onnx</code></td><td>The exported model.</td></tr>
+<tr><td><code>vocab.txt</code></td><td>The list of word pieces the model was trained on. Take the one from the same model, because a list from another model produces confident nonsense.</td></tr>
+<tr><td><code>labels.json</code></td><td>A JSON array of label names, one per class, in order. The position in the array is the class number. An object that maps numbers to names is refused, because a gap in the numbers means a broken export.</td></tr>
+<tr><td><code>manifest.json</code></td><td>What the model says about itself. It is required, and the next section describes it.</td></tr>
+</table>
+
+<p>A folder missing any of the first three files is refused by name, so you learn which file is absent.</p>
+
+<h3 id="manifest">Write the manifest</h3>
+
+<p>The manifest has four fields, and each one must be a string that is not empty:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "checkpoint": "obi/deid_roberta_i2b2",
+  "revision":   "a1b2c3d",
+  "licence":    "MIT",
+  "provenance": "https://huggingface.co/obi/deid_roberta_i2b2"
+}</code></pre></div>
+
+<ul>
+<li><b>It is required, because an optional manifest is one that nobody writes.</b> Six months later, nobody remembers where a model came from or under what terms. Writing it down when you fetch the model takes a minute.</li>
+<li><b><code>provenance</code> is where you read the licence.</b> That is often not where you downloaded the file, which is why the manifest records it.</li>
+<li><b>Editing any field drops every verdict that model has given.</b> burler remembers recent verdicts, matched on a hash of the whole manifest. When the thing that judged has changed, its old answers should go.</li>
+</ul>
+
+<h2 id="name">Name the directory</h2>
+
+<p><b>Name the models directory as <code>models</code> under <code>screenings</code>, in the personal overlay or the machine file.</b> Where several hundred megabytes of models sit is a fact about one disk, not about the project. So keep it out of the checked-in file.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>// .fettler.local.json - beside .fettler.json, kept out of source control
+{
+  "screenings": {
+    "models": "C:/models/screening"
+  }
+}</code></pre></div>
+
+<ul>
+<li><b>The overlay merges section by section.</b> Its <code>screenings</code> section adds the directory and keeps the screens the project file declares.</li>
+<li><b>The machine file suits a directory every project shares.</b> <a href="fettle-tools.html#machine">The machine file</a> says where it lives. A project's own entry wins over it.</li>
+<li><b>The path is written like every other path in the file.</b> Use forward slashes, and a relative path is read from the folder the file sits in.</li>
+</ul>
+
+<p>With the directory named and a model in it, <code>roots</code> names the model that does the judging:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle roots
+levels
+  tools         on, always
+  guardrails    on, from C:\github\app\.fettler.json
+  screenings    on, from C:\github\app\.fettler.json and C:\github\app\.fettler.local.json
+...
+screens
+records             identifiers clinical
+                    clinical: obi/deid_roberta_i2b2 @ a1b2c3d
+records/anonymised  nothing
+models              C:\models\screening
+...
+declared by C:\github\app\.fettler.json (with C:\github\app\.fettler.local.json)</code></pre></div>
+
+<p><b>Each category line gives the model and its revision, read from the manifest.</b> A category whose folder holds no model says <code>no model installed; reads here are refused</code>, which is the state to catch before a read does. The thing doing the judging is always named, never hidden behind the category word.</p>
+
+<p><code>doctor</code> reports the same facts in its screenings section, one line per category:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>screenings  on, from C:\github\app\.fettler.json and C:\github\app\.fettler.local.json
+  burler: C:\tools\fettle\burler.exe
+  models: C:\models\screening
+  clinical: obi/deid_roberta_i2b2 @ a1b2c3d
+  legal: no model installed
+  scientific: no model installed</code></pre></div>
+
+<div class="takeaway"><b>Naming the directory puts the models to work, and it changes what a failure means.</b> <b>Before</b>, the patterns are the whole screen, and a clean answer is served. <b>After</b>, a screened category with no model refuses every read, because somebody has now said they expect the model to be there.</div>
+
+<p>That is why fettle does not check that the directory exists when it reads the file. A file opened on a machine without the models is not broken, and refusing the whole file would take the tree away rather than the screen. The refusal comes at the read instead, where it can name the category that wanted the model.</p>
+
+<p><b>Then read something.</b> The first screened read starts burler and loads a model, which takes a few seconds. Every read after that takes tens of milliseconds.</p>
+
+<h2 id="byhand">Driving burler by hand</h2>
+
+<p><b>When you doubt the model tier, run burler yourself.</b> It reads one request per line and answers with one line:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ burler --models C:/models/screening
+{"op":"screen","categories":["clinical"],"payload":"the weather was fine"}
+{"ok":true,"findings":[]}</code></pre></div>
+
+<p>Type the request line, press Enter, and read the answer.</p>
+
+<table>
+<tr><th>What comes back</th><th>What it tells you</th></tr>
+<tr><td><code>{"ok":true,"findings":[]}</code></td><td>Everything works. burler loaded the model, ran it, and found nothing in that sentence.</td></tr>
+<tr><td><code>{"ok":true,"findings":[{"category":"clinical","count":1,&hellip;</code></td><td>burler found something. Try a sentence with a name or a date in it to see this.</td></tr>
+<tr><td><code>{"ok":false,"error":"'clinical' is screened and there is no model for it&hellip;"}</code></td><td>The models directory has no <code>clinical</code> folder, and the message names the path it looked at.</td></tr>
+<tr><td><code>{"ok":false,"error":"the model at &hellip; would not load&hellip;"}</code></td><td>The file is there, and it is not a model burler can run. Usually the export went wrong, or the download did not finish.</td></tr>
+<tr><td>Nothing at all, and it exits</td><td>Read the error output. Started with no <code>--models</code>, burler says it needs a directory naming where the models are, and exits with <code>2</code>.</td></tr>
+</table>
+
+<p><b>An empty <code>findings</code> array means burler checked and found nothing. A missing one is a fault.</b> The two are never written the same way, on either side of the pipe.</p>
+
+<h2 id="optional">Optional extras</h2>
+
+<h3 id="several">More than one model in a category</h3>
+
+<p>Give the category a folder of folders instead of one model:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>screening-models/
+  legal/
+    cuad-clauses/       model.onnx, vocab.txt, labels.json, manifest.json
+    legalbert-ner/      model.onnx, vocab.txt, labels.json, manifest.json</code></pre></div>
+
+<p><b>Their findings add together.</b> A detection by any of them refuses, so a second model can only make the screen stricter. That lets you run a model with an open licence alongside a stronger add-on, rather than choosing one.</p>
+
+<p>burler decides which shape a category has by looking for <code>model.onnx</code> directly inside its folder. If the file is there, that is the one model. If not, burler loads every folder inside that holds one.</p>
+
+<h3 id="shared">A shared models directory</h3>
+
+<p><b><code>models</code> may name a network share, and for a team that saves each person the download.</b> Know what you are trusting when you do:</p>
+
+<ul>
+<li><b>Whoever can write that share chooses what judges your answers.</b> A model swapped for one that finds nothing turns the second tier off silently. A model that finds nothing looks the same as a clean answer, so nothing here reports it.</li>
+<li><b>A share that goes away is a refusal, not a fallback.</b> Once the directory is named, an unreachable one refuses every screened read. That is the screen failing closed, and it will look like an outage.</li>
+<li><b>Read the manifests you did not write.</b> They are the only record of what those models are and under what terms.</li>
+</ul>
+
+<h2 id="more">Where the rest of it is written down</h2>
+
+<table>
+<tr><th>You want</th><th>Page</th></tr>
+<tr><td>To declare trees and scopes, which a screen can name</td><td><a href="fettle-guardrails.html#declare">Guardrails</a></td></tr>
+<tr><td>Every exit code, including <code>13</code></td><td><a href="fettle-reference.html#codes">Exit codes</a></td></tr>
+<tr><td>What Fettler defends against, and what it does not</td><td><a href="fettle-reference.html#threat">The reference</a></td></tr>
+</table>
+
+<nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
+  <a href="fettle-guardrails.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Guardrails</span></span></a>
+  <a class="next" href="fettle-reference.html"><span class="pnwrap"><span class="ttl">Reference</span><span class="dir">Next &rarr;</span></span></a>
+</nav>
+<footer>Named for the shoddy mills of the West Riding: Useless Things Made
+Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>
+&copy; 2026 Stephen Vincent Foster</footer>
+</div>
+<script src="copy.js"></script>
+</body>
+</html>

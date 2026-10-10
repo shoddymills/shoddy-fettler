@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Pick's screenings level, off until .picker.json has a screenings section: the disclosure screen over every answer, keyed by database or database and scope, the six patterns, the models burler runs, and exit 13.">
+<title>Screenings | Picker</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* A file beside the answer it produces, and the level drawing. */
+.beside{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:.8rem; align-items:start; margin:1rem 0}
+.beside .promptbox{margin:0}
+.beside pre{overflow-x:auto}
+.beside h4{margin:0 0 .35rem; font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft)}
+@media (max-width:700px){.beside{grid-template-columns:1fr}}
+figure.levelfig{margin:1.4rem 0}
+figure.levelfig img{display:block; width:100%; max-width:640px; height:auto; border-radius:.5rem}
+figure.levelfig figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2rem 0}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="inner">
+  <div class="row">
+    <a class="phase" href="index.html"><img class="mark" src="media/brand/shoddy-icon.svg" alt="" width="23" height="23">Shoddy &middot; Fettler</a>
+    <span class="spacer"></span>
+    <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
+  </div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle-screenings.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><a href="pick.html">Overview</a><a href="pick-quickstart.html">Quick start</a><a href="pick-install.html">Install</a><a href="pick-tools.html">Tools</a><a href="pick-guardrails.html">Guardrails</a><span class="here">Screenings</span><a href="pick-reference.html">Reference</a></nav></div>
+</div></div>
+<div class="wrap">
+<header class="mast">
+<p class="eyebrow">Shoddy &middot; Picker</p>
+<h1 id="screenings">Screenings</h1>
+<p class="kicker">The third level. Stop regulated rows leaving a database by accident. The first tier needs nothing installed, and the burler checks the rest before they leave.</p>
+</header>
+
+<nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a href="pick-guardrails.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Guardrails</span></span></a><a class="next" href="pick-reference.html"><span class="pnwrap"><span class="ttl">Reference</span><span class="dir">Next &rarr;</span></span></a></nav>
+
+<p><b>This page describes the screenings level. It is off until <code>.picker.json</code> has a <code>screenings</code> section.</b> With it on, pick checks every answer for regulated data before the answer leaves. Regulated data means facts about people that a law protects, such as a social security number or a medical record, and one match refuses the whole answer with exit code 13.</p>
+
+<p><b>Most projects never turn this level on.</b> The <a href="pick-guardrails.html">guardrails</a> and the login already decide what can be asked for, and the screen is for the few databases that hold records about people.</p>
+
+<figure class="levelfig">
+<img src="media/pick-level-screenings.svg" width="640" height="300" loading="lazy" alt="The pick screenings level. A screenings section screens the database Sales. The rows of one SELECT pass the tier one patterns, which run inside pick, and then the models that burler runs. A clean answer is returned. One detection by either refuses the whole answer with exit 13. With no models directory named, tier one is the whole screen.">
+<figcaption><b>The screenings level.</b> The rows pass two tiers: the patterns, which run inside pick, and the models, which run in burler, a second program. One detection by either refuses the whole answer with exit 13.</figcaption>
+</figure>
+
+<div class="takeaway"><b>Read <a href="#need">Do you need this?</a> before you turn it on.</b> The screen refuses whole answers, so on a database it does not belong on, it refuses a great deal of ordinary work, starting with every customer table that has an email column. People escape that by turning it off, which leaves you worse off than never turning it on.</div>
+
+<h2 id="need">Do you need this?</h2>
+
+<p><b>Turn it on when a database holds records about people, and someone outside your team could read the transcript.</b> What <code>select</code> returns goes into the assistant's context, and from there into a transcript, a log, and wherever those are sent. The screen sits between the rows and all of that.</p>
+
+<table>
+<tr><th>The database holds</th><th>Turn it on?</th></tr>
+<tr><td>patient records, visit notes, lab results</td><td><b>Yes.</b> This is the case the screen was built for.</td></tr>
+<tr><td>customer records with names, addresses, card or account numbers</td><td><b>Yes</b>, with <code>identifiers</code> at least. That catches card and account numbers. Names and addresses need a model, as <a href="#categories">the categories</a> show.</td></tr>
+<tr><td>free-text columns nobody checks: notes, comments, support tickets</td><td><b>Yes.</b> A free-text column is where an identifier turns up that no scope expected.</td></tr>
+<tr><td>reference data, lookups, order lines with no personal columns</td><td><b>No.</b> If these sit inside a screened database, turn the screen off for their scope. <a href="#carve">Carving out a scope</a> shows how.</td></tr>
+<tr><td>anonymised or made-up data</td><td><b>No.</b> The screen would refuse invented identifiers all day and protect nobody.</td></tr>
+</table>
+
+<p class="note"><span class="lab">Note</span> <b>Do not screen a working database with <code>true</code> just to see what happens.</b> One of the patterns matches any email address, and customer tables are full of them, so every <code>select</code> that returns one will refuse. The detector is working, but on a database nobody meant to screen.</p>
+
+<h3 id="what">What gets screened</h3>
+
+<ul>
+<li><b>Three verbs are screened: <code>select</code>, <code>describe</code> and <code>objects</code>.</b> Each one shows something a database holds, while <code>catalogs</code> and <code>doctor</code> report your own file and are not screened.</li>
+<li><b>The screen checks the answer leaving, never the table.</b> A table may hold clinical notes in row 40,000, and a <code>select</code> that returns none of them is served.</li>
+<li><b>A query is judged under every scope it read.</b> If you join a screened table to an unscreened one, the whole answer is screened.</li>
+</ul>
+
+<h2 id="file">A screenings file, and what it gives you</h2>
+
+<p><b>Add a <code>screenings</code> section with a <code>screen</code> object.</b> Each key names what to screen, and each value says which categories to screen for. Here a database is screened, one scope is taken out, and one scope screens for more.</p>
+
+<div class="beside">
+<div>
+<h4>.picker.json</h4>
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "tools": {
+    "servers": {
+      "main": { "connect": "env:MAIN_SQL" }
+    }
+  },
+  "guardrails": {
+    "servers": {
+      "main": {
+        "databases": {
+          "Sales": {
+            "can": ["list", "select", "describe"],
+            "scopes": [
+              { "object": "ref.*",
+                "can": ["list", "select"] },
+              { "object": "dbo.Notes",
+                "can": ["list", "select"] }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "screenings": {
+    "screen": {
+      "Sales": ["identifiers"],
+      "Sales/ref.*": false,
+      "Sales/dbo.Notes": ["identifiers", "clinical"]
+    }
+  }
+}</code></pre></div>
+</div>
+<div>
+<h4>pick catalogs</h4>
+<pre><code>levels
+  tools       on, always; settings from C:\github\app\.picker.json
+  guardrails  on, from C:\github\app\.picker.json
+  screenings  on, from C:\github\app\.picker.json
+
+main  (connect: env:MAIN_SQL)
+  Sales: list select describe  [screen: identifiers]
+    ref.*: list select  [screen: nothing]
+    dbo.Notes: list select  [screen: identifiers clinical]
+source: C:\github\app\.picker.json</code></pre>
+</div>
+</div>
+
+<ul>
+<li><b>The <code>screenings</code> line says <code>on</code></b>, and names the file that turned it on.</li>
+<li><b>A <code>[screen: &hellip;]</code> marker shows only where a screen is set.</b> A scope with no marker takes its database's screen.</li>
+<li><b><code>[screen: nothing]</code> means the screen is off for that scope.</b> It is shown because that scope said so, rather than taking the database's screen.</li>
+<li><b>No restart is needed.</b> pick reads the file before every call, so the edit applies on the next one.</li>
+</ul>
+
+<h2 id="keys">What a screen key names</h2>
+
+<p><b>A key names a database, or a database and one of its scopes.</b> To name a scope, write the database, a slash, and the scope's <code>object</code> pattern exactly as the scope writes it: <code>"Sales/dbo.Customers"</code> or <code>"Sales/ref.*"</code>.</p>
+
+<table>
+<tr><th>Key</th><th>With guardrails on</th><th>With guardrails off</th></tr>
+<tr><td><code>"Sales"</code></td><td>screens the declared database <code>Sales</code>. It must be declared</td><td>screens <code>Sales</code> if the login can reach it</td></tr>
+<tr><td><code>"Sales/dbo.Customers"</code></td><td>screens that scope. The scope must be declared under <code>Sales</code></td><td><b>refused.</b> Scopes belong to the guardrails level, so a screen names a whole database only</td></tr>
+</table>
+
+<p>Here is a screen at the tools level, which screens one whole database and leaves every other reachable database alone.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "tools": {
+    "servers": { "main": { "connect": "env:MAIN_SQL" } }
+  },
+  "screenings": {
+    "screen": { "Clinic": true }
+  }
+}</code></pre></div>
+
+<ul>
+<li><b>At the tools level, <code>catalogs</code> shows no screen markers.</b> It lists no databases for an open server, so there is nothing to mark, and the <code>screenings</code> line in the levels block is how you confirm the section was read.</li>
+<li><b>A key that names no declared database or scope is refused</b> when guardrails are on. A screen that names nothing would screen nothing while seeming to screen something.</li>
+<li><b>A <code>screen</code> inside a database or a scope is refused.</b> That was the shape of an older version, and the message shows the key to write under <code>screenings</code> instead.</li>
+<li><b>The local file may not hold a <code>screen</code>.</b> It may hold <code>screenings.models</code> only, as <a href="#name">Name the directory</a> shows.</li>
+</ul>
+
+<h2 id="values">What a screen value says</h2>
+
+<p><b>The value says which categories to screen for.</b> There are three ways to write it, and one that is refused.</p>
+
+<table>
+<tr><th>You write</th><th>It screens</th></tr>
+<tr><td><code>true</code></td><td>all four categories. You cannot forget one this way</td></tr>
+<tr><td><code>["identifiers", "clinical"]</code></td><td>only those two. A plain list includes</td></tr>
+<tr><td><code>["-scientific"]</code></td><td>everything except <code>scientific</code>. A list of <code>-</code> words excludes</td></tr>
+<tr><td><code>false</code></td><td>nothing. Use it to take the screen off a scope</td></tr>
+<tr><td><code>["identifiers", "-scientific"]</code></td><td><b>refused when the file is read.</b> It could mean "identifiers only" or "all but scientific", and those differ by two categories</td></tr>
+</table>
+
+<p><b>A misspelt category is refused too.</b> Otherwise <code>"lgal"</code> would quietly take a screen away, and you would not find out until data left a database you thought was covered.</p>
+
+<p class="note"><span class="lab">Note</span> <b>Three words that name a law are refused</b>, and the message says what to write instead. <code>phi</code>, <code>pii</code> and <code>sci</code> each promise more than runs until a model is installed.</p>
+
+<table>
+<tr><th>Refused</th><th>Write instead</th></tr>
+<tr><td><code>phi</code></td><td><code>identifiers</code> for the patterns, and <code>clinical</code> for the model that reads clinical text</td></tr>
+<tr><td><code>pii</code></td><td><code>identifiers</code></td></tr>
+<tr><td><code>sci</code></td><td><code>scientific</code></td></tr>
+</table>
+
+<h2 id="categories">The four categories</h2>
+
+<table>
+<tr><th>Word</th><th>What it is about</th><th>What checks it</th><th>Which model</th></tr>
+<tr><td><code>identifiers</code></td><td>structured identifiers, whoever they belong to</td><td><b>six patterns inside <code>pick</code>.</b> The only category that works with nothing installed</td><td>none, ever</td></tr>
+<tr><td><code>clinical</code></td><td>clinical text, the concern of US health privacy law</td><td><b>a model you install, and nothing until you do</b></td><td>a de-identification model from the BioBERT or ClinicalBERT family</td></tr>
+<tr><td><code>legal</code></td><td>contract and consumer-report text</td><td><b>a model you install, and nothing until you do</b></td><td>a contract-clause model trained on CUAD, or LegalBERT</td></tr>
+<tr><td><code>scientific</code></td><td>research and scientific data</td><td><b>a model you install, and nothing until you do</b></td><td>a SciBERT model trained to label entities</td></tr>
+</table>
+
+<div class="takeaway"><b>Out of the box, the screen catches structured identifiers and nothing else.</b> That means a social security number, a valid card number, a formatted phone number, an email address, a labelled record number and a labelled date of birth. <b>Names, addresses, conditions and free text are caught only by a model you install.</b> <code>clinical</code>, <code>legal</code> and <code>scientific</code> screen nothing until then.</div>
+
+<h3 id="patterns">What the patterns catch</h3>
+
+<p>These run inside <code>pick</code> itself, with no model and no second program. They are the same six patterns that fettle runs, and a check in this repository holds the two sets equal.</p>
+
+<table>
+<tr><th>Pattern</th><th>Matches</th><th>Left alone on purpose</th></tr>
+<tr><td><code>ssn</code></td><td>the hyphenated form, leaving out every range that is never issued</td><td>nine bare digits, which are more often an order number than a person</td></tr>
+<tr><td><code>credit-card</code></td><td>13 to 19 digits in card groupings, passing the Luhn check digit</td><td>the same shape failing Luhn, and bare digit runs</td></tr>
+<tr><td><code>phone</code></td><td>a leading <code>+</code>, or a separated grouping</td><td>ten bare digits</td></tr>
+<tr><td><code>email</code></td><td>the ordinary address shape</td><td>nothing</td></tr>
+<tr><td><code>medical-record-number</code></td><td>an identifier under its own label, such as <code>MRN:</code> or <code>patient id</code></td><td>bare strings of that shape, which would refuse every part number</td></tr>
+<tr><td><code>date-of-birth</code></td><td>a date under its own label, such as <code>DOB:</code> or <code>date of birth</code></td><td>bare dates, which a database is full of</td></tr>
+</table>
+
+<p><b>All six report as one category, <code>identifiers</code>.</b> Each is an identifier with a fixed shape or a label in front of it, and none of them reads clinical language. The patterns run over the rows exactly as they would leave, so an <code>MRN:</code> line inside one <code>notes</code> cell is found.</p>
+
+<h2 id="carve">Carving out a scope</h2>
+
+<p><b>A scope's screen replaces its database's screen.</b> That lets you take the screen off reference data inside a screened database, or have one scope screen for more than the rest.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>"screenings": {
+  "screen": {
+    "Sales": true,
+    "Sales/ref.*": false,
+    "Sales/dbo.Notes": ["identifiers", "clinical"]
+  }
+}</code></pre></div>
+
+<ul>
+<li><b>A scope with no key of its own takes its database's screen.</b> If silence meant "screen nothing here", the first database anyone screened would have a hole in it.</li>
+<li><b>The screen is a check under the scopes. It does not replace them.</b> If you can name a column as sensitive, hide it with a <a href="pick-guardrails.html#columns">column rule</a>, and the scope removes it every time before the screen sees it. The screen is for what nobody expected, such as a social security number pasted into a notes column.</li>
+</ul>
+
+<h2 id="prove">Prove it refuses</h2>
+
+<p><b>A correct file and a screen that holds are two different claims.</b> Test the second one with made-up rows, such as invented numbers and fake customers, never real ones. Then select something you know holds an identifier.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ pick select "SELECT name, notes FROM dbo.Intake"
+pick: this response would disclose regulated data: 1 in identifiers. The matches are not
+quoted, because the refusal would then disclose them. Select fewer columns or rows, or take
+the screen off this scope if the content is not regulated.
+$ echo $LASTEXITCODE
+13</code></pre></div>
+
+<p><b>The refusal gives a category and a count, never the value.</b> A refusal that showed the value would write it into the log, which is the harm the screen exists to stop. <b>No rows are trimmed</b>, because an answer with the bad rows quietly removed would look complete and would not be.</p>
+
+<p>Each line below tests one edge:</p>
+
+<table>
+<tr><th>Select rows holding&hellip;</th><th>Exit</th><th>Because</th></tr>
+<tr><td>nothing regulated</td><td><b>0</b></td><td>the screen is on and the answer is clean. Test this too: a screen that refuses everything looks like a working one</td></tr>
+<tr><td>a made-up SSN, <code>123-45-6789</code></td><td><b>13</b></td><td><code>1 in identifiers</code>, and the number appears nowhere in the refusal</td></tr>
+<tr><td>the same SSN, from a scope whose screen is <code>false</code></td><td><b>0</b></td><td>the scope's screen replaced the database's</td></tr>
+<tr><td>the same SSN, in a column the scope hides</td><td><b>0</b></td><td>the column rule removed it before the screen saw it</td></tr>
+<tr><td>a screened table joined to an unscreened one</td><td><b>13</b></td><td>any screened scope the query read screens the whole answer</td></tr>
+<tr><td>anything, when a model category is screened and its model is missing</td><td><b>13</b></td><td>it fails closed. The refusal names what could not run, as <a href="#closed">below</a></td></tr>
+<tr><td>clinical free text, with the clinical model installed</td><td><b>13</b></td><td><code>N in clinical</code>. No pattern matches prose, so only the model can have refused it</td></tr>
+</table>
+
+<h2 id="trouble">When it refuses and you did not expect it</h2>
+
+<p><b>Every refusal names its own cause.</b> The first few words say whether something was found or whether the screen could not run, and those are different problems.</p>
+
+<table>
+<tr><th>It says</th><th>Do this</th></tr>
+<tr><td><code>this response would disclose regulated data:</code></td>
+<td><b>The screen is working.</b> Select fewer columns or rows, or, if the content is not regulated, take the screen off that scope.</td></tr>
+<tr><td><code>this response could not be screened, so it is not being served:</code></td>
+<td><b>The second tier broke</b>, and the rest of the message names the part. It may be burler missing from beside <code>pick</code>, a model missing from the directory, or a model that stopped or ran out of time. Run <code>pick doctor</code> first, and then <a href="#byhand">run burler by hand</a>.</td></tr>
+</table>
+
+<h3 id="closed">Why every one of these refuses</h3>
+
+<p><b>Serving an answer because the check broke is the one outcome the screen must never produce.</b> A burler that will not start, a model that will not load, an answer that will not parse, and a model that runs out of time all refuse with exit 13. So does a pattern that runs out of time on a very large answer, because a served answer must always mean the check ran.</p>
+
+<p>This looks like an outage, and that is the intended trade. A screen that quietly stopped screening would be worse, because nobody would know.</p>
+
+<h2 id="cost">What it costs</h2>
+
+<table>
+<tr><th>When</th><th>What happens</th></tr>
+<tr><td>every screened answer</td><td>the patterns run inside <code>pick</code>. Each has a one-second limit, and in practice they are too fast to notice next to a network trip</td></tr>
+<tr><td>the first model-screened answer after a quiet spell</td><td>burler starts and loads a model. <b>Seconds.</b> pick waits up to 90 of them before it gives up</td></tr>
+<tr><td>every answer after that</td><td><b>Tens of milliseconds.</b> burler stays running between answers</td></tr>
+<tr><td>five minutes with nothing to screen</td><td>burler is stopped and its memory released</td></tr>
+<tr><td>a database screening <code>identifiers</code> alone</td><td><b>burler never starts.</b> The patterns were the whole check</td></tr>
+</table>
+
+<h2 id="limits">What it does not do</h2>
+
+<div class="takeaway"><b>The screen is a safety check, not a boundary.</b> Models miss names, and patterns miss anything written in a way they do not expect. An identifier split across two cells defeats every one of them. <b>A clean answer is evidence that nothing was there, never proof.</b> The boundary is the column rule, the grant and the narrow login.</div>
+
+<table>
+<tr><th>It does not</th><th>Because</th></tr>
+<tr><td>offer a confidence setting</td><td>any detection refuses. A setting gets turned down until the check is off</td></tr>
+<tr><td>trim, redact or mask rows</td><td>it refuses the whole answer. An answer with holes in it would look like a safe copy, and would not be one</td></tr>
+<tr><td>judge what stays in the database</td><td>it reads the answer leaving, never the tables</td></tr>
+<tr><td>stop anything outside pick</td><td>SSMS, <code>sqlcmd</code>, a reporting tool or a person with the connection string reads the same rows unscreened. <a href="pick-guardrails.html#login">The narrow login</a> holds for every client</td></tr>
+<tr><td>certify that you meet a law</td><td>the categories name what runs, never a statute. Nothing here is "HIPAA compliance"</td></tr>
+</table>
+
+<h2 id="models">The models: the second tier</h2>
+
+<p class="note"><span class="lab">Note</span> <b>None of this is needed for <code>identifiers</code>.</b> That category runs inside <code>pick</code> with nothing installed. This half covers the other three categories, <code>clinical</code>, <code>legal</code> and <code>scientific</code>, each of which needs a model.</p>
+
+<p><b>A model here is a trained program that labels the words in a piece of text.</b> It is handed the rows, and answers which words are a person, a date, an identifier, and so on. Setting one up takes five steps: install burler, choose the models, prepare them, lay out the files, and name the directory.</p>
+
+<h3 id="install">Install burler, the model host</h3>
+
+<p><b>burler is a second program, in its own download.</b> The name is the mill trade's word for the person who picks the faults out of finished cloth before it leaves the mill, and this program's job is the same. It runs the models, and <code>pick</code> talks to it over a pipe.</p>
+
+<p><b>It is separate because of what the models need.</b> Running them needs ONNX Runtime, a library with native parts for each operating system, while <code>pick</code> stays a single file you copy onto a machine. Putting the models inside it would make every download carry a feature most projects never use.</p>
+
+<div class="takeaway"><b>Unpack it into the same directory as <code>pick</code>, because that is the only place pick looks for it.</b> pick does not search <code>PATH</code>, so an environment variable cannot swap in a different program.</div>
+
+<div class="plat win"><span class="os">Windows &middot; PowerShell</span><div class="body">
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$dir = "$env:LOCALAPPDATA\Programs\pick"      # wherever pick.exe already is
+Expand-Archive burler-X.Y.Z-win-x64.zip -DestinationPath $dir -Force
+Get-ChildItem $dir -Recurse | Unblock-File
+Get-ChildItem $dir\burler.exe                 # it should be beside pick.exe</code></pre></div>
+
+</div></div>
+
+<div class="plat mac"><span class="os">macOS and Linux</span><div class="body">
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>tar -xzf burler-X.Y.Z-osx-arm64.tar.gz -C ~/.local/bin
+xattr -d com.apple.quarantine ~/.local/bin/burler   # macOS only
+ls -l ~/.local/bin/burler                           # beside pick</code></pre></div>
+
+</div></div>
+
+<p>Downloads come for the same four platforms as <code>pick</code>: <code>win-x64</code>, <code>linux-x64</code>, <code>osx-x64</code> and <code>osx-arm64</code>. Take the one that matches your <code>pick</code>, because the two run together and must be built for the same machine.</p>
+
+<p><b>Nothing happens yet.</b> pick does not start burler until a models directory is named in <a href="#name">the last step</a>, so installing it early does no harm.</p>
+
+<p class="note"><span class="lab">Note</span> <b>Already running fettle with models on this machine?</b> Then burler is installed beside it, and the models directory exists. Put a copy of burler beside <code>pick</code> too, because each program looks only beside itself, and skip to <a href="#name">naming the directory</a>. One set of models serves both programs.</p>
+
+<h3 id="choose">Choose the models</h3>
+
+<div class="takeaway"><b>Nothing here ships a model, and nothing downloads one for you.</b> The models come to a few hundred megabytes, against a <code>pick</code> download of a few megabytes. Several useful models also carry terms that would forbid this project from passing them on, so you fetch them, you read their licence, and you decide.</div>
+
+<p><b>You need a model trained to label words, not a base model.</b> BioBERT and SciBERT are base models, which know clinical or scientific language but have not been taught to label anything. What you need is a <b>fine-tune</b>: a base model trained further on a labelling task, such as finding patient details in clinical notes. Look for a model card that names a task, not only a subject, before you download anything.</p>
+
+<p>Any model in the BERT family works, as long as it labels each word (a <b>token classifier</b>) and can be saved as ONNX.</p>
+
+<table>
+<tr><th>Category</th><th>Family</th><th>What to look for</th></tr>
+<tr><td><code>clinical</code></td><td>BioBERT, ClinicalBERT</td><td>a de-identification fine-tune. Models trained on the i2b2 and n2c2 data label patient names, dates and record numbers, <b>none of which any pattern finds</b></td></tr>
+<tr><td><code>scientific</code></td><td>SciBERT</td><td>a fine-tune that labels entities in scientific text, not the base</td></tr>
+<tr><td><code>legal</code></td><td>a general model with an open licence, or LegalBERT</td><td>contract-clause models trained on CUAD are the easiest start. LegalBERT is stronger, and has a licence condition, shown below</td></tr>
+</table>
+
+<p><b>There is no row for <code>identifiers</code>, because it is the pattern tier and takes no model.</b> If you want names of people and places caught, that is a model under one of the three categories above.</p>
+
+<h3 id="licences">Read the licence at the source, every time</h3>
+
+<p><b>Check the licence before you use a model.</b> Some clinical models carry terms that forbid passing them on, and a models directory you share with a colleague is passing them on.</p>
+
+<ul>
+<li><b>A licence must exist at the source.</b> No licence anywhere means no right to use it, and wide use is not a licence.</li>
+<li><b>A copy with no licence tag is not a model with no licence.</b> Model hosts often lose the tag when a model is copied. Go to the project's own repository, read the licence file there, and record that place as the model's source.</li>
+</ul>
+
+<p>These were checked against the model cards and source repositories on 20 August 2026, so check again before you rely on them. Terms change, and this table is a starting point, not legal advice.</p>
+
+<table>
+<tr><th>Model</th><th>What was found</th><th>What that means for you</th></tr>
+<tr><td>BioBERT</td><td>Apache-2.0, in the licence file of <code>dmis-lab/biobert</code> on GitHub. The copies on model hosts carry no tag</td><td>usable. Record the GitHub repository as the source, not the copy you downloaded</td></tr>
+<tr><td>SciBERT</td><td>Apache-2.0, on <code>allenai/scibert</code>. The copies carry no tag either</td><td>usable, with the same rule for the source</td></tr>
+<tr><td>ClinicalBERT, and the i2b2 de-identification fine-tunes</td><td>tagged MIT by the groups that held the data agreements</td><td>usable on that grant. Record the revision as well as the source</td></tr>
+<tr><td>LegalBERT</td><td>CC-BY-SA-4.0, a share-alike licence</td><td>usable as your own add-on. <b>Do not fine-tune from it</b>, because share-alike carries into whatever you build on it</td></tr>
+<tr><td>anything with no licence anywhere</td><td>none</td><td><b>do not use it</b>, however good its scores</td></tr>
+</table>
+
+<h3 id="prepare">Prepare them</h3>
+
+<p><b>burler runs models saved as ONNX</b>, a file format that lets programs other than the one that trained a model run it. Most published models are not in that format yet, so you convert each one once, and Hugging Face's <code>optimum</code> tool does it in one command. The task name <code>token-classification</code> means a model that labels each word.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>pip install optimum[onnxruntime]
+optimum-cli export onnx --model ORG/CHECKPOINT --task token-classification out/</code></pre></div>
+
+<p><b>Quantising afterwards is optional, and worth doing.</b> Quantising stores the model's numbers less precisely, usually in 8 bits instead of 32. The file shrinks to about a quarter and runs several times faster, at a small cost in accuracy. The same tool can do this, and the sizes on this page are for quantised models.</p>
+
+<h3 id="layout">Lay the files out</h3>
+
+<p>Make one directory per category, named for the category, under one parent:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>screening-models/
+  clinical/
+    model.onnx
+    vocab.txt
+    labels.json
+    manifest.json
+  legal/
+    model.onnx
+    vocab.txt
+    labels.json
+    manifest.json</code></pre></div>
+
+<p><b>Only the categories you screen need a directory.</b> A category no screen names is never looked for, and models load one at a time, when first needed.</p>
+
+<table>
+<tr><th>File</th><th>What it is</th></tr>
+<tr><td><code>model.onnx</code></td><td>the converted model</td></tr>
+<tr><td><code>vocab.txt</code></td><td>the list of word pieces the model was trained on. Take it from the same model. A mismatched list gives confident nonsense</td></tr>
+<tr><td><code>labels.json</code></td><td>a JSON array of label names, one per class, <b>in order</b>. The position in the array is the class number. An object that maps numbers to names is refused</td></tr>
+<tr><td><code>manifest.json</code></td><td>what the model says about itself. Required, as shown below</td></tr>
+</table>
+
+<p>A directory missing any of the first three is refused by name, so you learn which file is missing, not just that something failed.</p>
+
+<h3 id="manifest">Write the manifest</h3>
+
+<p>The manifest has four fields, and each one is required and may not be empty.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "checkpoint": "dmis-lab/biobert-base-cased-v1.1",
+  "revision":   "a1b2c3d",
+  "licence":    "Apache-2.0",
+  "provenance": "https://github.com/dmis-lab/biobert"
+}</code></pre></div>
+
+<ul>
+<li><b>It is required because an optional record is one nobody writes.</b> Six months later, nobody remembers where a model came from or on what terms.</li>
+<li><b><code>provenance</code> is where you read the licence.</b> That is often not where you downloaded the file, which is why both are recorded.</li>
+<li><b>Editing any field clears burler's memory of that model's answers.</b> burler keeps recent answers keyed on the whole manifest, and a changed manifest means the model that judged them may have changed too.</li>
+</ul>
+
+<h3 id="name">Name the directory</h3>
+
+<p><b>Put the models directory in the local file, under <code>screenings</code>.</b> Where the models sit is a fact about one machine, not about the project, and the local file stays out of source control.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>// .picker.local.json, beside .picker.json
+{
+  "screenings": { "models": "C:/models/screening" }
+}</code></pre></div>
+
+<p>Write the path with forward slashes, and know that a relative path is read from the folder of the file it is written in. If both files name a directory, the local file wins. As before, no restart is needed.</p>
+
+<p>With the directory named, <code>pick catalogs</code> gains a <code>models:</code> line, and <code>pick doctor</code> checks the models directory and burler. The doctor runs those two checks only when screenings are on.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ pick catalogs
+levels
+  tools       on, always; settings from C:\github\app\.picker.json
+  guardrails  on, from C:\github\app\.picker.json
+  screenings  on, from C:\github\app\.picker.json and C:\github\app\.picker.local.json
+
+main  (connect: env:MAIN_SQL)
+  Sales: list select describe  [screen: identifiers clinical]
+models: C:\models\screening
+source: C:\github\app\.picker.json
+
+$ pick doctor
+pick X.Y.Z
+  ok tools: on, always; settings from C:\github\app\.picker.json
+  ok guardrails: on, from C:\github\app\.picker.json
+  ok screenings: on, from C:\github\app\.picker.json and C:\github\app\.picker.local.json
+  ok configuration: C:\github\app\.picker.json
+  ok server main: connects (1 database(s) declared)
+  ok models: C:\models\screening
+  ok burler: C:\Users\you\AppData\Local\Programs\pick\burler.exe</code></pre></div>
+
+<p>If burler is not beside <code>pick</code>, the doctor marks that line <code>!!</code> and says where it looked. The message adds that only model screening needs it, so a project that screens <code>identifiers</code> alone can ignore that line.</p>
+
+<div class="takeaway"><b>Naming this directory changes what a missing model means.</b> <b>Before</b>, the patterns are the whole screen and a clean answer is served, because nobody has said a model is installed. <b>After</b>, a screened model category with no model <em>refuses</em>, because someone has now said they expect it to be there.</div>
+
+<p>That is why pick does not check the directory when it reads the file. A file opened on a machine without the models is not broken, and refusing the whole file would take away every database instead of only the screen. The refusal comes at the answer instead, where it can name what could not run.</p>
+
+<h3 id="byhand">Running burler by hand</h3>
+
+<p>When the model tier is in doubt, run burler yourself. It reads one request per line and answers each one with one line.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ burler --models C:/models/screening
+{"op":"screen","categories":["clinical"],"payload":"the weather was fine"}
+{"ok":true,"findings":[]}</code></pre></div>
+
+<p>Type the request line, press Enter, and read the answer.</p>
+
+<table>
+<tr><th>What comes back</th><th>What it tells you</th></tr>
+<tr><td><code>{"ok":true,"findings":[]}</code></td><td>everything works. It loaded the model, ran it, and found nothing in that sentence</td></tr>
+<tr><td><code>{"ok":true,"findings":[{"category":"clinical","count":1,&hellip;</code></td><td>it found something. Try a sentence with a name or a date in it to see this</td></tr>
+<tr><td><code>{"ok":false,"error":"'clinical' is screened and there is no model for it&hellip;"}</code></td><td>the models directory has no <code>clinical</code> folder. The message names the path it looked at</td></tr>
+<tr><td><code>{"ok":false,"error":"the model at &hellip; would not load&hellip;"}</code></td><td>the file is there, but it is not a model burler can run. Usually a bad export, or a download that did not finish</td></tr>
+<tr><td>nothing at all, and it exits</td><td>check the error output. With no <code>--models</code>, it says <code>burler needs --models DIRECTORY, naming where the screening models are.</code> and exits with code 2</td></tr>
+</table>
+
+<p><b>An empty <code>findings</code> list means it checked and found nothing, and a missing one is a fault.</b> The two are never written the same way.</p>
+
+<h3 id="multi">More than one model in a category</h3>
+
+<p>Give the category a directory of subdirectories instead of one model:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>screening-models/
+  legal/
+    cuad-clauses/       model.onnx, vocab.txt, labels.json, manifest.json
+    legalbert-ner/      model.onnx, vocab.txt, labels.json, manifest.json</code></pre></div>
+
+<p><b>Their findings add together.</b> A detection by any of them refuses, so a second model can only make the screen stricter. burler looks for <code>model.onnx</code> directly inside the category, and if it is there, that is the one model. If not, it loads every subdirectory that holds one.</p>
+
+<h3 id="shared">A shared models directory</h3>
+
+<p><b>The models directory may be one that other programs or machines use.</b> One set can serve a whole team, or serve fettle and pick side by side, but know what you are trusting when the directory is not yours alone.</p>
+
+<ul>
+<li><b>Whoever can write that directory chooses what judges your answers.</b> A model swapped for one that finds nothing turns the second tier off, and nothing would report it.</li>
+<li><b>A shared directory that goes away is a refusal.</b> Once the directory is named, an unreachable one refuses every model-screened answer, and it will look like an outage.</li>
+<li><b>Read the manifests you did not write.</b> They are the only record of what those models are, and of the terms they came with.</li>
+</ul>
+
+<h2 id="more">Where the rest is written down</h2>
+
+<table>
+<tr><th>You want</th><th>Page</th></tr>
+<tr><td>scopes, column rules and the grant words</td><td><a href="pick-guardrails.html#scopes">Guardrails</a></td></tr>
+<tr><td>every exit code, including 13</td><td><a href="pick-reference.html#codes">The reference</a></td></tr>
+<tr><td>what pick defends against, and what it does not</td><td><a href="pick-reference.html#threat">The reference</a></td></tr>
+</table>
+
+<nav class="pagenav pagenav-bottom" aria-label="Picker, in order">
+  <a href="pick-guardrails.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Guardrails</span></span></a>
+  <a class="next" href="pick-reference.html"><span class="pnwrap"><span class="ttl">Reference</span><span class="dir">Next &rarr;</span></span></a>
+</nav>
+<footer>Named for the shoddy mills of the West Riding: Useless Things Made
+Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>
+&copy; 2026 Stephen Vincent Foster</footer>
+</div>
+<script src="copy.js"></script>
+</body>
+</html>

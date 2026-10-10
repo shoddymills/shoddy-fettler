@@ -278,7 +278,7 @@ if [ "$now" != "$destination" ]; then
     echo ""
     echo "NOT ON PATH: $dir is not what '$program' resolves to."
     echo "             Add it and open a new shell, or register the absolute"
-    echo "             path with: $program setup CLIENT --local --command \"$destination\""
+    echo "             path with: $program setup tools CLIENT --local --command \"$destination\""
 fi
 
 if [ -n "$running" ]; then

@@ -1,7 +1,7 @@
 namespace Fettler.Clients;
 
 /// <summary>Which of the two levels a configuration sits at.</summary>
-public enum Level
+public enum Reach
 {
     /// <summary>Per user, affecting every project on the machine.</summary>
     Global,
@@ -25,7 +25,7 @@ public enum Purpose
 }
 
 /// <summary>One file that may be read, and what it is for.</summary>
-public sealed record Place(string Client, Level Level, Purpose Purpose, string Path);
+public sealed record Place(string Client, Reach Reach, Purpose Purpose, string Path);
 
 /// <summary>
 /// The machine's own directories, taken as arguments rather than read
@@ -94,29 +94,29 @@ public static class Places
         return
         [
             // Claude Code, the CLI. Both paths verified on this machine.
-            new(ClaudeCode, Level.Global, Purpose.Servers, Path.Combine(machine.Home, ".claude.json")),
-            new(ClaudeCode, Level.Global, Purpose.Policy, Path.Combine(claude, "settings.json")),
-            new(ClaudeCode, Level.Global, Purpose.Instructions, Path.Combine(claude, "CLAUDE.md")),
+            new(ClaudeCode, Reach.Global, Purpose.Servers, Path.Combine(machine.Home, ".claude.json")),
+            new(ClaudeCode, Reach.Global, Purpose.Policy, Path.Combine(claude, "settings.json")),
+            new(ClaudeCode, Reach.Global, Purpose.Instructions, Path.Combine(claude, "CLAUDE.md")),
 
-            new(ClaudeCode, Level.Repo, Purpose.Servers, Path.Combine(machine.Tree, ".mcp.json")),
-            new(ClaudeCode, Level.Repo, Purpose.Policy, Path.Combine(machine.Tree, ".claude", "settings.json")),
-            new(ClaudeCode, Level.Repo, Purpose.Policy, Path.Combine(machine.Tree, ".claude", "settings.local.json")),
-            new(ClaudeCode, Level.Repo, Purpose.Instructions, Path.Combine(machine.Tree, "CLAUDE.md")),
+            new(ClaudeCode, Reach.Repo, Purpose.Servers, Path.Combine(machine.Tree, ".mcp.json")),
+            new(ClaudeCode, Reach.Repo, Purpose.Policy, Path.Combine(machine.Tree, ".claude", "settings.json")),
+            new(ClaudeCode, Reach.Repo, Purpose.Policy, Path.Combine(machine.Tree, ".claude", "settings.local.json")),
+            new(ClaudeCode, Reach.Repo, Purpose.Instructions, Path.Combine(machine.Tree, "CLAUDE.md")),
 
             // Claude Desktop has no project scope at all, so its repo
             // level is always n/a rather than absent - a distinction the
             // verdicts exist to make.
-            new(ClaudeDesktop, Level.Global, Purpose.Servers, DesktopConfig(machine)),
+            new(ClaudeDesktop, Reach.Global, Purpose.Servers, DesktopConfig(machine)),
 
             // VS Code with Copilot Chat.
-            new(VsCodeCopilot, Level.Global, Purpose.Servers, Path.Combine(CodeUser(machine), "mcp.json")),
-            new(VsCodeCopilot, Level.Global, Purpose.Policy, Path.Combine(CodeUser(machine), "settings.json")),
-            new(VsCodeCopilot, Level.Repo, Purpose.Servers, Path.Combine(machine.Tree, ".vscode", "mcp.json")),
-            new(VsCodeCopilot, Level.Repo, Purpose.Policy, Path.Combine(machine.Tree, ".vscode", "settings.json")),
+            new(VsCodeCopilot, Reach.Global, Purpose.Servers, Path.Combine(CodeUser(machine), "mcp.json")),
+            new(VsCodeCopilot, Reach.Global, Purpose.Policy, Path.Combine(CodeUser(machine), "settings.json")),
+            new(VsCodeCopilot, Reach.Repo, Purpose.Servers, Path.Combine(machine.Tree, ".vscode", "mcp.json")),
+            new(VsCodeCopilot, Reach.Repo, Purpose.Policy, Path.Combine(machine.Tree, ".vscode", "settings.json")),
 
             // The GitHub Copilot coding agent is configured per
             // repository only.
-            new(GitHubCopilot, Level.Repo, Purpose.Instructions,
+            new(GitHubCopilot, Reach.Repo, Purpose.Instructions,
                 Path.Combine(machine.Tree, ".github", "copilot-instructions.md")),
         ];
     }

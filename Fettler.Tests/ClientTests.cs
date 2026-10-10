@@ -43,18 +43,18 @@ public sealed class ClientTests
         /// <summary>Put a file at one of the places, so a test names the
         /// PURPOSE rather than repeating a path the code already
         /// knows.</summary>
-        public string Put(string client, Level level, Purpose purpose, string content)
+        public string Put(string client, Reach reach, Purpose purpose, string content)
         {
             Place place = Places.All(Machine).First(p =>
-                p.Client == client && p.Level == level && p.Purpose == purpose);
+                p.Client == client && p.Reach == reach && p.Purpose == purpose);
 
             Directory.CreateDirectory(Path.GetDirectoryName(place.Path)!);
             File.WriteAllText(place.Path, content);
             return place.Path;
         }
 
-        public string PathOf(string client, Level level, Purpose purpose) =>
-            Places.All(Machine).First(p => p.Client == client && p.Level == level && p.Purpose == purpose).Path;
+        public string PathOf(string client, Reach reach, Purpose purpose) =>
+            Places.All(Machine).First(p => p.Client == client && p.Reach == reach && p.Purpose == purpose).Path;
 
         public void Dispose()
         {
@@ -63,10 +63,23 @@ public sealed class ClientTests
         }
     }
 
-    static Diagnosis Examine(Fixture box) => Doctor.Examine(box.Machine, null, "test");
+    /// <summary>The levels of a project with guardrails on, which is the
+    /// project most of these checks are about.</summary>
+    static readonly Levels Guarded = new([], ["test"], []);
 
-    static ClientReport Report(Diagnosis d, string client, Level level) =>
-        d.Clients.First(c => c.Client == client && c.Level == level);
+    /// <summary>A boundary on the fixture's tree with guardrails on.</summary>
+    static Core.Roots GuardedRoots(Fixture box, params TaskDecl[] tasks)
+    {
+        Result<Core.Roots> opened = Core.Roots.Open(
+            [new TreeDecl("work", box.Machine.Tree, Permissions.Full)], null, tasks, null, Guarded);
+        Assert.True(opened.IsOk, opened.Failure?.Message);
+        return opened.Value;
+    }
+
+    static Diagnosis Examine(Fixture box) => Doctor.Examine(box.Machine, GuardedRoots(box), "test");
+
+    static ClientReport Report(Diagnosis d, string client, Reach reach) =>
+        d.Clients.First(c => c.Client == client && c.Reach == reach);
 
     // ---- 6.2: all four verdicts, per client ----
 
@@ -83,8 +96,8 @@ public sealed class ClientTests
 
         Diagnosis d = Examine(box);
 
-        Assert.Equal(Verdict.NotApplicable, Report(d, Places.ClaudeDesktop, Level.Repo).Verdict);
-        Assert.Contains("no project level", Report(d, Places.ClaudeDesktop, Level.Repo).Detail);
+        Assert.Equal(Verdict.NotApplicable, Report(d, Places.ClaudeDesktop, Reach.Repo).Verdict);
+        Assert.Contains("no project registration", Report(d, Places.ClaudeDesktop, Reach.Repo).Detail);
         Assert.False(d.AnyBroken);
     }
 
@@ -92,9 +105,9 @@ public sealed class ClientTests
     public void AClientThatIsHereWithoutFettlerRegisteredIsAbsent()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Servers, """{"mcpServers":{"other":{"command":"x"}}}""");
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Servers, """{"mcpServers":{"other":{"command":"x"}}}""");
 
-        Assert.Equal(Verdict.Absent, Report(Examine(box), Places.ClaudeCode, Level.Repo).Verdict);
+        Assert.Equal(Verdict.Absent, Report(Examine(box), Places.ClaudeCode, Reach.Repo).Verdict);
     }
 
     /// <summary>
@@ -107,11 +120,11 @@ public sealed class ClientTests
     public void ARegistrationWhoseCommandCannotBeLaunchedIsBroken()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Servers, """
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Servers, """
             {"mcpServers":{"fettler":{"command":"a-binary-that-is-not-anywhere","args":["serve"]}}}
             """);
 
-        ClientReport report = Report(Examine(box), Places.ClaudeCode, Level.Repo);
+        ClientReport report = Report(Examine(box), Places.ClaudeCode, Reach.Repo);
 
         Assert.Equal(Verdict.Broken, report.Verdict);
         Assert.Contains("has that name", report.Detail);
@@ -123,29 +136,29 @@ public sealed class ClientTests
     {
         using var box = new Fixture();
         string binary = Environment.ProcessPath!;
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Servers,
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Servers,
             "{\"mcpServers\":{\"fettler\":{\"command\":" + JsonSerializer.Serialize(binary) + ",\"args\":[\"serve\"]}}}");
 
-        Assert.Equal(Verdict.Healthy, Report(Examine(box), Places.ClaudeCode, Level.Repo).Verdict);
+        Assert.Equal(Verdict.Healthy, Report(Examine(box), Places.ClaudeCode, Reach.Repo).Verdict);
     }
 
     [Fact]
     public void VsCodeKeepsItsServersUnderADifferentKeyAndIsFoundThere()
     {
         using var box = new Fixture();
-        box.Put(Places.VsCodeCopilot, Level.Repo, Purpose.Servers,
+        box.Put(Places.VsCodeCopilot, Reach.Repo, Purpose.Servers,
             "{\"servers\":{\"fettler\":{\"command\":" + JsonSerializer.Serialize(Environment.ProcessPath!) + "}}}");
 
-        Assert.Equal(Verdict.Healthy, Report(Examine(box), Places.VsCodeCopilot, Level.Repo).Verdict);
+        Assert.Equal(Verdict.Healthy, Report(Examine(box), Places.VsCodeCopilot, Reach.Repo).Verdict);
     }
 
     [Fact]
     public void AConfigurationThatWillNotParseIsBrokenAndNeverSilentlySkipped()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Global, Purpose.Servers, "{ this is not json");
+        box.Put(Places.ClaudeCode, Reach.Global, Purpose.Servers, "{ this is not json");
 
-        ClientReport report = Report(Examine(box), Places.ClaudeCode, Level.Global);
+        ClientReport report = Report(Examine(box), Places.ClaudeCode, Reach.Global);
 
         Assert.Equal(Verdict.Broken, report.Verdict);
         Assert.Contains("is not valid JSON", report.Detail);
@@ -157,7 +170,7 @@ public sealed class ClientTests
     public void AShellCommandThatWritesFilesIsReportedAsAPreApprovedRouteRound()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Global, Purpose.Policy, """
+        box.Put(Places.ClaudeCode, Reach.Global, Purpose.Policy, """
             {"permissions":{"allow":["Bash(sed -i:*)","Bash(cp:*)","PowerShell(Set-Content:*)","Bash(git status)"]}}
             """);
 
@@ -181,7 +194,7 @@ public sealed class ClientTests
     public void PowerShellIsCheckedAsWellAsBash()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Global, Purpose.Policy, """
+        box.Put(Places.ClaudeCode, Reach.Global, Purpose.Policy, """
             {"permissions":{"allow":["PowerShell(Remove-Item:*)"]}}
             """);
 
@@ -197,7 +210,7 @@ public sealed class ClientTests
     public void AnAllowOnTheBuiltInReaderOrEditorsIsSerious()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Global, Purpose.Policy, """
+        box.Put(Places.ClaudeCode, Reach.Global, Purpose.Policy, """
             {"permissions":{"allow":["Read(//c/somewhere/**)","Edit"]}}
             """);
 
@@ -212,7 +225,7 @@ public sealed class ClientTests
     public void NothingDenyingTheBuiltInEditorsIsNotedAtTheRepoLevel()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Policy, """{"permissions":{"allow":[]}}""");
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, """{"permissions":{"allow":[]}}""");
 
         Finding f = Examine(box).Findings.First(x => x.Check == "2.8");
 
@@ -227,7 +240,7 @@ public sealed class ClientTests
     public void AnOpenShellIsReportedEvenWhenEveryReplacedToolIsDenied()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Policy, """
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, """
             {"permissions":{"deny":["Read","Write","Edit","NotebookEdit","Grep","Glob"]}}
             """);
 
@@ -244,7 +257,7 @@ public sealed class ClientTests
     public void DenyingThemAllLeavesNothingToReport()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Policy,
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy,
             "{\"permissions\":{\"deny\":" + JsonSerializer.Serialize(Doctor.Denied) + "}}");
 
         Assert.DoesNotContain(Examine(box).Findings, f => f.Check is "2.7" or "2.8" or "2.18");
@@ -260,7 +273,7 @@ public sealed class ClientTests
     public void AShellRegisteredUnderAnotherNameIsReportedToo()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Policy, """
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, """
             {"permissions":{"deny":["Read","Write","Edit","NotebookEdit","Grep","Glob","Bash","PowerShell"]}}
             """);
 
@@ -278,7 +291,7 @@ public sealed class ClientTests
     public void ToolsCarryingAnotherToolsOutputBackAreReportedToo()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Policy, """
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, """
             {"permissions":{"deny":["Read","Write","Edit","NotebookEdit","Grep","Glob","Bash","PowerShell"]}}
             """);
 
@@ -296,7 +309,7 @@ public sealed class ClientTests
     public void ANarrowedShellAllowBesideTheShellDenyIsNotAConflict()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Policy, """
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, """
             {"permissions":{"allow":["Bash(git status:*)"],"deny":["Read","Write","Edit","NotebookEdit","Grep","Glob","Bash","PowerShell"]}}
             """);
 
@@ -310,7 +323,7 @@ public sealed class ClientTests
     public void ANarrowedAllowOnAReplacedToolIsStillAConflict()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Policy, """
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, """
             {"permissions":{"allow":["Read(//c/x/**)"],"deny":["Read"]}}
             """);
 
@@ -326,7 +339,7 @@ public sealed class ClientTests
     public void ARuleInBothAllowAndDenyIsReportedWithoutGuessingWhichWins()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Global, Purpose.Policy, """
+        box.Put(Places.ClaudeCode, Reach.Global, Purpose.Policy, """
             {"permissions":{"allow":["Read(//c/x/**)"],"deny":["Read"]}}
             """);
 
@@ -346,11 +359,10 @@ public sealed class ClientTests
     {
         using var box = new Fixture();
         string elsewhere = box.Dir("elsewhere");
-        box.Put(Places.ClaudeCode, Level.Global, Purpose.Policy,
+        box.Put(Places.ClaudeCode, Reach.Global, Purpose.Policy,
             $$$"""{"permissions":{"additionalDirectories":[{{{JsonSerializer.Serialize(elsewhere)}}}]}}""");
 
-        Result<Roots> roots = Roots.Open([new TreeDecl("work", box.Machine.Tree, Permissions.Full)]);
-        Diagnosis d = Doctor.Examine(box.Machine, roots.Value, "test");
+        Diagnosis d = Doctor.Examine(box.Machine, GuardedRoots(box), "test");
 
         Assert.Contains(d.Findings, f => f.Check == "2.9" && f.Message.Contains("outside"));
     }
@@ -364,7 +376,7 @@ public sealed class ClientTests
     public void TwoProjectKeysNamingOneDirectoryAreReported()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Global, Purpose.Servers, """
+        box.Put(Places.ClaudeCode, Reach.Global, Purpose.Servers, """
             {"projects":{"c:/github/shoddy":{},"C:/github/shoddy":{}}}
             """);
 
@@ -375,7 +387,7 @@ public sealed class ClientTests
     public void OneProjectKeySpelledOnceIsNotReported()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Global, Purpose.Servers, """
+        box.Put(Places.ClaudeCode, Reach.Global, Purpose.Servers, """
             {"projects":{"c:/github/shoddy":{},"c:/github/other":{}}}
             """);
 
@@ -386,7 +398,7 @@ public sealed class ClientTests
     public void InstructionsThatNeverMentionFettlerAreNoted()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Instructions, "# Working here\n\nBe careful.\n");
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Instructions, "# Working here\n\nBe careful.\n");
 
         Assert.Contains(Examine(box).Findings, f => f.Check == "2.10");
     }
@@ -395,7 +407,7 @@ public sealed class ClientTests
     public void APersonalSettingsFileIsNotedBecauseNobodyElseCanSeeIt()
     {
         using var box = new Fixture();
-        string local = box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Policy)
+        string local = box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Policy)
             .Replace("settings.json", "settings.local.json");
         Directory.CreateDirectory(Path.GetDirectoryName(local)!);
         File.WriteAllText(local, "{}");
@@ -407,7 +419,7 @@ public sealed class ClientTests
     public void AutoApprovingArbitraryToolsIsSerious()
     {
         using var box = new Fixture();
-        box.Put(Places.VsCodeCopilot, Level.Global, Purpose.Policy, """{"chat.tools.autoApprove":true}""");
+        box.Put(Places.VsCodeCopilot, Reach.Global, Purpose.Policy, """{"chat.tools.autoApprove":true}""");
 
         Assert.Contains(Examine(box).Findings, f => f.Check == "2.14" && f.Serious);
     }
@@ -425,7 +437,7 @@ public sealed class ClientTests
     public void AToolTheInventoryDoesNotKnowIsReportedRatherThanPassedOver()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Policy, """
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, """
             {"permissions":{"allow":["Telepathy(read:*)"]}}
             """);
 
@@ -444,7 +456,7 @@ public sealed class ClientTests
     public void RulesOnAnotherServersToolsAreNotReportedAsUnknown()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Policy, """
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, """
             {"permissions":{"deny":["mcp__something__write"]}}
             """);
 
@@ -471,7 +483,7 @@ public sealed class ClientTests
     public void OtherServersRegisteredBesideFettlerAreNamedAsOutsideTheBoundary()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Global, Purpose.Servers, """
+        box.Put(Places.ClaudeCode, Reach.Global, Purpose.Servers, """
             {"mcpServers":{"fettler":{"command":"fettle"},"sparky":{"command":"sparky"}}}
             """);
 
@@ -488,7 +500,7 @@ public sealed class ClientTests
     public void AServerDeclaredOnlyUnderAProjectIsFoundToo()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Global, Purpose.Servers, """
+        box.Put(Places.ClaudeCode, Reach.Global, Purpose.Servers, """
             {"projects":{"c:/x":{"mcpServers":{"elsewhere":{"command":"e"}}}}}
             """);
 
@@ -499,7 +511,7 @@ public sealed class ClientTests
     public void FettlerIsNotReportedAsASiblingOfItself()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Global, Purpose.Servers, """
+        box.Put(Places.ClaudeCode, Reach.Global, Purpose.Servers, """
             {"mcpServers":{"fettler":{"command":"fettle"}}}
             """);
 
@@ -524,7 +536,7 @@ public sealed class ClientTests
         File.WriteAllText(Path.Combine(box.Machine.Home, ".claude", ".credentials.json"),
             $$"""{"token":"{{secret}}"}""");
 
-        box.Put(Places.ClaudeCode, Level.Global, Purpose.Policy, """
+        box.Put(Places.ClaudeCode, Reach.Global, Purpose.Policy, """
             {"permissions":{"allow":["Bash(rm:*)","Read"]}}
             """);
 
@@ -549,8 +561,8 @@ public sealed class ClientTests
     {
         using var box = new Fixture();
 
-        Assert.True(Places.Allows(box.Machine, box.PathOf(Places.ClaudeCode, Level.Global, Purpose.Policy)));
-        Assert.True(Places.Allows(box.Machine, box.PathOf(Places.ClaudeCode, Level.Global, Purpose.Policy)
+        Assert.True(Places.Allows(box.Machine, box.PathOf(Places.ClaudeCode, Reach.Global, Purpose.Policy)));
+        Assert.True(Places.Allows(box.Machine, box.PathOf(Places.ClaudeCode, Reach.Global, Purpose.Policy)
             + Places.BackupSuffix));
 
         foreach (string forbidden in new[]
@@ -568,6 +580,8 @@ public sealed class ClientTests
     static Result<Scaffolding> Setup(Fixture box, Scaffold.Options options) =>
         Scaffold.Apply(box.Machine, options, "test");
 
+    const string G = Levels.GuardrailsName;
+
     /// <summary>
     /// 6.4, and the whole risk of the feature. These files hold other
     /// people's servers. A merge bug here does visible damage to a
@@ -577,7 +591,7 @@ public sealed class ClientTests
     public void MergingKeepsEveryOtherServerExactlyAsItWas()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Servers, """
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Servers, """
             {
               "mcpServers": {
                 "one":   { "command": "one-binary",   "args": ["a", "b"] },
@@ -588,11 +602,11 @@ public sealed class ClientTests
             }
             """);
 
-        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo));
+        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo));
         Assert.True(done.IsOk, done.Failure?.Message);
 
         JsonElement after = JsonDocument.Parse(
-            File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Servers))).RootElement;
+            File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Servers))).RootElement;
 
         JsonElement servers = after.GetProperty("mcpServers");
         Assert.Equal("one-binary", servers.GetProperty("one").GetProperty("command").GetString());
@@ -611,9 +625,9 @@ public sealed class ClientTests
     public void TheFirstWriteLeavesABackupAndSaysWhereItIs()
     {
         using var box = new Fixture();
-        string path = box.Put(Places.ClaudeCode, Level.Repo, Purpose.Servers, """{"mcpServers":{}}""");
+        string path = box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Servers, """{"mcpServers":{}}""");
 
-        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo));
+        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo));
 
         Assert.True(done.IsOk, done.Failure?.Message);
         Assert.Contains(done.Value.Changes, c => c.Backup == path + Places.BackupSuffix);
@@ -628,19 +642,23 @@ public sealed class ClientTests
     {
         using var box = new Fixture();
 
-        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo)).IsOk);
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo)).IsOk);
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Level: G)).IsOk);
 
-        string servers = File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Servers));
-        string instructions = File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Instructions));
-        string policy = File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Policy));
+        string servers = File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Servers));
+        string instructions = File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Instructions));
+        string policy = File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Policy));
 
-        Result<Scaffolding> again = Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo));
+        Result<Scaffolding> tools = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo));
+        Result<Scaffolding> again = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Level: G));
 
+        Assert.True(tools.IsOk, tools.Failure?.Message);
         Assert.True(again.IsOk, again.Failure?.Message);
+        Assert.Empty(tools.Value.Changes);
         Assert.Empty(again.Value.Changes);
-        Assert.Equal(servers, File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Servers)));
-        Assert.Equal(instructions, File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Instructions)));
-        Assert.Equal(policy, File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Policy)));
+        Assert.Equal(servers, File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Servers)));
+        Assert.Equal(instructions, File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Instructions)));
+        Assert.Equal(policy, File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Policy)));
     }
 
     /// <summary>An unmarked instruction block always ends up appended
@@ -649,13 +667,13 @@ public sealed class ClientTests
     public void TheInstructionBlockUpdatesInPlaceAndKeepsWhatWasAlreadyWritten()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Instructions,
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Instructions,
             "# House rules\n\nSomething the user wrote themselves.\n");
 
-        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo)).IsOk);
-        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo)).IsOk);
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Level: G)).IsOk);
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Level: G)).IsOk);
 
-        string text = File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Instructions));
+        string text = File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Instructions));
 
         Assert.Contains("Something the user wrote themselves.", text);
         Assert.Equal(1, text.Split(Scaffold.BlockOpen).Length - 1);
@@ -669,10 +687,10 @@ public sealed class ClientTests
     {
         using var box = new Fixture();
 
-        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo)).IsOk);
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Level: G)).IsOk);
 
         JsonElement deny = JsonDocument.Parse(
-            File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Policy)))
+            File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Policy)))
             .RootElement.GetProperty("permissions").GetProperty("deny");
 
         string[] denied = [.. deny.EnumerateArray().Select(d => d.GetString()!)];
@@ -686,15 +704,15 @@ public sealed class ClientTests
     {
         using var box = new Fixture();
 
-        Result<Scaffolding> offered = Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Global));
+        Result<Scaffolding> offered = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Global, Level: G));
         Assert.True(offered.IsOk, offered.Failure?.Message);
         Assert.Contains(offered.Value.Notes, n => n.Contains("not written"));
-        Assert.False(File.Exists(box.PathOf(Places.ClaudeCode, Level.Global, Purpose.Policy)));
+        Assert.False(File.Exists(box.PathOf(Places.ClaudeCode, Reach.Global, Purpose.Policy)));
 
         Result<Scaffolding> asked = Setup(box,
-            new Scaffold.Options(Places.ClaudeCode, Level.Global, Deny: true));
+            new Scaffold.Options(Places.ClaudeCode, Reach.Global, Deny: true, Level: G));
         Assert.True(asked.IsOk, asked.Failure?.Message);
-        Assert.Contains("Read", File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Global, Purpose.Policy)));
+        Assert.Contains("Read", File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Global, Purpose.Policy)));
     }
 
     /// <summary>An existing allow entry is the user's own configuration.
@@ -704,16 +722,16 @@ public sealed class ClientTests
     public void ExistingAllowEntriesAreNamedAndNeverDeleted()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Policy, """
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, """
             {"permissions":{"allow":["Read(//c/x/**)","Bash(git status)"]}}
             """);
 
-        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo));
+        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Level: G));
 
         Assert.True(done.IsOk, done.Failure?.Message);
         Assert.Contains(done.Value.Notes, n => n.Contains("remove them yourself") && n.Contains("Read(//c/x/**)"));
         Assert.Contains("Read(//c/x/**)",
-            File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Policy)));
+            File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Policy)));
     }
 
     [Fact]
@@ -721,12 +739,12 @@ public sealed class ClientTests
     {
         using var box = new Fixture();
 
-        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo, DryRun: true));
+        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, DryRun: true, Level: G));
 
         Assert.True(done.IsOk, done.Failure?.Message);
         Assert.NotEmpty(done.Value.Changes);
         Assert.All(done.Value.Changes, c => Assert.False(c.Applied));
-        Assert.False(File.Exists(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Servers)));
+        Assert.False(File.Exists(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Servers)));
         Assert.False(File.Exists(Path.Combine(box.Machine.Tree, RootsFile.FileName)));
     }
 
@@ -736,20 +754,20 @@ public sealed class ClientTests
     public void ARegistrationThatSaysSomethingElseNeedsForceToBeReplaced()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Servers, """
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Servers, """
             {"mcpServers":{"fettler":{"command":"somebody-elses-choice","args":["--special"]}}}
             """);
 
-        Result<Scaffolding> refused = Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo));
+        Result<Scaffolding> refused = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo));
         Assert.False(refused.IsOk);
         Assert.Equal(Outcome.TargetExists, refused.Failure!.Outcome);
         Assert.Contains("somebody-elses-choice",
-            File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Servers)));
+            File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Servers)));
 
-        Result<Scaffolding> forced = Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo, Force: true));
+        Result<Scaffolding> forced = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Force: true));
         Assert.True(forced.IsOk, forced.Failure?.Message);
         Assert.DoesNotContain("somebody-elses-choice",
-            File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Servers)));
+            File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Servers)));
     }
 
     /// <summary>6.6: a file that will not parse is one setup must not
@@ -758,13 +776,13 @@ public sealed class ClientTests
     public void SetupRefusesToOverwriteAFileItCannotRead()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Servers, "{ half a file");
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Servers, "{ half a file");
 
-        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo));
+        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo));
 
         Assert.False(done.IsOk);
         Assert.Equal(Outcome.Invalid, done.Failure!.Outcome);
-        Assert.Equal("{ half a file", File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Servers)));
+        Assert.Equal("{ half a file", File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Servers)));
     }
 
     [Fact]
@@ -772,7 +790,7 @@ public sealed class ClientTests
     {
         using var box = new Fixture();
 
-        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo)).IsOk);
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Level: G)).IsOk);
 
         Result<RootsFile.Found> read = RootsFile.Read(Path.Combine(box.Machine.Tree, RootsFile.FileName));
         Assert.True(read.IsOk, read.Failure?.Message);
@@ -790,10 +808,10 @@ public sealed class ClientTests
     {
         using var box = new Fixture();
         string path = Path.Combine(box.Machine.Tree, RootsFile.FileName);
-        const string mine = """{"trees":{"mine":{"path":".","can":["list","read"]}}}""";
+        const string mine = """{"guardrails":{"trees":{"mine":{"path":".","can":["list","read"]}}}}""";
         File.WriteAllText(path, mine);
 
-        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo)).IsOk);
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Level: G)).IsOk);
 
         Assert.Equal(mine, File.ReadAllText(path));
     }
@@ -809,13 +827,13 @@ public sealed class ClientTests
     public void TheHookIsAppendedToWhateverIsAlreadyThere()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Policy, """
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, """
             {"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"somebody-elses-script.ps1"}]}]}}
             """);
 
-        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo, Hooks: true)).IsOk);
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Hooks: true, Level: G)).IsOk);
 
-        string text = File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Policy));
+        string text = File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Policy));
         JsonElement sessions = JsonDocument.Parse(text).RootElement
             .GetProperty("hooks").GetProperty("SessionStart");
 
@@ -829,11 +847,11 @@ public sealed class ClientTests
     {
         using var box = new Fixture();
 
-        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo, Hooks: true)).IsOk);
-        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo, Hooks: true)).IsOk);
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Hooks: true, Level: G)).IsOk);
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Hooks: true, Level: G)).IsOk);
 
         JsonElement sessions = JsonDocument.Parse(
-            File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Policy)))
+            File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Policy)))
             .RootElement.GetProperty("hooks").GetProperty("SessionStart");
 
         Assert.Equal(1, sessions.GetArrayLength());
@@ -843,10 +861,10 @@ public sealed class ClientTests
     public void TheHookIsBoundedByATimeout()
     {
         using var box = new Fixture();
-        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo, Hooks: true)).IsOk);
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Hooks: true, Level: G)).IsOk);
 
         Assert.Contains("\"timeout\"",
-            File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Policy)));
+            File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Policy)));
     }
 
     /// <summary>
@@ -859,17 +877,17 @@ public sealed class ClientTests
     public void ADryRunDescribesAReplacementInsteadOfRefusingIt()
     {
         using var box = new Fixture();
-        box.Put(Places.ClaudeCode, Level.Repo, Purpose.Servers, """
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Servers, """
             {"mcpServers":{"fettler":{"command":"something-else"}}}
             """);
 
-        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Level.Repo, DryRun: true));
+        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, DryRun: true));
 
         Assert.True(done.IsOk, done.Failure?.Message);
         Assert.Contains(done.Value.Changes, c => c.What.Contains("replace") && c.What.Contains("--force"));
         Assert.All(done.Value.Changes, c => Assert.False(c.Applied));
         Assert.Contains("something-else",
-            File.ReadAllText(box.PathOf(Places.ClaudeCode, Level.Repo, Purpose.Servers)));
+            File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Servers)));
     }
 
     [Fact]
@@ -877,7 +895,7 @@ public sealed class ClientTests
     {
         using var box = new Fixture();
 
-        Result<Scaffolding> done = Setup(box, new Scaffold.Options("emacs", Level.Repo));
+        Result<Scaffolding> done = Setup(box, new Scaffold.Options("emacs", Reach.Repo));
 
         Assert.False(done.IsOk);
         Assert.Contains("claude-code", done.Failure!.Message);
@@ -888,13 +906,7 @@ public sealed class ClientTests
     /// <summary>A boundary with tasks on it, the way a configuration
     /// produces one: the line as declared, and the command already
     /// filled.</summary>
-    static Core.Roots WithTasks(Fixture box, params TaskDecl[] tasks)
-    {
-        Result<Core.Roots> opened = Core.Roots.Open(
-            [new TreeDecl("work", box.Dir("tree"), Permissions.Full)], null, tasks);
-        Assert.True(opened.IsOk, opened.Failure?.Message);
-        return opened.Value;
-    }
+    static Core.Roots WithTasks(Fixture box, params TaskDecl[] tasks) => GuardedRoots(box, tasks);
 
     /// <summary>
     /// Filling a value into a WORD makes it one argument whatever is in
@@ -946,4 +958,246 @@ public sealed class ClientTests
         Assert.DoesNotContain(Doctor.Examine(box.Machine, roots, "test").Findings,
             f => f.Check == "2.16");
     }
+
+    // ---- R7.4: setup is per level ----
+
+    /// <summary>Acceptance criterion 7: setup tools proposes one change,
+    /// the registration, and writes no project file.</summary>
+    [Fact]
+    public void SetupToolsProposesTheRegistrationAndNothingElse()
+    {
+        using var box = new Fixture();
+
+        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, DryRun: true));
+
+        Assert.True(done.IsOk, done.Failure?.Message);
+        Change only = Assert.Single(done.Value.Changes);
+        Assert.Equal(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Servers), only.Path);
+        Assert.False(File.Exists(Path.Combine(box.Machine.Tree, RootsFile.FileName)));
+    }
+
+    /// <summary>Acceptance criterion 7: setup guardrails proposes the deny
+    /// list, the instruction block and a starter section, and never the
+    /// registration.</summary>
+    [Fact]
+    public void SetupGuardrailsProposesTheDenyListTheBlockAndAStarterSection()
+    {
+        using var box = new Fixture();
+
+        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, DryRun: true, Level: G));
+
+        Assert.True(done.IsOk, done.Failure?.Message);
+        string[] paths = [.. done.Value.Changes.Select(c => c.Path)];
+        Assert.Contains(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Policy), paths);
+        Assert.Contains(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Instructions), paths);
+        Assert.Contains(Path.Combine(box.Machine.Tree, RootsFile.FileName), paths);
+        Assert.DoesNotContain(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Servers), paths);
+    }
+
+    /// <summary>R9.6: the guardrails paragraph is written only by setup
+    /// guardrails, and the tools paragraph is in every block.</summary>
+    [Fact]
+    public void TheInstructionBlockHoldsTheToolsAndTheGuardrailsParagraphs()
+    {
+        using var box = new Fixture();
+
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Level: G)).IsOk);
+
+        string text = File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Instructions));
+        Assert.Contains("Call `roots` first", text);
+        Assert.Contains("Guardrails are on", text);
+    }
+
+    /// <summary>R7.4: a project file with no guardrails section gets one,
+    /// and keeps what it already said.</summary>
+    [Fact]
+    public void SetupGuardrailsAddsASectionToAFileThatHasNone()
+    {
+        using var box = new Fixture();
+        string path = Path.Combine(box.Machine.Tree, RootsFile.FileName);
+        File.WriteAllText(path, """{"tools":{"generated":["out"]}}""");
+
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Level: G)).IsOk);
+
+        Result<RootsFile.Found> read = RootsFile.Read(path);
+        Assert.True(read.IsOk, read.Failure?.Message);
+        Assert.True(read.Value.Levels.GuardrailsOn);
+        Assert.Equal(["out"], read.Value.Generated);
+        Assert.Equal("work", read.Value.Trees[0].Name);
+    }
+
+    /// <summary>R7.4: setup screenings writes a starter screenings section
+    /// and says whether burler and the models are there.</summary>
+    [Fact]
+    public void SetupScreeningsWritesAStarterSectionAndChecksTheModels()
+    {
+        using var box = new Fixture();
+
+        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo,
+            Level: Levels.ScreeningsName, Models: Path.Combine(box.Machine.Tree, "no-such-models")));
+
+        Assert.True(done.IsOk, done.Failure?.Message);
+        Assert.Contains(done.Value.Notes, n => n.Contains("burler"));
+        Assert.Contains(done.Value.Notes, n => n.Contains("does not exist"));
+
+        Result<RootsFile.Found> read = RootsFile.Read(Path.Combine(box.Machine.Tree, RootsFile.FileName));
+        Assert.True(read.IsOk, read.Failure?.Message);
+        Assert.True(read.Value.Levels.ScreeningsOn);
+        Assert.Equal(Screens.Everything, read.Value.Trees[0].Screen);
+    }
+
+    // ---- R5: guardrails findings only for a project with guardrails on ----
+
+    /// <summary>R11.5: a tools-level project with no deny list reports no
+    /// guardrails finding, and the same fixture with guardrails on reports
+    /// 2.8.</summary>
+    [Fact]
+    public void AToolsLevelProjectReportsNoGuardrailsFinding()
+    {
+        using var box = new Fixture();
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, """{"permissions":{}}""");
+
+        Result<Core.Roots> tools = Core.Roots.Open([new TreeDecl("work", box.Machine.Tree, Permissions.Full)]);
+        Assert.True(tools.IsOk, tools.Failure?.Message);
+
+        Diagnosis plain = Doctor.Examine(box.Machine, tools.Value, "test");
+        Assert.DoesNotContain(plain.Findings, f => f.Level == Levels.GuardrailsName);
+
+        Diagnosis guarded = Examine(box);
+        Assert.Contains(guarded.Findings, f => f.Check == "2.8");
+    }
+
+    /// <summary>R11.5a, first case: denies only in settings.json bind
+    /// whatever settings.local.json says, so there is no 2.8.</summary>
+    [Fact]
+    public void DeniesInSettingsJsonClearTwoEightWhateverTheLocalFileSays()
+    {
+        using var box = new Fixture();
+        string denies = JsonSerializer.Serialize(Doctor.Denied);
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, $$$"""{"permissions":{"deny":{{{denies}}}}}""");
+        File.WriteAllText(Path.Combine(box.Machine.Tree, ".claude", "settings.local.json"), """{"permissions":{}}""");
+
+        Assert.DoesNotContain(Examine(box).Findings, f => f.Check == "2.8");
+    }
+
+    /// <summary>R11.5a, second case: denies in neither file is one 2.8,
+    /// naming the file setup guardrails writes.</summary>
+    [Fact]
+    public void DeniesInNeitherFileIsOneTwoEightNamingSettingsJson()
+    {
+        using var box = new Fixture();
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, """{"permissions":{}}""");
+        File.WriteAllText(Path.Combine(box.Machine.Tree, ".claude", "settings.local.json"), """{"permissions":{}}""");
+
+        Finding only = Assert.Single(Examine(box).Findings, f => f.Check == "2.8");
+        Assert.Equal(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Policy), only.Where);
+        Assert.Contains("fettle setup guardrails claude-code --local", only.Message);
+    }
+
+    /// <summary>R11.5a, third case, and acceptance criterion 14: following
+    /// the remedy clears the finding.</summary>
+    [Fact]
+    public void SetupGuardrailsThenDoctorReportsNoTwoEight()
+    {
+        using var box = new Fixture();
+        Directory.CreateDirectory(Path.Combine(box.Machine.Tree, ".claude"));
+        File.WriteAllText(Path.Combine(box.Machine.Tree, ".claude", "settings.local.json"), """{"permissions":{}}""");
+
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Level: G)).IsOk);
+
+        Assert.DoesNotContain(Examine(box).Findings, f => f.Check == "2.8");
+    }
+
+    /// <summary>R10.2: 2.15 is retired and never reported.</summary>
+    [Fact]
+    public void TheRetiredScratchFindingIsNeverReported()
+    {
+        using var box = new Fixture();
+        Assert.DoesNotContain(Examine(box).Findings, f => f.Check == "2.15");
+    }
+
+    // ---- R12: companion servers ----
+
+    static void RegisterCompanion(Fixture box, string root) =>
+        box.Put(Places.ClaudeCode, Reach.Global, Purpose.Servers,
+            """{"mcpServers":{"sparky":{"command":"sparky","args":["--root",""" + JsonSerializer.Serialize(root) + "]}}}");
+
+    /// <summary>R11.9, second test: a companion's root is opened as a tree
+    /// named for the server, read and write, and the trees say which
+    /// registration it came from.</summary>
+    [Fact]
+    public void ACompanionsRootIsATreeNamedForTheServer()
+    {
+        using var box = new Fixture();
+        string root = box.Dir("sparky-files");
+        RegisterCompanion(box, root);
+
+        HarnessTree tree = Assert.Single(Companions.Trees(Companions.Find(box.Machine)));
+
+        Assert.Equal("sparky", tree.Name);
+        Assert.Equal(Permissions.Full, tree.Can);
+        Assert.Contains(box.PathOf(Places.ClaudeCode, Reach.Global, Purpose.Servers), tree.How);
+    }
+
+    /// <summary>R11.9, first test: a root inside a declared tree, and one
+    /// inside a screened scope, are serious; one outside every tree is a
+    /// fact and no finding.</summary>
+    [Fact]
+    public void ACompanionRootInsideAGuardedTreeIsSerious()
+    {
+        using var box = new Fixture();
+        RegisterCompanion(box, box.Dir("tree/inside"));
+
+        Finding f = Assert.Single(Examine(box).Findings, x => x.Check == Doctor.CompanionCheck);
+        Assert.True(f.Serious);
+        Assert.Contains("'work'", f.Message);
+        Assert.Contains("Move the --root", f.Message);
+        Assert.True(Examine(box).AnyBroken, "a companion root inside a guarded tree is exit 2");
+    }
+
+    [Fact]
+    public void ACompanionRootInsideAScreenedScopeNamesTheCategories()
+    {
+        using var box = new Fixture();
+        string records = box.Dir("tree/records");
+        RegisterCompanion(box, records);
+
+        Result<Core.Roots> opened = Core.Roots.Open(
+            [new TreeDecl("work", box.Machine.Tree, Permissions.Full,
+                [new ScopeDecl("records", Permissions.ReadOnly, Screened.Identifiers)])],
+            null, null, null, Guarded);
+        Assert.True(opened.IsOk, opened.Failure?.Message);
+
+        Finding f = Assert.Single(Doctor.Examine(box.Machine, opened.Value, "test").Findings,
+            x => x.Check == Doctor.CompanionCheck);
+        Assert.Contains(Screens.Write(Screened.Identifiers), f.Message);
+    }
+
+    [Fact]
+    public void ACompanionRootOutsideEveryTreeIsAFactAndNoFinding()
+    {
+        using var box = new Fixture();
+        RegisterCompanion(box, box.Dir("elsewhere"));
+
+        Diagnosis d = Examine(box);
+
+        Assert.DoesNotContain(d.Findings, f => f.Check == Doctor.CompanionCheck);
+        Assert.Contains(d.Facts, f => f.Level == Levels.GuardrailsName && f.Text.Contains("outside every declared tree"));
+    }
+
+    /// <summary>R12.4: a tools-level project sees the one-line fact and no
+    /// finding, wherever the root is.</summary>
+    [Fact]
+    public void AToolsLevelProjectSeesACompanionAsAFactOnly()
+    {
+        using var box = new Fixture();
+        RegisterCompanion(box, box.Dir("tree/inside"));
+
+        Result<Core.Roots> tools = Core.Roots.Open([new TreeDecl("work", box.Machine.Tree, Permissions.Full)]);
+        Diagnosis d = Doctor.Examine(box.Machine, tools.Value, "test");
+
+        Assert.DoesNotContain(d.Findings, f => f.Check == Doctor.CompanionCheck);
+        Assert.Contains(d.Facts, f => f.Level == Levels.ToolsName && f.Text.Contains("sparky"));
+    }
 }
+

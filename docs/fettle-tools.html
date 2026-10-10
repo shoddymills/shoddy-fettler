@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Fettler's tools level, which is always on and needs no file: the launch folder as the tree work, the verbs, the client's scratch, tool-results and memory folders, companion servers, and the optional tools section.">
+<title>Tools | Fettler</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+figure.level{margin:1.4rem 0; background:var(--card); border:1px solid var(--line);
+  border-radius:.6rem; padding:.6rem}
+figure.level img{display:block; width:100%; height:auto}
+figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2rem .1rem}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="inner">
+  <div class="row">
+    <a class="phase" href="index.html"><img class="mark" src="media/brand/shoddy-icon.svg" alt="" width="23" height="23">Shoddy &middot; Fettler</a>
+    <span class="spacer"></span>
+    <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
+  </div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick-tools.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-quickstart.html">Quick start</a><a href="fettle-install.html">Install</a><span class="here">Tools</span><a href="fettle-guardrails.html">Guardrails</a><a href="fettle-screenings.html">Screenings</a><a href="fettle-reference.html">Reference</a></nav></div>
+</div></div>
+<div class="wrap">
+<header class="mast">
+<p class="eyebrow">Shoddy &middot; Fettler</p>
+<h1 id="tools">Tools</h1>
+<p class="kicker">The first level, on in every folder with nothing written down. Every verb, every check, and the folders your assistant already uses.</p>
+</header>
+
+<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="fettle-install.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Installing It</span></span></a><a class="next" href="fettle-guardrails.html"><span class="pnwrap"><span class="ttl">Guardrails</span><span class="dir">Next &rarr;</span></span></a></nav>
+
+<p><b>This page describes the tools level, which is always on and needs no file.</b> Fettler does three kinds of work, and each kind is called a level. The tools level is the first one, and it gives you every verb, the checks that run on every call, and the folders your client keeps for this project. The client is the program your assistant runs in, such as Claude Code or VS Code. The other two levels, <a href="fettle-guardrails.html">guardrails</a> and <a href="fettle-screenings.html">screenings</a>, stay off until a configuration file turns them on.</p>
+
+<div class="takeaway"><b>You do not have to write anything to use the tools.</b> Install fettle, register it with your client, and start the client in a project folder. The configuration file, <code>.fettler.json</code>, is only for changing what this page describes, or for turning on the next two levels. <a href="fettle-install.html">Installing it</a> covers the registration.</div>
+
+<figure class="level">
+<img src="media/level-tools.svg" width="640" height="360" loading="lazy" alt="The tools level. With no configuration file, the launch folder is the tree work. fettle also opens this session's scratch folder, the client's tool-results and memory folders, and a companion server's root. Older sessions and the session transcripts stay outside.">
+<figcaption><b>The tools level.</b> The launch folder is the tree <code>work</code>. fettle also opens this session's scratch folder, the client's tool-results and memory folders, and the folder a companion server works in. Older sessions and the session transcripts stay outside, with everything else on the disk.</figcaption>
+</figure>
+
+<h2 id="nofile">A folder with no file</h2>
+
+<p><b>With no <code>.fettler.json</code>, the folder fettle starts in becomes the one tree you work in.</b> That folder is called the launch folder. A tree is a folder Fettler may work in, together with the list of things it may do there. The program looks for the file in the launch folder and then in each folder above it, up to the top of the drive. If it finds none, you are at the tools level.</p>
+
+<table>
+<tr><th>At the tools level</th><th>What happens</th></tr>
+<tr><td>The launch folder</td><td>It is one tree, called <code>work</code>. It is the default tree, so a path written with no tree name lands there.</td></tr>
+<tr><td>What <code>work</code> allows</td><td><code>list read create update rename delete</code>. Every verb that reads or changes a file works inside it.</td></tr>
+<tr><td>Running a task</td><td>A task is refused, because the tree does not grant <code>execute</code> and tasks belong to the guardrails level.</td></tr>
+<tr><td>A path that climbs out of the launch folder</td><td>Refused as <code>outside-root</code>, exit&nbsp;4. The words are the same whether or not the file exists.</td></tr>
+<tr><td>The client's folders</td><td>Opened as three more trees, which <a href="#folders">the client's folders</a> describes below.</td></tr>
+</table>
+
+<ul>
+<li><b>A file in a folder above is always found and obeyed.</b> If a parent folder holds a <code>.fettler.json</code>, that file decides the trees. Ignoring it would give the assistant more than somebody wrote down.</li>
+<li><b>A broken file is a refusal, never a fallback.</b> If the file is not valid JSON, or holds a key fettle does not know, every command refuses and names the problem. Falling back to the tools level could widen what the assistant may reach.</li>
+<li><b>A lone <code>.fettler.local.json</code> counts as the project file.</b> If it sits in a folder with no <code>.fettler.json</code> beside it, fettle reads it as the project's file.</li>
+<li><b><code>--no-config</code> skips the search for one command.</b> fettle uses the tools level even if a file exists. <code>--root PATH</code> still opens one folder, read-only, for one command.</li>
+</ul>
+
+<p><b>The server looks for a file again on every call until it finds one.</b> The server is fettle running as <code>fettle serve</code>, the form your assistant talks to. If you write a <code>guardrails</code> section into a new <code>.fettler.json</code> while it runs, the next call obeys it with no restart. Once the server has found a file, it re-reads that same file on each call.</p>
+
+<h2 id="checks">What every call checks</h2>
+
+<p><b>These checks belong to the tools level, so they hold with no file at all.</b> No configuration file can turn any of them off.</p>
+
+<table>
+<tr><th>Check</th><th>What it does</th></tr>
+<tr><td>Paths stay in the trees</td><td>Every path must land inside a tree. There is no current folder to change, and no path can climb out of a tree.</td></tr>
+<tr><td>The hash</td><td><code>read</code> returns a hash of the file's content. Pass it as <code>expect</code> on an edit, and the edit is refused if the file changed since you read it.</td></tr>
+<tr><td>The caps</td><td>A read stops at 2,000 lines or 40,000 characters, and the answer says how much it left out. A search stops at its limit and says so.</td></tr>
+<tr><td>The typed reads</td><td>Notebooks come back as cells, spreadsheets as rows with their formulas, Word files as paragraphs, and PDFs as text per page.</td></tr>
+<tr><td>Generated folders</td><td><code>find</code> and <code>search</code> skip <code>bin</code>, <code>obj</code>, <code>.git</code>, <code>artifacts</code> and <code>node_modules</code> unless you ask for them.</td></tr>
+<tr><td>The credential check</td><td>A write that would add a secret, such as a cloud access key or a private key, is refused as <code>credential</code>, exit&nbsp;12. The refusal names the line but never the secret.</td></tr>
+<tr><td>The governed files</td><td>Fettler refuses to write any file that says what it or the assistant may do. The refusal is <code>governed</code>, exit&nbsp;11, whatever a tree grants.</td></tr>
+</table>
+
+<p>The governed files are <code>.fettler.json</code>, <code>.fettler.local.json</code>, <code>.mcp.json</code>, <code>.picker.json</code>, <code>.picker.local.json</code>, <code>.claude/settings.json</code>, <code>.claude/settings.local.json</code>, <code>.vscode/mcp.json</code> and the machine file <code>fettler/fettler.json</code>. A person changes them in an editor. <a href="fettle-reference.html#rules">Fettler never writes its own rules</a> explains why this one refusal makes every other rule hold.</p>
+
+<h2 id="verbs">The verbs at a glance</h2>
+
+<p><b>Every verb in this table works at the tools level.</b> Each one is a command on the command line and a tool your assistant can call. <a href="fettle-reference.html#verbs">The verbs</a> on the reference page gives each one's arguments and answers in full.</p>
+
+<table>
+<tr><th>Verb</th><th>What it does</th></tr>
+<tr><td><code>find</code></td><td>Lists the files that match a pattern, with the size and time of each one.</td></tr>
+<tr><td><code>search</code></td><td>Finds the lines that match one or more patterns, and gives each hit as its tree, path, line and column.</td></tr>
+<tr><td><code>read</code></td><td>Reads one or more files and returns the text with its encoding, line ending and hash.</td></tr>
+<tr><td><code>write</code></td><td>Creates a file, or replaces one when you say it may overwrite.</td></tr>
+<tr><td><code>edit</code></td><td>Applies a set of edits to one or more files. Either all of them apply, or none of them do.</td></tr>
+<tr><td><code>replace</code></td><td>Replaces one string with another in every file that matches a pattern. Either all files change, or none do.</td></tr>
+<tr><td><code>new</code></td><td>Creates an empty file, and refuses if a file of that name is already in that folder.</td></tr>
+<tr><td><code>mkdir</code></td><td>Creates a folder, along with any folders missing above it.</td></tr>
+<tr><td><code>move</code></td><td>Renames or moves a file or a folder, and says whether the move happened in one step.</td></tr>
+<tr><td><code>copy</code></td><td>Copies a file, or a whole folder when you ask for every file inside it.</td></tr>
+<tr><td><code>delete</code></td><td>Deletes one path. A folder that still holds files needs you to ask for everything inside it.</td></tr>
+<tr><td><code>extract</code></td><td>Unpacks a zip or tar archive into a tree, and refuses the whole archive if any part would land outside.</td></tr>
+<tr><td><code>exec</code></td><td>Sets or clears the executable bit, the mark that lets a file run as a program on macOS and Linux.</td></tr>
+<tr><td><code>batch</code></td><td>Runs several operations in order, and stops at the first one that fails.</td></tr>
+<tr><td><code>roots</code></td><td>Lists the levels that are on, then every tree with what it allows.</td></tr>
+<tr><td><code>doctor</code></td><td>Reports how fettle is wired into each client, with one section for each level. It changes nothing.</td></tr>
+</table>
+
+<p>Two more verbs, <code>run</code> and <code>tasks</code>, belong to the guardrails level. At the tools level they answer that no task is declared. <a href="fettle-guardrails.html#tasks">Declaring tasks</a> is on the next page.</p>
+
+<h2 id="folders">The client's folders</h2>
+
+<p><b>fettle finds three of your client's folders and opens each one as a tree, with nothing declared.</b> Your client keeps these folders for the assistant, outside your project. The assistant writes drafts in one, reads large answers back from another, and keeps notes in the third. An assistant that may use only Fettler would have nowhere to put a draft without them.</p>
+
+<table>
+<tr><th>Tree</th><th>What it is</th><th>It may</th></tr>
+<tr><td><code>scratch</code></td><td>This session's scratch folder, where the assistant stages drafts. On Windows it is <code>&lt;temp&gt;\claude\&lt;project&gt;\&lt;session&gt;\scratchpad</code>. On macOS and Linux it sits under <code>/tmp/claude-&lt;uid&gt;</code> instead.</td><td><code>list read create update rename delete</code>, and never <code>execute</code></td></tr>
+<tr><td><code>tool-results</code></td><td>Where the client saves a tool answer too large to show, then asks the assistant to read it back. It is <code>~/.claude/projects/&lt;project&gt;/&lt;session&gt;/tool-results</code>, or the same name directly under the project folder.</td><td><code>list read</code></td></tr>
+<tr><td><code>memory</code></td><td>The client's memory folder for this project, where the assistant keeps notes between sessions. It is <code>~/.claude/projects/&lt;project&gt;/memory</code>.</td><td><code>list read create update rename delete</code></td></tr>
+</table>
+
+<p><b><code>&lt;project&gt;</code> is the launch path, spelled the way the client spells it.</b> Each folder separator and the drive colon become a hyphen, so <code>c:\github\app</code> becomes <code>c--github-app</code>. A declared tree may not use the names <code>scratch</code>, <code>tool-results</code> or <code>memory</code>, because fettle gives those names to these folders.</p>
+
+<h3 id="session">Which session is this one</h3>
+
+<p><b>Only this session's folder is opened, and fettle chooses it in a fixed order.</b> A session is one conversation with the assistant, and the client gives each one its own folder.</p>
+
+<ol>
+<li><b>First, a value in fettle's environment that is exactly a session folder's name.</b> The client starts fettle with a set of environment variables. If one of them holds the name of a session folder on disk, that folder is chosen. This is an exact match, never a guess.</li>
+<li><b>Otherwise, the newest session folder.</b> That is right for a new conversation. It can be wrong for a conversation you resumed, which is why <code>roots</code> says which of the two routes it took.</li>
+</ol>
+
+<ul>
+<li><b>Older sessions stay outside.</b> They sit beside this session's folder, but they are not trees. A path into one is refused in the same words as any other path outside every tree.</li>
+<li><b>The session transcripts stay outside too.</b> The client keeps a record of each conversation beside these folders, and none of that record is a tree.</li>
+<li><b>A folder that does not exist yet is not a tree, and not a fault.</b> It appears on the next call, once the client makes it.</li>
+<li><b>Paths in answers name their tree.</b> When more than one tree is open, which is now almost always, each path is written as <code>tree:path</code>, such as <code>scratch:draft.md</code>.</li>
+</ul>
+
+<p><b><code>roots</code> says how each of these folders was found.</b> Each one carries a <code>found:</code> line. For <code>scratch</code> it reads either <code>this session's folder, named by the environment variable NAME</code> or <code>the newest session folder, because no environment variable names one</code>. If you see the second line in a resumed conversation, check the folder before you trust it.</p>
+
+<h2 id="companions">Companion servers</h2>
+
+<p><b>A companion is another MCP server that works in one folder you name.</b> MCP is the protocol an assistant uses to call a tool server, and fettle is one such server. A companion's registration passes <code>--root PATH</code>, and that server reads and writes the files under that folder. sparky, the Shoddy calculator, is the usual case.</p>
+
+<p><b>fettle opens a companion's folder as a tree named for the server, with read and write.</b> The assistant can already reach that folder through the companion, so the tree grants nothing new. It lets fettle write a file there that the companion loads in the same turn.</p>
+
+<ul>
+<li><b>A declared tree with the same name and the same folder stands.</b> Your declaration is used, with what it allows.</li>
+<li><b>The same name on a different folder is refused.</b> Two trees cannot share one name.</li>
+<li><b>A server that passes no <code>--root</code> gets no tree.</b> <code>doctor</code> lists it, and says that passing <code>--root PATH</code> would open one.</li>
+</ul>
+
+<p>At the tools level, <code>doctor</code> reports each companion's folder as one line of fact. It is never a finding here, because no tree states a rule that the companion could ignore. With guardrails on, a companion folder inside a declared tree becomes a serious finding, which <a href="fettle-guardrails.html#companion">the guardrails page</a> explains.</p>
+
+<h2 id="roots">What roots says at the tools level</h2>
+
+<p><b>Ask for the roots at the start of any session.</b> At the tools level the trees section shows only <code>work</code>, the launch folder. The folders fettle found for itself come after it, each with its <code>found:</code> line. A level that is off prints <code>off</code>.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle roots
+levels
+  tools         on, always
+  guardrails    off
+  screenings    off
+
+trees
+work          C:\github\app  (default)
+              can: list read create update rename delete
+              branch: main (local)
+
+found by fettle
+scratch       C:\Users\you\AppData\Local\Temp\claude\c--github-app\1f0c9a2e-5b7d-4c11-9e3a-7d2b8f6a4c10\scratchpad
+              can: list read create update rename delete
+              found: this session's folder, named by the environment variable NAME
+tool-results  C:\Users\you\.claude\projects\c--github-app\1f0c9a2e-5b7d-4c11-9e3a-7d2b8f6a4c10\tool-results
+              can: list read
+              found: in the client's folder for this project, in this session's folder; this session's folder, named by the environment variable NAME
+memory        C:\Users\you\.claude\projects\c--github-app\memory
+              can: list read create update rename delete
+              found: in the client's folder for this project
+sparky        C:\Users\you\Dropbox\shoddy\halifax
+              can: list read create update rename delete
+              found: the --root of the sparky server registered in C:\Users\you\.claude.json
+
+declared by no .fettler.json, so the launch folder is the tree</code></pre></div>
+
+<ul>
+<li><b>The last line says where the trees came from.</b> With no file, it says that the launch folder is the tree.</li>
+<li><b>The branch line is what this machine's copy of the repository says.</b> It is not a statement about the remote, which only a fetch can answer.</li>
+<li><b><code>roots --json</code> says the same in a form a script can read.</b> It has a <code>levels</code> object, such as <code>{"tools":{"on":true,"from":[]},"guardrails":{"on":false,"from":[]}}</code>, and a <code>found</code> field on each tree fettle opened itself.</li>
+</ul>
+
+<h2 id="section">The optional tools section</h2>
+
+<p><b>A <code>tools</code> section changes four things about the tools level, and nothing else.</b> You need it only when fettle's own choices are wrong for this machine or this project. Writing it does not turn on guardrails. The caps, the hashes and the readers are fixed, and no file can change them.</p>
+
+<table>
+<tr><th>Key</th><th>What it does</th></tr>
+<tr><td><code>generated</code></td><td>Names the folders that <code>find</code> and <code>search</code> skip. It replaces the built-in list, so repeat any of the five you still want skipped.</td></tr>
+<tr><td><code>scratch</code></td><td>Names a folder to open as <code>scratch</code>, in place of the one fettle would choose. Use it when your client keeps its scratch somewhere fettle does not look.</td></tr>
+<tr><td><code>scratch-root</code></td><td>Names the folder that holds every project's scratch folders. fettle looks for this project's folder inside it.</td></tr>
+<tr><td><code>client-root</code></td><td>Names the folder that holds the client's folder for each project. When you leave it out, fettle uses <code>~/.claude/projects</code>.</td></tr>
+</table>
+
+<p>A path in the file is read from the folder the file sits in. A path that is a fact about one machine, such as <code>scratch</code>, belongs in <code>.fettler.local.json</code>. That is the uncommitted file beside the project file, and <a href="fettle-guardrails.html#local">the personal overlay</a> describes how it merges.</p>
+
+<h3 id="worked">A worked tools file</h3>
+
+<p><b>This project builds into a <code>dist</code> folder, so its file adds that folder to the list.</b> On the left is the whole file. On the right is what <code>roots</code> says with it in place. Notice that guardrails are still off, and that the tools line now names the file.</p>
+
+<div class="fixpair">
+<div class="promptbox"><button class="copy">Copy</button><pre><code>// C:\github\app\.fettler.json
+{
+  "tools": {
+    "generated": ["bin", "obj", ".git",
+                  "artifacts", "node_modules",
+                  "dist"]
+  }
+}</code></pre></div>
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle roots
+levels
+  tools         on, always; settings from C:\github\app\.fettler.json
+  guardrails    off
+  screenings    off
+
+trees
+work          C:\github\app  (default)
+              can: list read create update rename delete
+              branch: main (local)
+
+found by fettle
+scratch       C:\Users\you\AppData\Local\Temp\claude\...\scratchpad
+              ...
+memory        C:\Users\you\.claude\projects\c--github-app\memory
+              ...
+
+declared by C:\github\app\.fettler.json</code></pre></div>
+</div>
+
+<p>The trees are the same as with no file, because a <code>tools</code> section declares no tree. Only a <code>guardrails</code> section does that, and the <a href="fettle-guardrails.html">next page</a> shows one.</p>
+
+<h2 id="machine">The machine file</h2>
+
+<p><b>The machine file holds facts about one machine, and they apply to every project on it.</b> On Windows it is <code>%APPDATA%\fettler\fettler.json</code>. On macOS and Linux it is <code>~/.config/fettler/fettler.json</code>, or the same path under <code>$XDG_CONFIG_HOME</code> when that is set.</p>
+
+<ul>
+<li><b>It may hold a <code>tools</code> section and a <code>screenings</code> section.</b> A models directory shared by every project is the usual entry.</li>
+<li><b>A <code>guardrails</code> section in it stops fettle loading.</b> A tree, a task or an execute grant there would apply to every project, and no project reviewed it.</li>
+<li><b>The project's files win, section by section.</b> fettle reads the machine file first, and then the project's files over it.</li>
+<li><b>It is not <code>~/.fettler.json</code>.</b> The search upward from a project would find that name and take your whole home folder as the tree.</li>
+<li><b>Fettler refuses to write it, like the other governed files.</b> <code>roots</code> and <code>doctor</code> name it whenever it supplied something.</li>
+</ul>
+
+<h2 id="next">Where to go next</h2>
+
+<table>
+<tr><th>You want</th><th>Page</th></tr>
+<tr><td>To declare your own trees, scopes and tasks, and close the client's built-in tools</td><td><a href="fettle-guardrails.html">Guardrails</a></td></tr>
+<tr><td>To refuse answers that would disclose regulated data</td><td><a href="fettle-screenings.html">Screenings</a></td></tr>
+<tr><td>Every verb's arguments, every refusal, and every exit code</td><td><a href="fettle-reference.html">Reference</a></td></tr>
+</table>
+
+<nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
+  <a href="fettle-install.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Installing It</span></span></a>
+  <a class="next" href="fettle-guardrails.html"><span class="pnwrap"><span class="ttl">Guardrails</span><span class="dir">Next &rarr;</span></span></a>
+</nav>
+<footer>Named for the shoddy mills of the West Riding: Useless Things Made
+Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>
+&copy; 2026 Stephen Vincent Foster</footer>
+</div>
+<script src="copy.js"></script>
+</body>
+</html>

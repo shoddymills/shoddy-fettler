@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 320" width="640" height="320" role="img" aria-label="The pick guardrails level: a guardrails section declares the databases on each server, the verbs each allows, scopes, and hidden columns. A database that is not declared does not exist, and a hidden column does not exist either.">
+  <rect width="640" height="320" fill="#12151b"/>
+  <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#c9d1dc">
+
+    <rect x="20" y="20" width="300" height="134" rx="6" fill="#1c2129" stroke="#5f6b7c"/>
+    <text x="32" y="40" fill="#e6edf5">.picker.json</text>
+    <text x="32" y="60" fill="#d9a066">"guardrails": { "servers": {</text>
+    <text x="44" y="78" fill="#c9d1dc">"main": { "databases": {</text>
+    <text x="56" y="96" fill="#c9d1dc">"Sales": {</text>
+    <text x="68" y="114" fill="#c9d1dc">"can": ["list","select"],</text>
+    <text x="68" y="132" fill="#c9d1dc">"scopes": [ ... ] } } } } }</text>
+
+    <rect x="340" y="20" width="280" height="200" rx="8" fill="none" stroke="#5f6b7c" stroke-dasharray="5 4"/>
+    <text x="352" y="40" fill="#9aa3b2">what exists for the caller</text>
+
+    <rect x="354" y="52" width="252" height="98" rx="4" fill="#1c2129"/>
+    <text x="366" y="72" fill="#7ec699">Sales</text>
+    <text x="420" y="72" fill="#9aa3b2">list select</text>
+    <text x="378" y="92" fill="#c9d1dc">dbo.Customers</text>
+    <text x="378" y="110" fill="#d9534f">  ssn, dob: hidden</text>
+    <text x="378" y="128" fill="#c9d1dc">dbo.Orders</text>
+    <text x="378" y="144" fill="#d9534f">audit.*: not there</text>
+
+    <rect x="354" y="160" width="252" height="48" rx="4" fill="#1c2129" stroke="#d9534f" stroke-dasharray="3 3"/>
+    <text x="366" y="180" fill="#d9534f">Finance</text>
+    <text x="366" y="198" fill="#9aa3b2">not declared, so not there</text>
+
+    <text x="20" y="190" fill="#9aa3b2">a hidden column is absent from</text>
+    <text x="20" y="208" fill="#9aa3b2">the select list, the WHERE, *,</text>
+    <text x="20" y="226" fill="#9aa3b2">and DESCRIBE alike</text>
+
+    <text x="20" y="276" fill="#9aa3b2">hidden and absent answer in the same words, so a refusal</text>
+    <text x="20" y="294" fill="#9aa3b2">cannot be used to map the server</text>
+  </g>
+</svg>

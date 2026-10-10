@@ -8,7 +8,7 @@ namespace Picker.Tests;
 /// grant matrix, the resolver and the whole gate are proven against
 /// this, with no server in the room.
 /// </summary>
-public sealed class FakeCatalog : ICatalogSource, IQuerySource, IConstraintSource
+public sealed class FakeCatalog : ICatalogSource, IQuerySource, IConstraintSource, IDatabaseSource
 {
     readonly Dictionary<string, CatalogSnapshot> databases = new(StringComparer.OrdinalIgnoreCase);
 
@@ -33,6 +33,12 @@ public sealed class FakeCatalog : ICatalogSource, IQuerySource, IConstraintSourc
             ? Result<CatalogSnapshot>.Ok(held)
             : Result<CatalogSnapshot>.Fail(Outcome.Denied,
                 $"the fake has no database called {database.Name}"));
+
+    /// <summary>An open server lists every database the fake holds, in
+    /// name order, as the server would.</summary>
+    public Task<Result<IReadOnlyList<string>>> DatabasesAsync(ServerDecl server, CancellationToken cancel) =>
+        Task.FromResult(Result<IReadOnlyList<string>>.Ok(
+            [.. databases.Keys.Order(StringComparer.OrdinalIgnoreCase)]));
 
     public Task<Result<Table>> QueryAsync(
         ServerDecl server, string sql, int rowCap, CancellationToken cancel)

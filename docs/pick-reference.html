@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Pick, the reference: the query gate refusal by refusal, column scoping everywhere it binds, what DESCRIBE will and will not say, the caps, and the exit codes.">
+<meta name="description" content="Pick, the reference: what belongs to each level, a full .picker.json, every configuration refusal by level, how names resolve, the query gate, column scoping, DESCRIBE, the caps, doctor's lines, and the exit codes.">
 <title>Reference | Picker</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -17,112 +17,236 @@
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle-reference.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><a href="pick.html">Overview</a><a href="pick-workstation.html">Workstation</a><a href="pick-quickstart.html">Quick start</a><a href="pick-install.html">Install</a><a href="pick-setup.html">In a project</a><a href="pick-screening.html">Screening</a><a href="pick-models.html">Models</a><span class="here">Reference</span></nav></div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle-reference.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><a href="pick.html">Overview</a><a href="pick-quickstart.html">Quick start</a><a href="pick-install.html">Install</a><a href="pick-tools.html">Tools</a><a href="pick-guardrails.html">Guardrails</a><a href="pick-screenings.html">Screenings</a><span class="here">Reference</span></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
 <p class="eyebrow">Shoddy &middot; Picker</p>
 <h1 id="pickreference">Reference</h1>
-<p class="kicker">The query gate refusal by refusal, column scoping everywhere it binds, what DESCRIBE will and will not say, the caps, and the exit codes. <a href="pick-screening.html">The screen</a> has a page of its own.</p>
+<p class="kicker">What belongs to each level, every refusal with its level, the query gate, column scoping, DESCRIBE, the caps, doctor's lines and the exit codes.</p>
 </header>
 
-<nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a href="pick-models.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">The Models</span></span></a></nav>
+<nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a href="pick-screenings.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Screenings</span></span></a></nav>
+
+<p>This page holds the tables you look things up in. pick works at three levels, called tools, guardrails and screenings, and every refusal and every <code>doctor</code> line below says which level it belongs to. A refusal that belongs to the guardrails level can only happen when guardrails are on.</p>
+
+<h2 id="levels">What belongs to each level</h2>
+
+<p>The file <code>.picker.json</code> holds up to three sections, one for each level, and nothing else at the top. The tools level is always on, and the file must name at least one server in its <code>tools</code> section. Each of the other two levels is on when the file has its section.</p>
+
+<table>
+<tr><th>Level</th><th>Section</th><th>What it holds</th><th>Which file may hold it</th></tr>
+<tr><td>tools</td><td><code>tools</code></td><td>the <code>servers</code>, and for each server the <code>connect</code> value that says how to reach it</td><td><code>.picker.json</code>, while the local file may supply <code>connect</code> and nothing else</td></tr>
+<tr><td>guardrails</td><td><code>guardrails</code></td><td>the <code>servers</code>, and for each server its <code>databases</code>. Each database has <code>can</code> and <code>scopes</code>, and each scope has <code>object</code>, <code>can</code> and <code>columns</code>.</td><td><code>.picker.json</code> and no other file</td></tr>
+<tr><td>screenings</td><td><code>screenings</code></td><td>the <code>models</code> folder, and <code>screen</code>, whose keys name a database, or a database, a slash and a scope's object pattern</td><td><code>.picker.json</code>, while the local file may supply <code>models</code> and nothing else</td></tr>
+</table>
+
+<p>Here is a full file that uses all three levels:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "tools":      { "servers": { "main": { "connect": "env:MAIN_SQL" } } },
+  "guardrails": { "servers": { "main": { "databases": {
+                    "Sales": { "can": ["list", "select", "describe"],
+                               "scopes": [ { "object": "dbo.Customers", "can": ["list", "select"],
+                                             "columns": ["-ssn", "-dob"] },
+                                           { "object": "audit.*", "can": [] } ] } } } } },
+  "screenings": { "models": "../screening-models",
+                  "screen": { "Sales": ["identifiers"], "Sales/dbo.Customers": true } }
+}</code></pre></div>
+
+<ul>
+<li><b><code>connect</code></b> is <code>env:NAME</code>, which reads the connection string from an environment variable with that name. A literal string may go in <code>.picker.local.json</code>, but the checked-in file refuses one that holds a password.</li>
+<li><b><code>can</code></b> lists the verbs that are allowed, out of <code>list</code>, <code>select</code> and <code>describe</code>. An empty list allows nothing, and a scope must always state its <code>can</code>.</li>
+<li><b><code>columns</code></b> is <code>true</code> for every column, a plain list for only those columns, or a list of names with a leading minus for every column except those. pick refuses a list that mixes the two forms.</li>
+<li><b>A <code>screen</code> value</b> is <code>true</code> for every category, <code>false</code> for none, or a list of the category words to screen for.</li>
+<li><b>With guardrails off,</b> every server is open, and its databases are the online ones that the login can enter, apart from the four system databases. Each of them grants <code>list select describe</code>, and a <code>screen</code> key may only name a whole database.</li>
+</ul>
+
+<h2 id="refusals">Configuration refusals</h2>
+
+<p>pick reads both files before every call, and if either file breaks a rule, pick refuses to load it. The call then ends with exit code 2, <code>invalid</code>, and the message names the file. An unknown word anywhere in a file is refused too, and the message lists the words that are allowed in that place.</p>
+
+<h3 id="refusals-all">At every level</h3>
+
+<table>
+<tr><th>What the file does</th><th>What pick says</th></tr>
+<tr><td>It has <code>servers</code> or <code>models</code> at the top, which is the shape from before release 2.1.0.</td><td>The file has the old shape, and the message ends with your own entries rewritten into the three sections, ready to paste.</td></tr>
+<tr><td>It has a key at the top other than the three section names.</td><td>The key is not something the file declares, because the file takes three sections, one per level: tools, guardrails and screenings.</td></tr>
+<tr><td><code>.picker.local.json</code> holds anything other than <code>connect</code> and <code>models</code>.</td><td>The local file may supply models and connect only, so declare servers, databases and screens in <code>.picker.json</code>.</td></tr>
+</table>
+
+<h3 id="refusals-tools">Tools level</h3>
+
+<table>
+<tr><th>What the file does</th><th>What pick says</th></tr>
+<tr><td>It names no server at all.</td><td>There is nothing to open, so declare a server under <code>tools</code>.</td></tr>
+<tr><td>A server has no <code>connect</code> in either file.</td><td>Name an environment variable as <code>env:NAME</code>, or put the connection string in <code>.picker.local.json</code>.</td></tr>
+<tr><td>A <code>connect</code> in <code>.picker.json</code> holds a password.</td><td>That file is checked in, so move the string to the local file or use <code>env:NAME</code>.</td></tr>
+<tr><td>A server under <code>tools</code> declares <code>databases</code>.</td><td>Databases go under <code>guardrails</code>, and the message shows the line to write.</td></tr>
+<tr><td><code>.picker.local.json</code> names a server that <code>.picker.json</code> does not declare.</td><td>Declare every server in <code>.picker.json</code>.</td></tr>
+</table>
+
+<h3 id="refusals-guardrails">Guardrails level</h3>
+
+<table>
+<tr><th>What the file does</th><th>What pick says</th></tr>
+<tr><td>A server under <code>guardrails</code> has a <code>connect</code>.</td><td>A connection belongs to the tools level, so put it under <code>tools</code>.</td></tr>
+<tr><td><code>guardrails</code> declares databases on a server that <code>tools</code> does not name.</td><td>Declare the server under <code>tools</code> with its <code>connect</code>.</td></tr>
+<tr><td>A scope has no <code>can</code>.</td><td>Write the verbs the scope allows, where an empty list allows nothing.</td></tr>
+</table>
+
+<h3 id="refusals-screenings">Screenings level</h3>
+
+<table>
+<tr><th>What the file does</th><th>What pick says</th></tr>
+<tr><td>A database under <code>guardrails</code> has a <code>screen</code>.</td><td>A screen now goes under <code>screenings</code>, keyed by the database, and the message shows the line to write.</td></tr>
+<tr><td>A scope under <code>guardrails</code> has a <code>screen</code>.</td><td>A screen goes under <code>screenings</code>, keyed by the database, a slash and the scope's object pattern.</td></tr>
+<tr><td>With guardrails on, a <code>screen</code> key names a database that no server declares.</td><td>The screen names nothing that is declared under <code>guardrails</code>.</td></tr>
+<tr><td>A key such as <code>Sales/dbo.Orders</code> names a scope that the database does not declare.</td><td>Declare the scope under <code>guardrails</code>, or screen the whole database.</td></tr>
+<tr><td>With guardrails off, a key such as <code>Sales/dbo.Orders</code> names a scope.</td><td>Scopes belong to the guardrails level, which is off, so screen the whole database or declare the scope under <code>guardrails</code>.</td></tr>
+</table>
+
+<h3 id="old-shape">The old shape, rewritten</h3>
+
+<p>Take a file in the shape that releases before 2.1.0 read:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{ "servers": { "main": { "connect": "env:MAIN_SQL",
+    "databases": { "Sales": { "can": ["list", "select"], "screen": ["identifiers"] } } } } }</code></pre></div>
+
+<p>pick refuses it, and the message ends with the rewrite. The message is one line, which is shown here wrapped:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>pick: .picker.json has "servers" at the top, which is the shape this version no longer
+reads. Rewrite it with three sections, one per level. Your entries, rewritten:
+{"tools":{"servers":{"main":{"connect":"env:MAIN_SQL"}}},"guardrails":{"servers":{"main":
+{"databases":{"Sales":{"can":["list","select"]}}}}},"screenings":{"screen":{"Sales":["identifiers"]}}}
+(C:\github\app\.picker.json)</code></pre></div>
+
+<p>The rewrite moves each <code>connect</code> under <code>tools</code> and each database under <code>guardrails</code>. It moves <code>models</code> and every <code>screen</code> under <code>screenings</code>, where a scope's screen gets a key made of the database, a slash and the scope's pattern.</p>
 
 <h2 id="resolution">How a name resolves</h2>
 
+<p>These rules decide which table a name in a query means. The first group applies at the tools level, so it always applies.</p>
+
 <ul>
-<li><b>A three-part name</b>, such as <code>Sales.dbo.Customers</code>, resolves against the declared databases and nothing else. A database the file does not declare answers exactly as a table that does not exist.</li>
-<li><b>A two-part or bare name</b>, such as <code>dbo.Customers</code> or <code>Customers</code>, is searched for across the declared databases. The connection's own default database is never consulted. If two declared databases both hold a match, the query is refused as ambiguous, naming both, and the fix is to qualify.</li>
-<li><b>A name defined by a CTE in the same query wins</b> over a declared object of the same bare name. That is the standard T-SQL precedence, kept.</li>
-<li><b>A four-part name is refused outright.</b> A linked server is a second server with a prefix.</li>
-<li><b>Hidden is absent, everywhere.</b> An object with no <code>list</code> grant is missing from <code>objects</code>, excluded from bare-name search <em>and its ambiguity</em>, and refused as nonexistent when named directly. One wording, one factory in the code, so the refusals cannot drift apart and be told apart.</li>
-<li><b>Listed but not granted is refused plainly instead</b>, naming what the scope does grant, because the listing already disclosed that the object exists.</li>
-<li><b>One server per statement.</b> A query may join across declared databases on the same server. It may not span servers.</li>
+<li><b>A three-part name</b>, such as <code>Sales.dbo.Customers</code>, is looked up in the databases that are there, and any other database answers the same as a table that does not exist.</li>
+<li><b>A two-part or bare name</b>, such as <code>dbo.Customers</code> or <code>Customers</code>, is searched for across those databases, and pick never asks the connection for a default database.</li>
+<li><b>If two databases both hold a match,</b> pick refuses the query and names both of them, and you fix it by writing the full name.</li>
+<li><b>A name defined by a CTE in the same query</b> wins over a table with the same bare name. A CTE is a named subquery written at the start of a query with <code>WITH</code>.</li>
+<li><b>A four-part name is refused,</b> because it points at a linked server, which is a second server reached through the first.</li>
+<li><b>A query may join databases on one server,</b> but it may not span two servers.</li>
+</ul>
+
+<p>The second group applies at the guardrails level, so it applies only when guardrails are on.</p>
+
+<ul>
+<li><b>An object whose scope grants no <code>list</code> is hidden.</b> It is missing from <code>objects</code> and from the bare-name search, and when you name it, pick refuses it in the same words as an object that does not exist.</li>
+<li><b>An object that is listed but not granted <code>select</code></b> is refused plainly, and the refusal names what its scope does grant, because the listing already showed that the object exists.</li>
 </ul>
 
 <h2 id="verbs">The verbs, in detail</h2>
 
-<p>Five verbs, identical through the CLI and the MCP server. The MCP answer is byte-for-byte the CLI's <code>--json</code> output. <code>--config PATH</code> names a configuration explicitly. Otherwise the nearest <code>.picker.json</code> upward from the current directory governs.</p>
+<p>All five verbs belong to the tools level. They work the same way at the command line and through MCP, and the MCP answer equals the answer the command line gives with <code>--json</code>. The flag <code>--config PATH</code> names the file to use, and without it the nearest <code>.picker.json</code> at or above the current folder applies.</p>
 
 <table>
 <tr><th>Verb</th><th>Takes</th><th>Answers</th></tr>
-<tr><td><code>catalogs</code></td><td>nothing</td><td>the declared servers, databases, verbs, screens and scopes. This is the boundary itself, with no connection opened</td></tr>
-<tr><td><code>objects</code></td><td>an optional pattern, <code>schema.object</code> or a bare name, with <code>*</code> inside a segment</td><td>the tables and views whose scope grants <code>list</code>, capped at 500 with the cap stated. Never a hidden one</td></tr>
-<tr><td><code>select</code></td><td>one statement as the argument, or <code>--stdin</code>. <code>--limit N</code> for the row cap</td><td>the rows, typed, with the column list, or the gate's refusal</td></tr>
-<tr><td><code>describe</code></td><td>an object name</td><td>columns with types and nullability, indexes, foreign keys, and a shape hash, so a caller can tell when an object changed underneath it</td></tr>
-<tr><td><code>doctor</code></td><td>nothing</td><td>whether the configuration loads, whether each server answers a bounded knock, the models directory, and burler's presence. It never prints a credential</td></tr>
+<tr><td><code>catalogs</code></td><td>nothing</td><td>the three level lines, then the servers, databases, verbs, screens and scopes, with each open server marked as one. It opens no connection.</td></tr>
+<tr><td><code>objects</code></td><td>an optional pattern, either <code>schema.object</code> or a bare name, with <code>*</code> inside a part</td><td>the tables and views whose scope grants <code>list</code>, stopping at 500 and saying so</td></tr>
+<tr><td><code>select</code></td><td>one statement, or <code>--stdin</code> to read it from input, with <code>--limit N</code> to set the row cap</td><td>the rows with their types and the column list, or the gate's refusal</td></tr>
+<tr><td><code>describe</code></td><td>an object name</td><td>the columns with their types and whether each may be empty, then the indexes, the foreign keys and a shape hash</td></tr>
+<tr><td><code>doctor</code></td><td>nothing</td><td>the three level lines, and then the checks listed under <a href="#doctor">doctor's lines</a></td></tr>
 </table>
+
+<p>With <code>--json</code>, the <code>catalogs</code> answer adds a <code>levels</code> object. It also gives each server an <code>open</code> field, which is <code>true</code> when guardrails are off.</p>
 
 <h2 id="gate">The query gate</h2>
 
-<p>Every statement is parsed to a syntax tree before anything touches a connection. The tree is walked against an <b>allowlist</b> of constructs the gate understands. Anything the walk does not recognise refuses the whole statement. It fails closed, so a T-SQL feature added next year arrives refused rather than unexamined.</p>
+<p>The gate belongs to the tools level, so it is always on, and every refusal in the table below is a tools-level refusal. The gate parses every statement before anything reaches the server, which means it breaks the text into its parts and checks each one. It checks the parts against a list of the ones it knows, and anything else refuses the whole statement. So a new T-SQL feature is refused until the gate learns about it.</p>
 
 <table>
 <tr><th>Refused</th><th>Why</th></tr>
-<tr><td>anything but one <code>SELECT</code></td><td><code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>MERGE</code>, <code>EXEC</code>, <code>DECLARE</code>, <code>USE</code>, transactions, and a second statement in the batch are each refused with their own stated reason</td></tr>
-<tr><td><code>SELECT &hellip; INTO</code></td><td>a write dressed as a SELECT</td></tr>
-<tr><td><code>OPENROWSET</code>, <code>OPENQUERY</code>, <code>OPENDATASOURCE</code></td><td>each is a connection string in a query, a whole second boundary smuggled into one function call</td></tr>
-<tr><td>user-defined functions</td><td>a function body is code the gate cannot see through</td></tr>
-<tr><td>variables and table hints</td><td>outside the closed surface. Refused by name rather than by the generic arm</td></tr>
-<tr><td>four-part names</td><td>a linked server is a second server with a prefix</td></tr>
-<tr><td><code>sys.*</code>, <code>INFORMATION_SCHEMA</code>, <code>OBJECT_DEFINITION</code> and relatives</td><td>the catalog answers questions the scopes exist to govern. <code>describe</code> answers them governed</td></tr>
+<tr><td>anything but one <code>SELECT</code></td><td><code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>MERGE</code>, <code>EXEC</code>, <code>DECLARE</code>, <code>USE</code>, transactions and a second statement are each refused, and each with its own reason.</td></tr>
+<tr><td><code>SELECT &hellip; INTO</code></td><td>It writes a new table, so it is a write that looks like a read.</td></tr>
+<tr><td><code>OPENROWSET</code>, <code>OPENQUERY</code>, <code>OPENDATASOURCE</code></td><td>Each one carries a connection to some other data source inside a single function call.</td></tr>
+<tr><td>user-defined functions</td><td>The gate cannot see the code inside a function, so it cannot check it.</td></tr>
+<tr><td>variables and table hints</td><td>They are outside the parts the gate knows, and each one is refused by name.</td></tr>
+<tr><td>four-part names</td><td>A four-part name reaches a linked server, which is a second server.</td></tr>
+<tr><td><code>sys.*</code>, <code>INFORMATION_SCHEMA</code>, <code>OBJECT_DEFINITION</code> and similar functions</td><td>The system catalog would answer questions about tables outside the rules, while <code>describe</code> answers them inside the rules.</td></tr>
 </table>
 
-<p>What passes is <b>rewritten before it runs</b>. Every table and view reference is rewritten to its full bracket-quoted three-part name, so the statement that reaches the server can only mean what the gate approved. <code>SELECT *</code> is expanded to the columns this caller is permitted. The star never reaches the server, and the answer states the column list it chose. CTEs, subqueries, derived tables, <code>APPLY</code> and set operations are walked the same way. A query is approved whole or refused whole.</p>
+<p>pick rewrites a statement that passes before it runs it. Every table and view becomes its full three-part name in square brackets, so the statement can only mean what the gate approved. The star in <code>SELECT *</code> becomes the list of columns you may read, and the answer shows that list. The gate walks CTEs, subqueries, derived tables, <code>APPLY</code> and set operations in the same way, and it approves a query whole or refuses it whole.</p>
 
 <h2 id="columns">Column scoping, everywhere a column can appear</h2>
 
-<p>A scope may grant every column, name the columns it includes, or name the ones it excludes. <a href="pick-setup.html#scopes">The grammar</a> lives with the configuration. Enforcement is the reference's half:</p>
+<p>Column rules belong to the guardrails level. A scope's <code>columns</code> entry says which columns exist for the caller, and <a href="pick-guardrails.html">Guardrails</a> shows how to write one. This section says where pick enforces the rule.</p>
 
 <ul>
-<li><b>A hidden column is checked everywhere</b>: the select list, <code>WHERE</code>, <code>ON</code>, <code>GROUP BY</code>, <code>ORDER BY</code>, inside expressions, inside subqueries. <code>WHERE ssn = &hellip;</code> would let a caller reconstruct a column it cannot read, one predicate at a time, so it is refused.</li>
-<li><b>Refused in the same words as a column that does not exist</b>, naming no table, so the refusal cannot be used to learn that the column is there. Hidden and absent are one answer, deliberately.</li>
-<li><b><code>SELECT *</code> is never an escape.</b> The star expands to the permitted columns before the server sees it, and the answer states the list. What was left out is a fact about the grant rather than a surprise in the rows.</li>
+<li><b>A hidden column is checked everywhere it can appear.</b> That covers the select list, <code>WHERE</code>, <code>ON</code>, <code>GROUP BY</code> and <code>ORDER BY</code>, and the inside of expressions and subqueries. A filter on a hidden column would reveal its values one guess at a time, so it is refused too.</li>
+<li><b>The refusal uses the same words as a column that does not exist</b>, and it names no table, so nobody can use it to learn that the column is there.</li>
+<li><b>The star cannot reach a hidden column.</b> It becomes the list of allowed columns before the server sees it, and the answer lists them.</li>
 </ul>
 
 <h2 id="describe">DESCRIBE, and what a view will not say</h2>
 
-<p><code>describe</code> answers from the catalog: columns with their types and nullability, indexes, and foreign keys. It never runs the object. Hidden columns are absent from all of it, and an index or key that involves a hidden column is left out whole, because a summary that says "one column not shown" says a hidden column exists. Every answer carries a shape hash, so a caller can tell when an object changed underneath it.</p>
+<p>The <code>describe</code> verb belongs to the tools level. It answers from the system catalog with the columns, their types and whether each may be empty, and then the indexes and foreign keys. It never runs the object it describes. With guardrails on, hidden columns are missing from all of it. An index or key that uses a hidden column is left out whole, because a note saying "one column not shown" would show that the column exists.</p>
 
-<p><b>A view answers its columns and never its definition.</b> View text embeds the tables underneath, their join logic and their filters, which is the structure the scopes may be hiding. So the stored <code>CREATE VIEW</code> text is denied in full rather than summarised. There is nothing to leak.</p>
+<p>Every answer carries a shape hash, a short code computed from the table's shape that changes when the shape changes. <b>A view answers with its columns and never with its definition.</b> The text of a view names the tables under it and how they are joined, which may be exactly what the scopes hide. So pick never returns the <code>CREATE VIEW</code> text of any view.</p>
 
 <h2 id="limits">Caps, stated in the answer</h2>
 
+<p>The caps belong to the tools level, and the configuration file cannot change them. Each answer says so when a cap cut it short.</p>
+
 <ul>
-<li><b>100 rows</b> by default (<code>--limit N</code> raises or lowers it). A capped result states how many rows were withheld.</li>
-<li><b>2,000 characters per cell, 40,000 per answer.</b> Truncation is announced, never silent.</li>
-<li><b>30 seconds per query.</b> A query that runs past it is <code>timed-out</code>, its own outcome, never dressed as anything else.</li>
+<li><b>Rows:</b> an answer holds at most 100 rows by default, and <code>--limit N</code> raises or lowers that number. A capped answer says how many rows it left out.</li>
+<li><b>Text:</b> one cell holds at most 2,000 characters and one answer at most 40,000, and pick always says when it cut text.</li>
+<li><b>Time:</b> a query may run for 30 seconds, and pick stops a slower one and reports it as <code>timed-out</code>, which is its own outcome.</li>
 </ul>
+
+<h2 id="doctor">doctor's lines</h2>
+
+<p>The <code>doctor</code> verb prints one line for each check. A healthy line starts with <code>ok</code> and a failed one with <code>!!</code>, and the three level lines always come first. A level that is off gets one line, and doctor runs none of that level's checks.</p>
+
+<table>
+<tr><th>Line</th><th>Level</th><th>What it reports</th></tr>
+<tr><td><code>tools</code></td><td>tools</td><td><code>on, always</code>, followed by the files that hold a <code>tools</code> section</td></tr>
+<tr><td><code>guardrails</code></td><td>guardrails</td><td><code>off</code>, or <code>on, from</code> followed by the file that holds the section</td></tr>
+<tr><td><code>screenings</code></td><td>screenings</td><td><code>off</code>, or <code>on, from</code> followed by the files that hold the section</td></tr>
+<tr><td><code>configuration</code></td><td>tools</td><td>the path of the <code>.picker.json</code> that pick is using</td></tr>
+<tr><td><code>server NAME</code></td><td>tools</td><td>whether a short test connection opens. With guardrails off, the line says the server is open, and with guardrails on, it counts the declared databases. A failure shows the first line of the server's error.</td></tr>
+<tr><td><code>models</code></td><td>screenings</td><td>the models folder, or that the folder does not exist, shown only when screenings are on and a folder is named</td></tr>
+<tr><td><code>burler</code></td><td>screenings</td><td>where the helper program is, or where pick expected to find it, shown only when screenings are on</td></tr>
+</table>
+
+<p>The <code>doctor</code> verb never prints a connection string or a password. It says whether the test connection opened, and not how it signed in.</p>
 
 <h2 id="codes">Exit codes</h2>
 
-<p>Each distinct failure class gets its own code, so a script can branch on <code>$LASTEXITCODE</code> without parsing text. The numbers are <b>fettle's numbers where the words match</b>, so a script driving both tools branches one way. The gaps in the sequence are fettle's outcomes this tool cannot produce (a stale hash, a governed file), and they stay gaps rather than being reused for different words. A verifier in this repository holds the table below to the source, row by row, and holds the alignment itself.</p>
+<p>Each kind of failure has its own exit code, so a script can branch on <code>$LASTEXITCODE</code> without reading any text. pick uses fettle's numbers wherever the words match, so one script can drive both programs. The gaps in the numbers are fettle outcomes that pick cannot produce, such as a stale hash, and no number is reused for a different word. A check in this repository holds this table to the source code, row by row.</p>
 
 <table>
 <tr><th>Code</th><th>Outcome</th><th>Meaning</th></tr>
 <tr><td>0</td><td><code>ok</code></td><td>it worked</td></tr>
 <tr><td>1</td><td>&mdash;</td><td>an unexpected internal fault</td></tr>
-<tr><td>2</td><td><code>invalid</code></td><td>the request did not make sense: an unknown flag, a missing value, a malformed configuration</td></tr>
+<tr><td>2</td><td><code>invalid</code></td><td>the request did not make sense: an unknown flag, a missing value, or a configuration that pick refuses to load</td></tr>
 <tr><td>3</td><td><code>not-found</code></td><td>not there, or not there as far as anyone can learn. An object outside the grant answers exactly as one that does not exist</td></tr>
-<tr><td>8</td><td><code>refused</code></td><td><b>pick declined</b>, for a stated reason: a verb the grant withholds, a query the gate will not pass</td></tr>
-<tr><td>9</td><td><code>denied</code></td><td><b>the server, the network or the OS declined</b>, which is not pick declining: a login without rights, a connection that will not open</td></tr>
-<tr><td>10</td><td><code>timed-out</code></td><td>the query ran past its 30 seconds and was cancelled</td></tr>
-<tr><td>13</td><td><code>screened</code></td><td>the response would have <b>disclosed</b> regulated data out of a screened scope, or the screen that would have judged it could not run. See <a href="pick-screening.html">screening</a></td></tr>
+<tr><td>8</td><td><code>refused</code></td><td><b>pick declined</b>, for a stated reason: a verb the grant withholds, or a query the gate will not pass</td></tr>
+<tr><td>9</td><td><code>denied</code></td><td><b>the server, the network or the system declined</b>, and not pick: a login without rights, or a connection that will not open</td></tr>
+<tr><td>10</td><td><code>timed-out</code></td><td>the query ran past its 30 seconds and was stopped</td></tr>
+<tr><td>13</td><td><code>screened</code></td><td>the answer would have <b>disclosed</b> regulated data from a screened database or scope, or the screen that would judge it could not run. See <a href="pick-screenings.html">Screenings</a></td></tr>
 </table>
 
-<p><code>denied</code> and <code>refused</code> are kept apart on purpose. A login failure reported as a gate refusal sends the caller to debug a boundary that is working.</p>
+<p>The outcomes <code>denied</code> and <code>refused</code> are kept apart on purpose. If a login failure looked like a gate refusal, you would spend time debugging rules that are working.</p>
 
 <h2 id="threat">What this defends against, and what it does not</h2>
 
 <ul>
-<li><b>The threat is inadvertent assistant action, not a determined person.</b> Whoever owns the machine edits <code>.picker.json</code> in an ordinary editor and holds the real credentials. That is the design, not a hole. It is the same bound Fettler draws.</li>
-<li><b>The statement that reaches the server is never the caller's string.</b> It is the gate's rewrite of a parsed tree: three-part bracket-quoted names, the star already expanded, every construct one the allowlist recognised. What the parser cannot parse never leaves the process, and what it parses to something outside the allowlist is refused whole.</li>
-<li><b>The login is the second wall, and it is the server's.</b> pick enforces its boundary in pick. A login granted only <code>SELECT</code> and <code>VIEW DEFINITION</code> means even a fault in pick has nothing wider to spend. Declaring a database grants the login nothing. <code>doctor</code> reports a refused knock rather than letting the declaration imply access.</li>
-<li><b>What it does not defend against</b>: a hostile server administrator, a poisoned catalog answering false metadata, or data a permitted column legitimately holds. That last is <a href="pick-screening.html">the screen's</a> territory, and the screen is a safety net rather than a boundary. A clean verdict is evidence, never proof.</li>
+<li><b>It guards against an assistant's mistakes, and not against a determined person.</b> Whoever owns the machine can edit <code>.picker.json</code> and holds the real passwords, and that is by design.</li>
+<li><b>The server never runs the caller's own text.</b> It runs the gate's rewrite, with full names in brackets, the star replaced by columns, and only parts the gate knows. A statement the gate cannot parse never leaves pick.</li>
+<li><b>The login is a second check, and the server enforces it.</b> Connect as a login that is granted only <code>SELECT</code> and <code>VIEW DEFINITION</code>, so that even a fault in pick can reach nothing more. Declaring a database grants the login nothing, and <code>doctor</code> reports a connection that fails.</li>
+<li><b>It does not defend against everything.</b> A hostile server administrator is out of its reach, and so is a catalog that reports false facts. Data that an allowed column holds by design is <a href="pick-screenings.html">the screen's</a> job, and a clean screen is evidence, not proof.</li>
 </ul>
 
 <nav class="pagenav pagenav-bottom" aria-label="Picker, in order">
-  <a href="pick-models.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">The Models</span></span></a>
+  <a href="pick-screenings.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Screenings</span></span></a>
   
 </nav>
 <footer>Named for the shoddy mills of the West Riding: Useless Things Made

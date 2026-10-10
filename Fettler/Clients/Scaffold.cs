@@ -48,73 +48,104 @@ public static class Scaffold
 
     public const string BlockClose = "<!-- fettler:end -->";
 
+    /// <summary>What one run of setup is asked to do.</summary>
+    /// <param name="Level">The level to set up: <c>tools</c>,
+    /// <c>guardrails</c> or <c>screenings</c>.</param>
+    /// <param name="Models">The models directory the project names, if
+    /// any, for <c>setup screenings</c> to check.</param>
+    /// <param name="FirstTree">The default tree's name, for the starter
+    /// <c>screenings</c> section to screen.</param>
     public sealed record Options(
         string Client,
-        Level Level,
+        Reach Reach,
         bool DryRun = false,
         bool Force = false,
         bool Hooks = false,
         bool Deny = false,
-        string? Command = null);
+        string? Command = null,
+        string Level = Levels.ToolsName,
+        string? Models = null,
+        string? FirstTree = null);
 
+    /// <summary>
+    /// Set up one level for one client (R7.4).
+    ///
+    /// <para><b>Each level writes only its own files.</b> <c>tools</c>
+    /// registers the server and nothing else. <c>guardrails</c> writes the
+    /// deny list, the instruction block, the hook when asked, and a starter
+    /// <c>guardrails</c> section. <c>screenings</c> checks burler and the
+    /// models directory and writes a starter <c>screenings</c> section.
+    /// Registering never writes a deny, so a project that only wants the
+    /// tools gets only the tools.</para>
+    /// </summary>
     public static Result<Scaffolding> Apply(Machine machine, Options options, string version)
     {
         if (!Places.Clients.Contains(options.Client))
             return Result<Scaffolding>.Fail(Outcome.Invalid,
                 $"no client called '{options.Client}'. The clients are: {string.Join(", ", Places.Clients)}");
 
+        if (!Levels.Names.Contains(options.Level, StringComparer.Ordinal))
+            return Result<Scaffolding>.Fail(Outcome.Invalid,
+                $"no level called '{options.Level}'. The levels are: {string.Join(", ", Levels.Names)}");
+
         var changes = new List<Change>();
         var notes = new List<string>();
 
+        if (options.Level == Levels.ScreeningsName)
+            return Screenings(machine, options, changes, notes);
+
         // It cannot correct installation, and must not pretend to.
+        // Only the tools level registers, so only it says which name the
+        // registration uses.
         string command = options.Command ?? Environment.ProcessPath ?? "fettle";
-        if (options.Command is null && Doctor.Resolve("fettle") is { } onPath)
+        bool registering = options.Level == Levels.ToolsName && options.Command is null;
+        if (registering && Doctor.Resolve("fettle") is { } onPath)
         {
             command = "fettle";
             notes.Add($"fettle is on PATH at {onPath}; the registration uses the name 'fettle'");
         }
-        else if (options.Command is null)
+        else if (registering)
         {
             notes.Add($"fettle is not on PATH, so the registration uses the full path {command}. "
                 + "Put fettle on PATH and run setup again to register the name instead");
         }
 
         IReadOnlyList<Place> places =
-            [.. Places.All(machine).Where(p => p.Client == options.Client && p.Level == options.Level)];
+            [.. Places.All(machine).Where(p => p.Client == options.Client && p.Reach == options.Reach)];
 
         if (places.Count == 0)
             return Result<Scaffolding>.Fail(Outcome.Invalid,
-                $"{options.Client} has no configuration at the {options.Level.ToString().ToLowerInvariant()} level");
+                $"{options.Client} has no configuration at the {Word(options.Reach)} reach");
 
-        // 3.4: a tree that has no configuration gets one, naming the tree
-        // the command was run in. Creating where none exists is
-        // scaffolding; CHANGING one is the escape B.13 closes, and
-        // belongs to a person with an editor.
-        if (options.Level == Level.Repo)
+        bool guardrails = options.Level == Levels.GuardrailsName;
+
+        if (guardrails && options.Reach == Reach.Repo)
         {
-            Result<Change?> config = TreeConfig(machine, options.DryRun);
+            // 3.4: a project with no guardrails section gets a starter
+            // one. Creating where none exists is scaffolding; CHANGING a
+            // section that exists is the escape B.13 closes, and belongs
+            // to a person with an editor.
+            Result<Change?> config = StarterSection(machine, Levels.GuardrailsName,
+                new JsonObject { ["trees"] = new JsonObject { [RootsFile.WorkName] = new JsonObject { ["path"] = "." } } },
+                "declaring this folder as the tree 'work'", options.DryRun);
             if (!config.IsOk) return config.Carry<Scaffolding>();
             if (config.Value is { } made) changes.Add(made);
         }
-        else
+        else if (guardrails)
         {
-            // A global run configures the machine and declares no tree,
-            // so it leaves the one file every verb needs still missing.
-            // Saying so here is the difference between a first-time setup
-            // that works and one that reports success and then refuses
-            // every command afterwards.
-            notes.Add("the machine level declares no tree. In each project, run: fettle setup "
-                + options.Client + " --local. That creates a .fettler.json declaring the project "
-                + "folder as 'work'");
+            notes.Add("the global reach declares no tree. Guardrails are a project's choice. In each "
+                + "project that wants them, run: fettle setup guardrails " + options.Client + " --local");
         }
 
         foreach (Place place in places)
         {
-            Result<Change?> change = place.Purpose switch
+            // tools registers and does nothing else. guardrails writes
+            // the instruction block and the policy, and never registers.
+            Result<Change?> change = (place.Purpose, guardrails) switch
             {
-                Purpose.Servers => Register(machine, place, command, options),
-                Purpose.Instructions => Instruct(machine, place, options),
-                Purpose.Policy => Policy(machine, place, options, notes),
+                (Purpose.Servers, false) => Register(machine, place, command, options),
+                (Purpose.Instructions, true) => Instruct(machine, place, options),
+                (Purpose.Policy, true) => Policy(machine, place, options, notes),
                 _ => Result<Change?>.Ok(null),
             };
 
@@ -189,30 +220,43 @@ public static class Scaffold
 
     // ---- the instruction block ----
 
+    /// <summary>The tools paragraph of the instruction block, written in
+    /// every block (R9.6).</summary>
+    public const string ToolsParagraph = """
+        ## Working on files here
+
+        Use the Fettler tools (`mcp__fettler__*`) for file work: find, search, read,
+        write, edit, move, copy and delete. Call `roots` first. It lists the trees,
+        what each allows, and which tree an unqualified path lands in.
+
+        **There is no working directory.** Paths resolve against the trees. `cd` and
+        `Set-Location` do nothing for Fettler. `read` returns a hash. Pass it as
+        `expect` on an edit, and the edit is refused if the file changed.
+
+        If something looks wrong, run `fettle doctor`.
+        """;
+
+    /// <summary>The guardrails paragraph, written only by
+    /// <c>setup guardrails</c> (R9.6).</summary>
+    public const string GuardrailsParagraph = """
+        **Guardrails are on.** The built-in Read, Write, Edit, NotebookEdit, Grep and
+        Glob are denied. Use the Fettler tools for every file operation.
+
+        **A tree may be read-only.** A scope inside a tree may allow more or less
+        than the tree does. Running a declared task needs `execute`, which is never
+        a default.
+
+        `.fettler.json` and `.fettler.local.json` say what Fettler may do. Fettler
+        does not write them. A person edits them.
+        """;
+
     static Result<Change?> Instruct(Machine machine, Place place, Options options)
     {
-        string body = $"""
-            {BlockOpen}
-            ## Working on files here
+        string paragraphs = options.Level == Levels.GuardrailsName
+            ? ToolsParagraph + "\n\n" + GuardrailsParagraph
+            : ToolsParagraph;
 
-            Use the Fettler tools (`mcp__fettler__*`) for every file operation: find,
-            search, read, write, edit, move, copy and delete. The built-in Read, Write,
-            Edit, NotebookEdit, Grep and Glob are denied.
-
-            **There is no working directory.** Paths resolve against the declared trees.
-            `cd` and `Set-Location` do nothing for Fettler. Call `roots` first. It lists
-            the trees, what each allows, and which tree an unqualified path lands in.
-
-            **A tree may be read-only.** A scope inside a tree may allow more or less
-            than the tree does. Running a declared task needs `execute`, which is never
-            a default.
-
-            `.fettler.json` and `.fettler.local.json` say what Fettler may do. Fettler
-            does not write them. A person edits them.
-
-            If something looks wrong, run `fettle doctor`.
-            {BlockClose}
-            """;
+        string body = BlockOpen + "\n" + paragraphs + "\n" + BlockClose;
 
         string existing = string.Empty;
         if (File.Exists(place.Path))
@@ -245,7 +289,7 @@ public static class Scaffold
             open >= 0 ? "update the Fettler instruction block" : "add a Fettler instruction block");
     }
 
-    // ---- policy: offered at the global level, written at the local one ----
+    // ---- policy: offered globally, written in the project ----
 
     /// <summary>
     /// The denies that make Fettler the route rather than merely an
@@ -280,7 +324,7 @@ public static class Scaffold
         // --global only offers, and needs the flag: changing how the
         // assistant may work in EVERY project is not a side effect of
         // configuring one.
-        bool write = options.Level == Level.Repo || options.Deny;
+        bool write = options.Reach == Reach.Repo || options.Deny;
 
         Result<JsonObject> read = Load(machine, place.Path);
         if (!read.IsOk) return read.Carry<Change?>();
@@ -329,7 +373,7 @@ public static class Scaffold
 
         if (adding.Count > 0 && !write)
             notes.Add($"not written: {string.Join(", ", adding)} would be denied in {place.Path}. "
-                + "Pass --deny to write the deny list at the global level");
+                + "Pass --deny to write the deny list globally");
 
         bool denying = write && adding.Count > 0;
         if (denying) foreach (string tool in adding) deny.Add(tool);
@@ -342,7 +386,7 @@ public static class Scaffold
         if (denying && adding.Any(tool => Doctor.Shell.Contains(tool, StringComparer.Ordinal)))
             notes.Add("the shell is denied too, so build and git commands through it now stop. "
                 + "Allow back only the commands this project needs, for example "
-                + "\"allow\": [\"Bash(git status:*)\"], or declare them as tasks in .fettler.json. "
+                + "\"allow\": [\"Bash(git status:*)\"], or declare them as tasks under \"guardrails\" in .fettler.json. "
                 + "Never allow a command that writes files");
 
         // The hook is asked for by --hooks and by nothing else, so it must
@@ -416,26 +460,115 @@ public static class Scaffold
         return true;
     }
 
-    // ---- the tree's own configuration ----
+    // ---- the screenings level ----
 
-    static Result<Change?> TreeConfig(Machine machine, bool dryRun)
+    /// <summary>
+    /// <c>setup screenings</c>: check that burler is beside fettle, check
+    /// the models directory, and write a starter <c>screenings</c>
+    /// section into the project's file when it has none.
+    ///
+    /// <para>The models are never downloaded here. They are a person's to
+    /// fetch and put in a directory, and setup says where to name it.</para>
+    /// </summary>
+    static Result<Scaffolding> Screenings(Machine machine, Options options, List<Change> changes, List<string> notes)
+    {
+        string burler = Sidecar.Executable();
+        notes.Add(File.Exists(burler)
+            ? $"burler is beside fettle at {burler}"
+            : $"burler is not beside fettle at {burler}. Only identifiers can be screened until it is. "
+              + "Install fettle from a release archive, which carries burler");
+
+        if (options.Models is { } models)
+            notes.Add(Directory.Exists(models)
+                ? $"the models directory {models} exists"
+                : $"the models directory {models} does not exist. Create it and put the models in it");
+        else
+            notes.Add("no models directory is named, so only identifiers are screened. Name one as "
+                + "\"models\" under \"screenings\"");
+
+        if (options.Reach == Reach.Repo)
+        {
+            string tree = options.FirstTree ?? RootsFile.WorkName;
+            Result<Change?> section = StarterSection(machine, Levels.ScreeningsName,
+                new JsonObject { ["screen"] = new JsonObject { [tree] = true } },
+                $"screening the tree '{tree}' for every category", options.DryRun);
+            if (!section.IsOk) return section.Carry<Scaffolding>();
+            if (section.Value is { } made) changes.Add(made);
+        }
+        else
+        {
+            notes.Add("the global reach writes no project file. Screenings are a project's choice. In each "
+                + "project that wants them, run: fettle setup screenings " + options.Client + " --local");
+        }
+
+        return Result<Scaffolding>.Ok(new Scaffolding(changes, notes, options.DryRun));
+    }
+
+    // ---- the project's own configuration ----
+
+    /// <summary>
+    /// Write a starter section into the project's <c>.fettler.json</c>,
+    /// creating the file when there is none.
+    ///
+    /// <para><b>Never into a file that already has the section</b> (R7.5).
+    /// Creating where none exists is scaffolding. Changing a section that
+    /// exists is the escape the governed-file refusal closes, and belongs
+    /// to a person with an editor. A file in the old flat shape is left
+    /// alone: the next fettle command names the rewrite.</para>
+    /// </summary>
+    static Result<Change?> StarterSection(Machine machine, string section, JsonObject starter, string what, bool dryRun)
     {
         string path = Path.Combine(machine.Tree, RootsFile.FileName);
-        if (File.Exists(path)) return Result<Change?>.Ok(null);
+        JsonObject root;
+        bool exists = File.Exists(path);
 
-        string body = $$"""
+        if (exists)
+        {
+            string text;
+            try { text = TextIo.WithoutMark(File.ReadAllText(path)); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
-              "trees": {
-                "work": { "path": "." }
-              }
+                return Result<Change?>.Fail(Outcome.Denied, "could not read: " + e.Message, path);
             }
 
-            """;
+            try
+            {
+                if (JsonNode.Parse(text, null, new JsonDocumentOptions
+                    {
+                        CommentHandling = JsonCommentHandling.Skip,
+                        AllowTrailingCommas = true,
+                    }) is not JsonObject parsed)
+                    return Result<Change?>.Ok(null);
+                root = parsed;
+            }
+            catch (JsonException)
+            {
+                return Result<Change?>.Ok(null);
+            }
 
-        if (dryRun) return Result<Change?>.Ok(new Change(path, "create, declaring this folder as 'work'", false));
+            if (root.ContainsKey(section) || root.ContainsKey("trees") || root.ContainsKey("roots"))
+                return Result<Change?>.Ok(null);
+        }
+        else
+        {
+            root = [];
+        }
 
+        root[section] = starter;
+
+        string verb = exists ? $"add a \"{section}\" section" : $"create, with a \"{section}\" section";
+        if (dryRun) return Result<Change?>.Ok(new Change(path, $"{verb} {what}", false));
+
+        string body = root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n";
+        string? backup = null;
         try
         {
+            if (exists)
+            {
+                backup = path + Places.BackupSuffix;
+                if (!File.Exists(backup)) File.Copy(path, backup);
+            }
+
             File.WriteAllText(path, body.Replace("\r\n", "\n"), new UTF8Encoding(false));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -443,8 +576,10 @@ public static class Scaffold
             return Result<Change?>.Fail(Outcome.Denied, "could not write: " + e.Message, path);
         }
 
-        return Result<Change?>.Ok(new Change(path, "created, declaring this folder as 'work'", true));
+        return Result<Change?>.Ok(new Change(path, (exists ? $"added a \"{section}\" section " : $"created, with a \"{section}\" section ") + what, true, backup));
     }
+
+    static string Word(Reach reach) => reach == Reach.Global ? "global" : "repo";
 
     // ---- reading and writing, only inside the closed list ----
 

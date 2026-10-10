@@ -115,12 +115,15 @@ public static class Command
         if (json)
             return Ok(Json(w =>
             {
+                WriteLevels(w, answer.Levels);
+
                 w.WriteStartArray("servers");
                 foreach (ServerReport server in answer.Servers)
                 {
                     w.WriteStartObject();
                     w.WriteString("name", server.Name);
                     w.WriteString("connect", server.Connect);
+                    w.WriteBoolean("open", answer.Open.Contains(server.Name));
                     w.WriteStartArray("databases");
                     foreach (DatabaseReport database in server.Databases)
                     {
@@ -158,9 +161,14 @@ public static class Command
             }));
 
         var text = new StringBuilder();
+        AppendLevels(text, answer.Levels);
+        text.AppendLine();
+
         foreach (ServerReport server in answer.Servers)
         {
             text.AppendLine($"{server.Name}  (connect: {server.Connect})");
+            if (answer.Open.Contains(server.Name))
+                text.AppendLine("  every database this login can reach; guardrails are off, so none is declared");
             foreach (DatabaseReport database in server.Databases)
             {
                 text.AppendLine($"  {database.Name}: {database.Can}"
@@ -407,10 +415,13 @@ public static class Command
         IReadOnlyList<string> unknown = args.UnknownFlags();
         if (unknown.Count > 0) return Unknown(unknown, json);
 
-        var lines = new List<(string Subject, bool Healthy, string Detail)>
-        {
-            ("configuration", true, bench.Boundary.Origin),
-        };
+        // R7.2 for pick: the levels first, then the checks. A level that
+        // is off is one line, and its checks are not run.
+        Levels levels = bench.Boundary.Levels;
+        var lines = new List<(string Subject, bool Healthy, string Detail)>();
+        foreach (string level in Levels.Names)
+            lines.Add((level, true, levels.Describe(level)));
+        lines.Add(("configuration", true, bench.Boundary.Origin));
 
         foreach (ServerDecl server in bench.Boundary.Servers)
         {
@@ -430,8 +441,9 @@ public static class Command
                     builder.ConnectTimeout is > 0 and < 5 ? builder.ConnectTimeout : 5, 5);
                 using var connection = new SqlConnection(builder.ConnectionString);
                 connection.Open();
-                lines.Add(($"server {server.Name}", true,
-                    $"connects ({server.Databases.Count} database(s) declared)"));
+                lines.Add(($"server {server.Name}", true, server.Open
+                    ? "connects (guardrails off: every database the login can reach)"
+                    : $"connects ({server.Databases.Count} database(s) declared)"));
             }
             catch (Exception e) when (e is SqlException or InvalidOperationException or ArgumentException)
             {
@@ -442,14 +454,17 @@ public static class Command
             }
         }
 
-        if (bench.Boundary.Models is { } models)
-            lines.Add(("models", Directory.Exists(models),
-                Directory.Exists(models) ? models : $"{models} does not exist"));
+        if (levels.ScreeningsOn)
+        {
+            if (bench.Boundary.Models is { } models)
+                lines.Add(("models", Directory.Exists(models),
+                    Directory.Exists(models) ? models : $"{models} does not exist"));
 
-        string burler = Sidecar.Executable();
-        lines.Add(("burler", File.Exists(burler),
-            File.Exists(burler) ? burler : $"not installed (expected at {burler}). "
-                + "Only model-backed screening needs it"));
+            string burler = Sidecar.Executable();
+            lines.Add(("burler", File.Exists(burler),
+                File.Exists(burler) ? burler : $"not installed (expected at {burler}). "
+                    + "Only model-backed screening needs it"));
+        }
 
         if (json)
             return Ok(Json(w =>
@@ -476,11 +491,35 @@ public static class Command
 
     // ---- rendering ----
 
+    static void WriteLevels(Utf8JsonWriter w, Levels levels)
+    {
+        w.WriteStartObject("levels");
+        foreach (string level in Levels.Names)
+        {
+            w.WriteStartObject(level);
+            w.WriteBoolean("on", levels.IsOn(level));
+            w.WriteStartArray("from");
+            foreach (string file in levels.Sources(level)) w.WriteStringValue(file);
+            w.WriteEndArray();
+            w.WriteEndObject();
+        }
+        w.WriteEndObject();
+    }
+
+    static void AppendLevels(StringBuilder text, Levels levels)
+    {
+        text.AppendLine("levels");
+        foreach (string level in Levels.Names)
+            text.Append("  ").Append(level.PadRight(12)).AppendLine(levels.Describe(level));
+    }
+
     static string Help() => """
-        pick - SELECT and DESCRIBE inside declared SQL Server databases
+        pick - SELECT and DESCRIBE in SQL Server databases. Three levels: tools (always
+        on: a connection and the query gate), guardrails (declared databases, verbs,
+        scopes, columns), screenings (the disclosure screen).
 
         Verbs
-          catalogs                     list the declared servers and databases, and what each allows
+          catalogs                     the levels, then the servers and databases, and what each allows
           objects [PATTERN]            list tables and views the grant allows; PATTERN is
                                        schema.object or a bare object name, * inside a segment
           select "SQL" [--limit N]     run one SELECT (--stdin reads the SQL from stdin)

@@ -62,6 +62,56 @@ public sealed class Resolver
 
     public Boundary Boundary => boundary;
 
+    IReadOnlyList<(ServerDecl Server, DatabaseDecl Database)>? surface;
+
+    /// <summary>
+    /// Every database there is for this call: the declared ones, and for
+    /// an open server, the ones the login can reach.
+    ///
+    /// <para>Read once per resolver, which lives for one request, so a
+    /// database created on the server shows on the next call. An open
+    /// database gets <see cref="ServerDecl.OpenGrant"/> and the screen
+    /// <c>screenings</c> names for it. A source that cannot list
+    /// databases leaves an open server with none.</para>
+    /// </summary>
+    public async Task<Result<IReadOnlyList<(ServerDecl Server, DatabaseDecl Database)>>> DatabasesAsync(
+        CancellationToken cancel)
+    {
+        lock (gate)
+        {
+            if (surface is not null)
+                return Result<IReadOnlyList<(ServerDecl, DatabaseDecl)>>.Ok(surface);
+        }
+
+        var found = new List<(ServerDecl, DatabaseDecl)>();
+        foreach (ServerDecl server in boundary.Servers)
+        {
+            if (!server.Open)
+            {
+                foreach (DatabaseDecl database in server.Databases) found.Add((server, database));
+                continue;
+            }
+
+            if (source is not IDatabaseSource lister) continue;
+
+            Result<IReadOnlyList<string>> listed = await lister.DatabasesAsync(server, cancel).ConfigureAwait(false);
+            if (!listed.IsOk) return listed.Carry<IReadOnlyList<(ServerDecl, DatabaseDecl)>>();
+
+            foreach (string name in listed.Value)
+            {
+                Screened screen = boundary.OpenScreens.TryGetValue(name, out Screened s) ? s : Screened.None;
+                found.Add((server, new DatabaseDecl(name, ServerDecl.OpenGrant, screen, [])));
+            }
+        }
+
+        lock (gate)
+        {
+            surface = found;
+        }
+
+        return Result<IReadOnlyList<(ServerDecl, DatabaseDecl)>>.Ok(found);
+    }
+
     /// <summary>
     /// The snapshot for one declared database, read once per resolver
     /// and held. A resolver lives for one request in the serve path -
@@ -109,8 +159,11 @@ public sealed class Resolver
     async Task<Result<ResolvedObject>> Qualified(
         ObjectName name, Verb needed, CancellationToken cancel)
     {
+        var all = await DatabasesAsync(cancel).ConfigureAwait(false);
+        if (!all.IsOk) return all.Carry<ResolvedObject>();
+
         var declared = new List<(ServerDecl Server, DatabaseDecl Database)>();
-        foreach ((ServerDecl server, DatabaseDecl database) in boundary.Databases())
+        foreach ((ServerDecl server, DatabaseDecl database) in all.Value)
             if (database.Name.Equals(name.Database, StringComparison.OrdinalIgnoreCase))
                 declared.Add((server, database));
 
@@ -148,9 +201,12 @@ public sealed class Resolver
     async Task<Result<ResolvedObject>> Searched(
         ObjectName name, Verb needed, CancellationToken cancel)
     {
+        var all = await DatabasesAsync(cancel).ConfigureAwait(false);
+        if (!all.IsOk) return all.Carry<ResolvedObject>();
+
         var candidates = new List<ResolvedObject>();
 
-        foreach ((ServerDecl server, DatabaseDecl database) in boundary.Databases())
+        foreach ((ServerDecl server, DatabaseDecl database) in all.Value)
         {
             Result<CatalogSnapshot> snapshot =
                 await SnapshotAsync(server, database, cancel).ConfigureAwait(false);

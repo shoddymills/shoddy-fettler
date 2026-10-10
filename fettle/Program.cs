@@ -87,16 +87,12 @@ public static class Program
             return ExitCodes.Of(boundary.Failure.Outcome);
         }
 
-        // A boundary read from a file is re-read from that same file
-        // before every request, so an edit binds without a restart;
-        // --root declares one with no file behind it, and that one
-        // stays as launched.
-        Func<Result<Roots>>? reload = boundary.Value.File is { } file
-            ? () => RootsFile.Reopen(file)
-            : null;
-
+        // The boundary is opened again before every request: a file is
+        // re-read so an edit binds without a restart, and the client's
+        // folders are found again so a scratch folder made after launch
+        // appears.
         using var bench = new Bench(boundary.Value.Roots);
-        using var server = new McpServer(bench, stdin, Console.Out, reload);
+        using var server = new McpServer(bench, stdin, Console.Out, boundary.Value.Reopen);
 
         await server.RunAsync(cancel).ConfigureAwait(false);
         return ExitCodes.Ok;

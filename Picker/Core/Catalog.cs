@@ -77,3 +77,16 @@ public interface ICatalogSource
     Task<Result<CatalogSnapshot>> LoadAsync(
         ServerDecl server, DatabaseDecl database, CancellationToken cancel);
 }
+
+/// <summary>
+/// Which databases an open server lists for this login - the tools
+/// level's surface, where nothing is declared.
+///
+/// <para>Separate from <see cref="ICatalogSource"/> so a fake can answer
+/// it from literals, and so a source that cannot answer it leaves an
+/// open server with no databases rather than guessing.</para>
+/// </summary>
+public interface IDatabaseSource
+{
+    Task<Result<IReadOnlyList<string>>> DatabasesAsync(ServerDecl server, CancellationToken cancel);
+}

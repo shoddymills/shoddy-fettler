@@ -294,7 +294,7 @@ public sealed class FrontEndTests
 
         Assert.Equal(ExitCodes.Ok, said.ExitCode);
         Assert.StartsWith("fettle ", said.Stdout);
-        Assert.DoesNotContain("Global flags", said.Stdout);
+        Assert.DoesNotContain("Flags for every verb", said.Stdout);
     }
 
     [Fact]
@@ -302,8 +302,8 @@ public sealed class FrontEndTests
     {
         using var box = new Sandbox();
 
-        Assert.Contains("Global flags", (await Run(box)).Stdout);
-        Assert.Contains("Global flags", (await Run(box, "help")).Stdout);
+        Assert.Contains("Flags for every verb", (await Run(box)).Stdout);
+        Assert.Contains("Flags for every verb", (await Run(box, "help")).Stdout);
     }
 
     /// <summary>

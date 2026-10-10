@@ -33,7 +33,15 @@ public sealed record ScopeReport(
     string Pattern, string Can, IReadOnlyList<string> Columns, string? Screen);
 
 public sealed record CatalogsAnswer(
-    IReadOnlyList<ServerReport> Servers, string? Models, string Origin);
+    IReadOnlyList<ServerReport> Servers, string? Models, string Origin)
+{
+    /// <summary>Which levels are on, and which files turned each on.</summary>
+    public Levels Levels { get; init; } = Levels.ToolsOnly;
+
+    /// <summary>The servers whose databases are found rather than
+    /// declared, because guardrails are off.</summary>
+    public IReadOnlyList<string> Open { get; init; } = [];
+}
 
 public sealed record ObjectsAnswer(IReadOnlyList<ListedObject> Objects, bool Truncated);
 
@@ -122,7 +130,11 @@ public sealed class Bench : IDisposable
             servers.Add(new ServerReport(server.Name, server.Connect.Display, databases));
         }
 
-        return new CatalogsAnswer(servers, boundary.Models, boundary.Origin);
+        return new CatalogsAnswer(servers, boundary.Models, boundary.Origin)
+        {
+            Levels = boundary.Levels,
+            Open = [.. boundary.Servers.Where(s => s.Open).Select(s => s.Name)],
+        };
     }
 
     // ---- objects ----
@@ -156,7 +168,10 @@ public sealed class Bench : IDisposable
         bool truncated = false;
         Screened screen = Screened.None;
 
-        foreach ((ServerDecl server, DatabaseDecl database) in boundary.Databases())
+        var all = await resolver.DatabasesAsync(cancel).ConfigureAwait(false);
+        if (!all.IsOk) return all.Carry<ObjectsAnswer>();
+
+        foreach ((ServerDecl server, DatabaseDecl database) in all.Value)
         {
             Result<CatalogSnapshot> snapshot =
                 await resolver.SnapshotAsync(server, database, cancel).ConfigureAwait(false);

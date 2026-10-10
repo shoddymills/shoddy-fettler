@@ -321,7 +321,7 @@ if (-not $now -or (FullName $now.Source) -ine $destination) {
     Write-Host ""
     Write-Host "NOT ON PATH: $dir is not what '$Program' resolves to." -ForegroundColor Yellow
     Write-Host "             Add it and open a new terminal, or register the absolute" -ForegroundColor Yellow
-    Write-Host "             path with: $Program setup CLIENT --local --command `"$destination`"" -ForegroundColor Yellow
+    Write-Host "             path with: $Program setup tools CLIENT --local --command `"$destination`"" -ForegroundColor Yellow
 }
 
 if ($running.Count -gt 0) {

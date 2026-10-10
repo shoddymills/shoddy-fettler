@@ -1,4 +1,6 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Fettler.Core;
 
@@ -7,201 +9,146 @@ namespace Fettler.Core;
 /// and the only place a permission beyond <c>list read</c> can be
 /// granted.
 ///
-/// <para>A caller working in one tree should not have to spell that
-/// tree's boundary out on every command. The answer that suggests
-/// itself - a shell script per platform holding the paths and passing
-/// them through - is worse than the problem it solves: it puts a shell
-/// back between the caller and the files, which is the thing this
-/// program exists to remove, and being a twin pair it has to be kept in
-/// step by hand. This file is that job done once, in the program, and
-/// both front ends get it because both reach the boundary through
-/// <see cref="Fettler.Cli.Arguments.DeclaredRoots"/>.</para>
+/// <para><b>Three sections, one per level.</b> A configuration file holds
+/// any of <c>tools</c>, <c>guardrails</c> and <c>screenings</c>, and
+/// nothing else at the top. <c>guardrails</c> holds the trees, the tasks
+/// and the replacements. <c>screenings</c> holds the models directory and
+/// the screens. <c>tools</c> holds the generated-folder names and where
+/// the client's folders are. Writing a section is what turns its level
+/// on, so a reader sees which levels a project uses by reading the top
+/// of the file.</para>
+///
+/// <para><b>No file is the tools level.</b> When the walk upward finds
+/// no <c>.fettler.json</c>, the launch folder is one tree called
+/// <c>work</c>, granted everything but execute. A file found above the
+/// launch folder is always honoured: ignoring one would widen the
+/// boundary without a word.</para>
 ///
 /// <para><b>A path in the file is relative to THE FILE, never to the
-/// current directory (R8.9).</b> That is the whole point of it. A
-/// relative tree read against the caller's cwd names a different tree
-/// from every directory, which is precisely the fault a wrapper
-/// computing absolute paths was invented to work around; resolving
-/// against the file's own directory makes the boundary a property of
-/// the tree, so the same command means the same thing from anywhere
-/// inside it. An absolute path in the file stays absolute.</para>
+/// current directory (R8.9).</b> A relative tree read against the
+/// caller's cwd names a different tree from every directory. Resolving
+/// against the file's own directory makes the boundary a property of the
+/// tree. An absolute path in the file stays absolute.</para>
 ///
-/// <para><b>A malformed file is a refusal, never a fallback.</b>
-/// Quietly reverting to the current directory would move the boundary
-/// without saying so, and usually widen it - a cwd above the intended
-/// tree contains the intended tree - which is the one direction a
-/// containment mistake must never fail in.</para>
+/// <para><b>A malformed file is a refusal, never a fallback.</b> Falling
+/// back to the tools level from a broken file would widen the boundary
+/// at the moment somebody had tried to state one.</para>
 ///
-/// <para><b>Writing one is the deliberate act that grants write access.</b>
-/// A command line cannot: <c>--root</c> grants <c>list read</c> and
-/// nothing more. To write to a tree you put a file in it, which is
-/// reviewable, sits beside what it governs, and is something a person
-/// did rather than something a caller asked for.</para>
+/// <para><b>Three files, merged in order.</b> The machine file first,
+/// then the project's <c>.fettler.json</c>, then the gitignored
+/// <c>.fettler.local.json</c> beside it. Each later file wins section by
+/// section, and inside a section an entry named in both is the later
+/// file's entirely. The machine file may not hold <c>guardrails</c>.</para>
 /// </summary>
 public static class RootsFile
 {
     public const string FileName = ".fettler.json";
 
-    /// <summary>
-    /// The personal overlay (B.12): gitignored, merged over the
-    /// checked-in file.
-    ///
-    /// <para>The checked-in file can only name trees that ship with the
-    /// tree itself, because a tree that does not exist is a startup
-    /// failure. So without this there is no way to say "and my
-    /// requirements checkout, and my assistant's scratch folder" - and
-    /// <c>--root</c> REPLACES rather than adds, so naming one sibling
-    /// silently drops the main tree. Merging is right here and wrong
-    /// there: this is one tree's configuration layered on itself, not a
-    /// caller overriding a tree.</para>
-    /// </summary>
+    /// <summary>The personal overlay: gitignored, merged over the
+    /// checked-in file.</summary>
     public const string LocalFileName = ".fettler.local.json";
 
-    /// <summary>A configuration that was found and read: where it was,
-    /// and what it declared.</summary>
-    public sealed record Found(string File, IReadOnlyList<TreeDecl> Trees)
+    /// <summary>The name of the one tree at the tools level.</summary>
+    public const string WorkName = "work";
+
+    /// <summary>A configuration that was read, or the tools level when
+    /// none was found.</summary>
+    /// <param name="File">The project's <c>.fettler.json</c>, or null when
+    /// the walk found none.</param>
+    /// <param name="Trees">The trees to open: the declared ones when
+    /// guardrails are on, and the launch folder as <c>work</c> when they
+    /// are off.</param>
+    public sealed record Found(string? File, IReadOnlyList<TreeDecl> Trees)
     {
-        /// <summary>Where the boundary came from, in words, including the
-        /// overlay when there was one.</summary>
-        public string Origin => Overlay is null ? File : $"{File} (with {Overlay})";
+        /// <summary>Where the boundary came from, in words, naming every
+        /// file that was read.</summary>
+        public string Origin
+        {
+            get
+            {
+                string project = File is null
+                    ? $"no {FileName}, so the launch folder is the tree"
+                    : Overlay is null ? File : $"{File} (with {Overlay})";
+                return Machine is null ? project : $"{project}, and the machine file {Machine}";
+            }
+        }
 
         public string? Overlay { get; init; }
 
-        /// <summary>The tasks it declared, empty when it declared none.
-        /// What may run in a tree and what may be done to it are one
-        /// statement about one tree, so one file states both.</summary>
+        /// <summary>The machine file, when there was one.</summary>
+        public string? Machine { get; init; }
+
+        /// <summary>The folder the walk started from.</summary>
+        public string Launch { get; init; } = "";
+
+        public Levels Levels { get; init; } = Levels.ToolsOnly;
+
+        /// <summary>The tasks it declared, empty when it declared none.</summary>
         public IReadOnlyList<TaskDecl> Tasks { get; init; } = [];
 
-        /// <summary>The replacements it declared, empty when it declared
-        /// none: a name, and the string a task's command line gets in its
-        /// place.</summary>
+        /// <summary>The replacements it declared: a name, and the string a
+        /// task's command line gets in its place.</summary>
         public IReadOnlyDictionary<string, string> Replacements { get; init; } =
             new Dictionary<string, string>(StringComparer.Ordinal);
 
         /// <summary>The absolute path of the screening models directory,
-        /// or null when the configuration named none. See
-        /// <see cref="Roots.Models"/> for why null is a state that means
-        /// something rather than a field nobody filled in.</summary>
+        /// or null when no file named one.</summary>
         public string? Models { get; init; }
+
+        /// <summary>The folder names enumeration skips, or null for the
+        /// compiled-in list.</summary>
+        public IReadOnlyList<string>? Generated { get; init; }
+
+        /// <summary>Where the client's folders are, when a file said.</summary>
+        public HarnessSettings Harness { get; init; } = HarnessSettings.None;
     }
 
+    // ---- finding the files ----
+
     /// <summary>
-    /// The nearest configuration at or above a directory, with its
-    /// overlay merged over it.
+    /// The configuration for a command launched in a folder: the nearest
+    /// <c>.fettler.json</c> at or above it, its overlay, and the machine
+    /// file.
     ///
     /// <para>Walking up is what lets a command work from a subdirectory
-    /// of the tree rather than only from its top, which is where a
-    /// caller usually is. NotFound means the walk reached the volume
-    /// without finding one; every other failure means a file WAS found
-    /// and was wrong, and must be reported rather than walked past.</para>
+    /// of the tree. When the walk reaches the volume root and finds
+    /// nothing, the answer is the tools level, not a refusal. Any other
+    /// failure means a file WAS found and was wrong, and is reported
+    /// rather than walked past.</para>
     /// </summary>
-    public static Result<Found> Discover(string from)
+    public static Result<Found> Discover(string launch, string? machineFile = null)
     {
-        string? dir;
+        string full;
         try
         {
-            dir = Path.GetFullPath(from);
+            full = Path.GetFullPath(launch);
         }
         catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException)
         {
-            return Result<Found>.Fail(Outcome.Invalid, $"cannot read the directory to search from: {e.Message}", from);
+            return Result<Found>.Fail(Outcome.Invalid, $"cannot read the directory to search from: {e.Message}", launch);
         }
 
-        while (dir is not null)
+        for (string? dir = full; dir is not null; dir = Path.GetDirectoryName(dir))
         {
             string candidate = Path.Combine(dir, FileName);
-            if (File.Exists(candidate)) return ReadWithOverlay(candidate);
-            dir = Path.GetDirectoryName(dir);
+            if (File.Exists(candidate)) return Assemble(candidate, full, machineFile);
+
+            // A lone overlay is read as the project's file. Ignoring it
+            // would leave its guardrails off without saying so.
+            string lone = Path.Combine(dir, LocalFileName);
+            if (File.Exists(lone)) return Assemble(lone, full, machineFile);
         }
 
-        return Result<Found>.Fail(Outcome.NotFound,
-            $"no {FileName} at or above the current directory");
+        return Assemble(null, full, machineFile);
     }
 
-    /// <summary>Read a configuration and the personal overlay beside it,
-    /// if there is one.</summary>
-    public static Result<Found> ReadWithOverlay(string file)
-    {
-        Result<Found> found = Read(file);
-        if (!found.IsOk) return found;
+    /// <summary>The tools level for a folder, with the machine file but
+    /// without walking for a project file. This is <c>--no-config</c>.</summary>
+    public static Result<Found> ToolsLevel(string launch, string? machineFile = null) =>
+        Assemble(null, Path.GetFullPath(launch), machineFile);
 
-        string overlay = Path.Combine(Path.GetDirectoryName(found.Value.File)!, LocalFileName);
-        if (!File.Exists(overlay)) return Fill(found.Value);
-
-        Result<Found> local = Read(overlay);
-        if (!local.IsOk) return local;
-
-        return Fill(new Found(found.Value.File, Merge(found.Value.Trees, local.Value.Trees))
-        {
-            Overlay = local.Value.File,
-            Tasks = MergeTasks(found.Value.Tasks, local.Value.Tasks),
-            Replacements = MergeReplacements(found.Value.Replacements, local.Value.Replacements),
-
-            // The overlay's if it named one, otherwise the checked-in
-            // file's. This is the one setting most likely to differ per
-            // machine - the models are 400 MB nobody checks in, so where
-            // they sit is a fact about a disk rather than about a project.
-            Models = local.Value.Models ?? found.Value.Models,
-        });
-    }
-
-    /// <summary>
-    /// The boundary, re-read from a named configuration and opened.
-    ///
-    /// <para><b>This is serve's per-request read.</b> The CLI reads the
-    /// file fresh on every command because every command is a fresh
-    /// process; a server that read it once would hold a boundary the
-    /// file no longer states, and stay wider than a person's revocation
-    /// until somebody thought to restart it - the one direction a
-    /// boundary must never fail in. What is re-read is the FILE FOUND AT
-    /// LAUNCH, never a fresh discovery: a configuration that has gone
-    /// missing refuses, because walking up from where it was could find
-    /// a broader one above it.</para>
-    /// </summary>
-    public static Result<Roots> Reopen(string file)
-    {
-        Result<Found> found = ReadWithOverlay(file);
-        return found.IsOk
-            ? Roots.Open(found.Value.Trees, found.Value.Origin, found.Value.Tasks, found.Value.Models)
-            : found.Carry<Roots>();
-    }
-
-    /// <summary>
-    /// The overlay's trees over the checked-in ones: a name in both is
-    /// the overlay's ENTIRELY, and a name only the overlay has is added.
-    ///
-    /// <para>Replacing a whole tree rather than merging its fields is the
-    /// predictable rule. Field-level merging would let a local file grant
-    /// a permission by mentioning one key while appearing to say nothing
-    /// about the rest, and nobody reading the two files side by side
-    /// could say what the result was without running it.</para>
-    /// </summary>
-    static IReadOnlyList<TreeDecl> Merge(IReadOnlyList<TreeDecl> shipped, IReadOnlyList<TreeDecl> local)
-    {
-        var merged = new List<TreeDecl>();
-
-        foreach (TreeDecl tree in shipped)
-        {
-            TreeDecl? replacement = null;
-            foreach (TreeDecl l in local)
-                if (l.Name.Equals(tree.Name, Roots.PathComparison)) replacement = l;
-            merged.Add(replacement ?? tree);
-        }
-
-        foreach (TreeDecl l in local)
-        {
-            bool already = false;
-            foreach (TreeDecl m in merged)
-                if (m.Name.Equals(l.Name, Roots.PathComparison)) already = true;
-            if (!already) merged.Add(l);
-        }
-
-        return merged;
-    }
-
-    /// <summary>Read one named configuration, failing with what was
-    /// wrong with it rather than with a parser's word for it.</summary>
-    public static Result<Found> Read(string file)
+    /// <summary>Read a named configuration and the overlay beside it.</summary>
+    public static Result<Found> ReadWithOverlay(string file, string? launch = null, string? machineFile = null)
     {
         string full;
         try
@@ -213,6 +160,260 @@ public static class RootsFile
             return Result<Found>.Fail(Outcome.Invalid, $"not a usable path: {e.Message}", file);
         }
 
+        if (!File.Exists(full))
+            return Result<Found>.Fail(Outcome.NotFound, "the file does not exist", full);
+
+        return Assemble(full, Path.GetFullPath(launch ?? Path.GetDirectoryName(full)!), machineFile);
+    }
+
+    /// <summary>Read one configuration file on its own: no overlay and no
+    /// machine file. For a test, or for a caller that wants exactly what
+    /// one file says.</summary>
+    public static Result<Found> Read(string file)
+    {
+        string full = Path.GetFullPath(file);
+        Result<Sections> one = Parse(full, Role.Project);
+        if (!one.IsOk) return one.Carry<Found>();
+        return Build([one.Value], full, null, null, Path.GetDirectoryName(full)!);
+    }
+
+    /// <summary>
+    /// The boundary, re-read from a named configuration and opened.
+    ///
+    /// <para><b>This is serve's per-request read.</b> What is re-read is
+    /// the FILE FOUND AT LAUNCH, never a fresh discovery: a configuration
+    /// that has gone missing refuses, because walking up from where it
+    /// was could find a broader one above it.</para>
+    /// </summary>
+    public static Result<Roots> Reopen(string file, string? launch = null, string? machineFile = null)
+    {
+        Result<Found> found = ReadWithOverlay(file, launch, machineFile);
+        return found.IsOk ? Open(found.Value) : found.Carry<Roots>();
+    }
+
+    /// <summary>Open what a configuration declared, with the client's
+    /// folders and any companion trees appended after the declared
+    /// ones.</summary>
+    public static Result<Roots> Open(Found found, IReadOnlyList<HarnessTree>? extra = null) =>
+        Roots.Open(found.Trees, found.Origin, found.Tasks, found.Models,
+            found.Levels, found.Generated, extra, found.File);
+
+    /// <summary>The machine file, read, or null when there is none.</summary>
+    static Result<Sections?> ReadMachine(string? machineFile)
+    {
+        if (machineFile is null || !File.Exists(machineFile)) return Result<Sections?>.Ok(null);
+
+        Result<Sections> read = Parse(Path.GetFullPath(machineFile), Role.Machine);
+        return read.IsOk ? Result<Sections?>.Ok(read.Value) : read.Carry<Sections?>();
+    }
+
+    static Result<Found> Assemble(string? file, string launch, string? machineFile)
+    {
+        Result<Sections?> machine = ReadMachine(machineFile);
+        if (!machine.IsOk) return machine.Carry<Found>();
+
+        var parts = new List<Sections>();
+        if (machine.Value is { } m) parts.Add(m);
+
+        string? overlay = null;
+        if (file is not null)
+        {
+            Result<Sections> main = Parse(file, Role.Project);
+            if (!main.IsOk) return main.Carry<Found>();
+            parts.Add(main.Value);
+
+            if (Path.GetFileName(file).Equals(FileName, Roots.PathComparison))
+            {
+                string beside = Path.Combine(Path.GetDirectoryName(file)!, LocalFileName);
+                if (File.Exists(beside))
+                {
+                    Result<Sections> local = Parse(beside, Role.Project);
+                    if (!local.IsOk) return local.Carry<Found>();
+                    parts.Add(local.Value);
+                    overlay = beside;
+                }
+            }
+        }
+
+        return Build(parts, file, overlay, machine.Value?.File, launch);
+    }
+
+    // ---- merging the files into one boundary ----
+
+    static Result<Found> Build(IReadOnlyList<Sections> parts, string? file, string? overlay, string? machine, string launch)
+    {
+        var trees = new List<TreeDecl>();
+        var tasks = new List<TaskDecl>();
+        var replacements = new Dictionary<string, string>(StringComparer.Ordinal);
+        var screens = new List<(string Key, Screened Screen, string File)>();
+        var tools = new List<string>();
+        var guardrails = new List<string>();
+        var screenings = new List<string>();
+
+        IReadOnlyList<string>? generated = null;
+        Named? scratch = null, scratchRoot = null, clientRoot = null;
+        string? models = null;
+
+        foreach (Sections part in parts)
+        {
+            if (part.Tools)
+            {
+                tools.Add(part.File);
+                generated = part.Generated ?? generated;
+                scratch = part.Scratch ?? scratch;
+                scratchRoot = part.ScratchRoot ?? scratchRoot;
+                clientRoot = part.ClientRoot ?? clientRoot;
+            }
+
+            if (part.Guardrails)
+            {
+                guardrails.Add(part.File);
+                ByName(trees, part.Trees, t => t.Name, Roots.PathComparison);
+                ByName(tasks, part.Tasks, t => t.Name, StringComparison.OrdinalIgnoreCase);
+                foreach (KeyValuePair<string, string> one in part.Replacements) replacements[one.Key] = one.Value;
+            }
+
+            if (part.Screenings)
+            {
+                screenings.Add(part.File);
+                models = part.Models ?? models;
+                foreach ((string key, Screened screen) in part.Screens)
+                {
+                    screens.RemoveAll(s => s.Key.Equals(key, Roots.PathComparison));
+                    screens.Add((key, screen, part.File));
+                }
+            }
+        }
+
+        string at = file ?? launch;
+
+        if (guardrails.Count > 0)
+        {
+            if (trees.Count == 0)
+                return Result<Found>.Fail(Outcome.Invalid,
+                    "has a \"guardrails\" section that declares no trees. Add a \"trees\" object to it, "
+                    + "or remove the section to use the launch folder as the tree", at);
+
+            foreach (TreeDecl tree in trees)
+                foreach (string reserved in Harness.Names)
+                    if (tree.Name.Equals(reserved, Roots.PathComparison))
+                        return Result<Found>.Fail(Outcome.Invalid,
+                            $"declares a tree called '{tree.Name}'. fettle gives that name to the client's "
+                            + $"{reserved} folder and finds the folder itself. Remove the tree, or give it "
+                            + "another name", at);
+        }
+        else
+        {
+            trees.Add(new TreeDecl(WorkName, launch, Permissions.Full));
+        }
+
+        foreach ((string key, Screened screen, string from) in screens)
+        {
+            Result<bool> applied = ApplyScreen(trees, key, screen, from);
+            if (!applied.IsOk) return applied.Carry<Found>();
+        }
+
+        var found = new Found(file, trees)
+        {
+            Overlay = overlay,
+            Machine = machine,
+            Launch = launch,
+            Levels = new Levels(tools, guardrails, screenings),
+            Tasks = tasks,
+            Replacements = replacements,
+            Models = models,
+            Generated = generated,
+            Harness = new HarnessSettings(scratch, scratchRoot, clientRoot),
+        };
+
+        return Fill(found, at);
+    }
+
+    /// <summary>The later file's entries over the earlier ones: a name in
+    /// both is the later file's ENTIRELY, and a name only the later file
+    /// has is added. Field-level merging would let a local file grant a
+    /// permission by mentioning one key, and nobody reading the two files
+    /// side by side could say what the result was.</summary>
+    static void ByName<T>(List<T> into, IReadOnlyList<T> later, Func<T, string> name, StringComparison comparison)
+    {
+        foreach (T entry in later)
+        {
+            int at = into.FindIndex(e => name(e).Equals(name(entry), comparison));
+            if (at >= 0) into[at] = entry;
+            else into.Add(entry);
+        }
+    }
+
+    /// <summary>
+    /// Put one <c>screen</c> entry on the tree or scope it names.
+    ///
+    /// <para>The key is a tree name, or a tree name, a slash, and a scope
+    /// path. The name must be a tree the boundary opens, and the scope
+    /// must be one that tree declares. A screen naming nothing would
+    /// screen nothing, and the person who wrote it would believe
+    /// otherwise.</para>
+    /// </summary>
+    static Result<bool> ApplyScreen(List<TreeDecl> trees, string key, Screened screen, string file)
+    {
+        int slash = key.IndexOf('/');
+        string treeName = slash < 0 ? key : key[..slash];
+        string? scope = slash < 0 ? null : key[(slash + 1)..].TrimEnd('/');
+
+        int index = trees.FindIndex(t => t.Name.Equals(treeName, Roots.PathComparison));
+        if (index < 0)
+            return Result<bool>.Fail(Outcome.Invalid,
+                $"has a \"screen\" for '{treeName}', which is not a tree. The trees are: "
+                + string.Join(", ", trees.Select(t => t.Name)), file);
+
+        TreeDecl tree = trees[index];
+
+        if (scope is null || scope.Length == 0)
+        {
+            trees[index] = tree with { Screen = screen };
+            return Result<bool>.Ok(true);
+        }
+
+        var scopes = new List<ScopeDecl>(tree.Scopes ?? []);
+        int at = scopes.FindIndex(s => s.Relative.Replace('\\', '/').TrimEnd('/').Equals(scope, Roots.PathComparison));
+        if (at < 0)
+            return Result<bool>.Fail(Outcome.Invalid,
+                $"has a \"screen\" for '{key}', and tree '{tree.Name}' declares no scope '{scope}'. "
+                + "Declare the scope under the tree in \"guardrails\", or screen the whole tree", file);
+
+        scopes[at] = scopes[at] with { Screen = screen };
+        trees[index] = tree with { Scopes = scopes };
+        return Result<bool>.Ok(true);
+    }
+
+    // ---- reading one file ----
+
+    enum Role { Project, Machine }
+
+    /// <summary>What one file said, section by section.</summary>
+    sealed record Sections(string File)
+    {
+        public bool Tools { get; init; }
+        public IReadOnlyList<string>? Generated { get; init; }
+        public Named? Scratch { get; init; }
+        public Named? ScratchRoot { get; init; }
+        public Named? ClientRoot { get; init; }
+
+        public bool Guardrails { get; init; }
+        public IReadOnlyList<TreeDecl> Trees { get; init; } = [];
+        public IReadOnlyList<TaskDecl> Tasks { get; init; } = [];
+        public IReadOnlyDictionary<string, string> Replacements { get; init; } =
+            new Dictionary<string, string>(StringComparer.Ordinal);
+
+        public bool Screenings { get; init; }
+        public string? Models { get; init; }
+        public IReadOnlyList<(string Key, Screened Screen)> Screens { get; init; } = [];
+    }
+
+    /// <summary>The keys the old flat shape put at the top.</summary>
+    static readonly string[] OldKeys = ["trees", "tasks", "replacements", "models"];
+
+    static Result<Sections> Parse(string full, Role role)
+    {
         string text;
         try
         {
@@ -220,11 +421,11 @@ public static class RootsFile
         }
         catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException)
         {
-            return Result<Found>.Fail(Outcome.NotFound, "the file does not exist", full);
+            return Result<Sections>.Fail(Outcome.NotFound, "the file does not exist", full);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            return Result<Found>.Fail(Outcome.Denied, $"could not read the file: {e.Message}", full);
+            return Result<Sections>.Fail(Outcome.Denied, $"could not read the file: {e.Message}", full);
         }
 
         JsonDocument doc;
@@ -238,100 +439,349 @@ public static class RootsFile
         }
         catch (JsonException e)
         {
-            return Result<Found>.Fail(Outcome.Invalid, $"is not valid JSON: {e.Message}", full);
+            return Result<Sections>.Fail(Outcome.Invalid, $"is not valid JSON: {e.Message}", full);
         }
 
         using (doc)
         {
-            if (doc.RootElement.ValueKind != JsonValueKind.Object)
-                return Result<Found>.Fail(Outcome.Invalid,
-                    "must hold a JSON object with a \"trees\" object in it", full);
+            JsonElement root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object)
+                return Result<Sections>.Fail(Outcome.Invalid,
+                    "must hold a JSON object. Its keys are any of: tools, guardrails, screenings", full);
 
-            // The old shape meant something different: a root was
-            // readable and writable in full, and there was no way to say
-            // otherwise. Silently reading it as the new shape would
-            // GRANT more than it says, which is the one direction this
-            // must never fail in - so it is refused with the migration
-            // named rather than accepted.
-            if (doc.RootElement.TryGetProperty("roots", out _))
-                return Result<Found>.Fail(Outcome.Invalid, Migration, full);
+            // The oldest shape meant something different: a root was
+            // readable and writable in full. Reading it as anything else
+            // would GRANT more than it says.
+            if (root.TryGetProperty("roots", out _))
+                return Result<Sections>.Fail(Outcome.Invalid, Migration, full);
 
-            if (!doc.RootElement.TryGetProperty("trees", out JsonElement trees)
-                || trees.ValueKind != JsonValueKind.Object)
-                return Result<Found>.Fail(Outcome.Invalid,
-                    "needs a \"trees\" object, each entry a name and an object with a \"path\" in it", full);
+            // The flat shape of the last release. Refused rather than
+            // read, because a file that means one thing to the old version
+            // and another to this one is a file whose boundary nobody can
+            // state. The message carries the file's own entries rewritten.
+            foreach (string old in OldKeys)
+                if (root.TryGetProperty(old, out _))
+                    return Result<Sections>.Fail(Outcome.Invalid, Rewrite(root, old), full);
 
             string here = Path.GetDirectoryName(full)!;
-            var decls = new List<TreeDecl>();
+            var sections = new Sections(full);
 
-            foreach (JsonProperty entry in trees.EnumerateObject())
+            foreach (JsonProperty top in root.EnumerateObject())
             {
-                Result<TreeDecl> one = ReadTree(entry, here, full);
-                if (!one.IsOk) return one.Carry<Found>();
-                decls.Add(one.Value);
-            }
-
-            if (decls.Count == 0)
-                return Result<Found>.Fail(Outcome.Invalid, "declares no trees", full);
-
-            Result<IReadOnlyList<TaskDecl>> tasks = ReadTasks(doc.RootElement, full);
-            if (!tasks.IsOk) return tasks.Carry<Found>();
-
-            Result<IReadOnlyDictionary<string, string>> replacements =
-                ReadReplacements(doc.RootElement, full);
-            if (!replacements.IsOk) return replacements.Carry<Found>();
-
-            // Where the screening models are. Resolved against the FILE
-            // like every other declared path (R8.9), and not checked for
-            // existence here: a configuration that is read on a machine
-            // without the models is not malformed, and refusing to open
-            // the whole boundary over it would take the tree away rather
-            // than the screen. The refusal belongs at the disclosure,
-            // where it can name the category that wanted the model.
-            string? models = null;
-            if (doc.RootElement.TryGetProperty("models", out JsonElement named))
-            {
-                if (named.ValueKind != JsonValueKind.String
-                    || named.GetString() is not { Length: > 0 } rawModels)
-                    return Result<Found>.Fail(Outcome.Invalid,
-                        "has a \"models\" that is not a non-empty string. It names the directory "
-                        + "holding the screening models", full);
-
-                if (Separator(rawModels, "the \"models\" path", full) is { } badModels)
-                    return Result<Found>.Fail(badModels);
-
-                try
+                switch (top.Name)
                 {
-                    models = Path.GetFullPath(Path.Combine(here, rawModels));
-                }
-                catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException)
-                {
-                    return Result<Found>.Fail(Outcome.Invalid,
-                        $"has a \"models\" that is not a usable path: {e.Message}", full);
+                    case Levels.ToolsName:
+                    {
+                        Result<Sections> read = ReadTools(top.Value, here, full, sections);
+                        if (!read.IsOk) return read;
+                        sections = read.Value;
+                        break;
+                    }
+
+                    case Levels.GuardrailsName:
+                    {
+                        if (role == Role.Machine)
+                            return Result<Sections>.Fail(Outcome.Invalid,
+                                "is the machine file, and it has a \"guardrails\" section. A tree, a task or an "
+                                + "execute grant here would apply to every project on the machine, and no project "
+                                + $"reviewed it. Move the section to a project's {FileName}", full);
+
+                        Result<Sections> read = ReadGuardrails(top.Value, here, full, sections);
+                        if (!read.IsOk) return read;
+                        sections = read.Value;
+                        break;
+                    }
+
+                    case Levels.ScreeningsName:
+                    {
+                        Result<Sections> read = ReadScreenings(top.Value, here, full, sections);
+                        if (!read.IsOk) return read;
+                        sections = read.Value;
+                        break;
+                    }
+
+                    default:
+                        return Result<Sections>.Fail(Outcome.Invalid,
+                            $"has \"{top.Name}\" at the top. The top holds three sections, one per level: "
+                            + "tools, guardrails, screenings", full);
                 }
             }
 
-            // The tasks are returned with their placeholders INTACT. What
-            // fills them is Fill, after the overlay has been merged in -
-            // see ReadWithOverlay for why it cannot happen here.
-            return Result<Found>.Ok(new Found(full, decls)
-            {
-                Tasks = tasks.Value,
-                Replacements = replacements.Value,
-                Models = models,
-            });
+            return Result<Sections>.Ok(sections);
         }
     }
 
-    /// <summary>The one message a caller with the old shape sees, so it
-    /// says the whole of what to do rather than that something is
-    /// wrong.</summary>
+    /// <summary>The keys a <c>tools</c> section takes.</summary>
+    static readonly string[] ToolsKeys = ["generated", "scratch", "scratch-root", "client-root"];
+
+    static Result<Sections> ReadTools(JsonElement value, string here, string file, Sections sections)
+    {
+        if (value.ValueKind != JsonValueKind.Object)
+            return Result<Sections>.Fail(Outcome.Invalid,
+                $"has a \"tools\" that is not an object. It takes: {string.Join(", ", ToolsKeys)}", file);
+
+        IReadOnlyList<string>? generated = null;
+        Named? scratch = null, scratchRoot = null, clientRoot = null;
+
+        foreach (JsonProperty entry in value.EnumerateObject())
+        {
+            switch (entry.Name)
+            {
+                case "generated":
+                {
+                    if (entry.Value.ValueKind != JsonValueKind.Array)
+                        return Result<Sections>.Fail(Outcome.Invalid,
+                            "has a \"generated\" under \"tools\" that is not an array of folder names", file);
+
+                    var names = new List<string>();
+                    foreach (JsonElement name in entry.Value.EnumerateArray())
+                    {
+                        if (name.ValueKind != JsonValueKind.String
+                            || name.GetString() is not { Length: > 0 } one
+                            || one.Contains('/') || one.Contains('\\'))
+                            return Result<Sections>.Fail(Outcome.Invalid,
+                                "has a \"generated\" entry that is not a folder name. Write each one as a "
+                                + "name with no slash, such as \"bin\"", file);
+                        names.Add(one);
+                    }
+
+                    generated = names;
+                    break;
+                }
+
+                case "scratch":
+                case "scratch-root":
+                case "client-root":
+                {
+                    Result<string> path = ReadPath(entry.Value, $"\"{entry.Name}\" under \"tools\"", here, file);
+                    if (!path.IsOk) return path.Carry<Sections>();
+
+                    var named = new Named(path.Value, file);
+                    if (entry.Name == "scratch") scratch = named;
+                    else if (entry.Name == "scratch-root") scratchRoot = named;
+                    else clientRoot = named;
+                    break;
+                }
+
+                default:
+                    return Result<Sections>.Fail(Outcome.Invalid,
+                        $"has \"{entry.Name}\" under \"tools\". It takes: {string.Join(", ", ToolsKeys)}", file);
+            }
+        }
+
+        return Result<Sections>.Ok(sections with
+        {
+            Tools = true,
+            Generated = generated,
+            Scratch = scratch,
+            ScratchRoot = scratchRoot,
+            ClientRoot = clientRoot,
+        });
+    }
+
+    /// <summary>The keys a <c>guardrails</c> section takes.</summary>
+    static readonly string[] GuardrailsKeys = ["trees", "tasks", "replacements"];
+
+    static Result<Sections> ReadGuardrails(JsonElement value, string here, string file, Sections sections)
+    {
+        if (value.ValueKind != JsonValueKind.Object)
+            return Result<Sections>.Fail(Outcome.Invalid,
+                $"has a \"guardrails\" that is not an object. It takes: {string.Join(", ", GuardrailsKeys)}", file);
+
+        foreach (JsonProperty entry in value.EnumerateObject())
+            if (!GuardrailsKeys.Contains(entry.Name, StringComparer.Ordinal))
+                return Result<Sections>.Fail(Outcome.Invalid,
+                    $"has \"{entry.Name}\" under \"guardrails\". It takes: {string.Join(", ", GuardrailsKeys)}", file);
+
+        var decls = new List<TreeDecl>();
+        if (value.TryGetProperty("trees", out JsonElement trees))
+        {
+            if (trees.ValueKind != JsonValueKind.Object)
+                return Result<Sections>.Fail(Outcome.Invalid,
+                    "has a \"trees\" under \"guardrails\" that is not an object. Each entry is a name and an "
+                    + "object with a \"path\" in it", file);
+
+            foreach (JsonProperty entry in trees.EnumerateObject())
+            {
+                Result<TreeDecl> one = ReadTree(entry, here, file);
+                if (!one.IsOk) return one.Carry<Sections>();
+                decls.Add(one.Value);
+            }
+        }
+
+        Result<IReadOnlyList<TaskDecl>> tasks = ReadTasks(value, file);
+        if (!tasks.IsOk) return tasks.Carry<Sections>();
+
+        Result<IReadOnlyDictionary<string, string>> replacements = ReadReplacements(value, file);
+        if (!replacements.IsOk) return replacements.Carry<Sections>();
+
+        // The tasks are returned with their placeholders INTACT. Fill runs
+        // after every file is merged, because the checked-in file declares
+        // a task and the overlay supplies today's value.
+        return Result<Sections>.Ok(sections with
+        {
+            Guardrails = true,
+            Trees = decls,
+            Tasks = tasks.Value,
+            Replacements = replacements.Value,
+        });
+    }
+
+    /// <summary>The keys a <c>screenings</c> section takes.</summary>
+    static readonly string[] ScreeningsKeys = ["models", "screen"];
+
+    static Result<Sections> ReadScreenings(JsonElement value, string here, string file, Sections sections)
+    {
+        if (value.ValueKind != JsonValueKind.Object)
+            return Result<Sections>.Fail(Outcome.Invalid,
+                $"has a \"screenings\" that is not an object. It takes: {string.Join(", ", ScreeningsKeys)}", file);
+
+        string? models = null;
+        var screens = new List<(string, Screened)>();
+
+        foreach (JsonProperty entry in value.EnumerateObject())
+        {
+            switch (entry.Name)
+            {
+                case "models":
+                {
+                    // Not checked for existence here: a file read on a
+                    // machine without the models is not malformed. The
+                    // refusal belongs at the disclosure, where it can name
+                    // the category that wanted the model.
+                    Result<string> path = ReadPath(entry.Value, "\"models\" under \"screenings\"", here, file);
+                    if (!path.IsOk) return path.Carry<Sections>();
+                    models = path.Value;
+                    break;
+                }
+
+                case "screen":
+                {
+                    if (entry.Value.ValueKind != JsonValueKind.Object)
+                        return Result<Sections>.Fail(Outcome.Invalid,
+                            "has a \"screen\" under \"screenings\" that is not an object. Each key is a tree "
+                            + "name, or a tree name, a slash and a scope path", file);
+
+                    foreach (JsonProperty one in entry.Value.EnumerateObject())
+                    {
+                        if (one.Name.Length == 0 || one.Name.StartsWith('/'))
+                            return Result<Sections>.Fail(Outcome.Invalid,
+                                "has a \"screen\" key that names no tree. Write the tree name first", file);
+
+                        if (one.Name.Contains('\\'))
+                            return Result<Sections>.Fail(Outcome.Invalid,
+                                $"has a \"screen\" key '{one.Name}' written with a backslash. Write it with \"/\"", file);
+
+                        Result<Screened> read = ReadScreen(one.Value, $"the \"screen\" for '{one.Name}'", file);
+                        if (!read.IsOk) return read.Carry<Sections>();
+                        screens.Add((one.Name, read.Value));
+                    }
+                    break;
+                }
+
+                default:
+                    return Result<Sections>.Fail(Outcome.Invalid,
+                        $"has \"{entry.Name}\" under \"screenings\". It takes: {string.Join(", ", ScreeningsKeys)}", file);
+            }
+        }
+
+        return Result<Sections>.Ok(sections with { Screenings = true, Models = models, Screens = screens });
+    }
+
+    /// <summary>A path named in a file, resolved against the file's own
+    /// folder.</summary>
+    static Result<string> ReadPath(JsonElement value, string what, string here, string file)
+    {
+        if (value.ValueKind != JsonValueKind.String || value.GetString() is not { Length: > 0 } raw)
+            return Result<string>.Fail(Outcome.Invalid, $"has a {what} that is not a non-empty string", file);
+
+        if (Separator(raw, $"the {what} path", file) is { } bad) return Result<string>.Fail(bad);
+
+        try
+        {
+            return Result<string>.Ok(Path.GetFullPath(Path.Combine(here, raw)));
+        }
+        catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return Result<string>.Fail(Outcome.Invalid, $"has a {what} that is not a usable path: {e.Message}", file);
+        }
+    }
+
+    // ---- the migration messages ----
+
+    /// <summary>The one message a caller with the oldest shape sees, so
+    /// it says the whole of what to do.</summary>
     public const string Migration =
         "uses \"roots\", which this version does not read. Rewrite "
         + "{\"roots\":{\"work\":\".\"}} as "
-        + "{\"trees\":{\"work\":{\"path\":\".\"}}}. The tree holding this file "
+        + "{\"guardrails\":{\"trees\":{\"work\":{\"path\":\".\"}}}}. The tree holding this file "
         + "gets list read create update rename delete. Every other tree gets "
         + "list read unless \"can\" says more. execute is never a default.";
+
+    /// <summary>
+    /// The refusal for the flat shape, holding the file's own entries
+    /// under the new sections, so the fix is to paste it.
+    ///
+    /// <para><c>trees</c>, <c>tasks</c> and <c>replacements</c> go under
+    /// <c>guardrails</c>. <c>models</c> goes under <c>screenings</c>.
+    /// Each <c>screen</c> comes out of its tree or scope and goes under
+    /// <c>screenings</c>, keyed by the tree name, or the tree name, a
+    /// slash and the scope path.</para>
+    /// </summary>
+    static string Rewrite(JsonElement root, string found)
+    {
+        JsonObject old = JsonNode.Parse(root.GetRawText(), documentOptions: new JsonDocumentOptions
+        {
+            CommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true,
+        })!.AsObject();
+
+        var guardrails = new JsonObject();
+        var screen = new JsonObject();
+
+        if (old["trees"] is JsonObject trees)
+        {
+            var moved = new JsonObject();
+            foreach (KeyValuePair<string, JsonNode?> tree in trees)
+            {
+                JsonNode? copy = tree.Value?.DeepClone();
+                if (copy is JsonObject entry)
+                {
+                    if (entry.Remove("screen", out JsonNode? s)) screen[tree.Key] = s;
+
+                    if (entry["scopes"] is JsonObject scopes)
+                        foreach (KeyValuePair<string, JsonNode?> scope in scopes)
+                            if (scope.Value is JsonObject declared && declared.Remove("screen", out JsonNode? ss))
+                                screen[$"{tree.Key}/{scope.Key.TrimEnd('/')}"] = ss;
+                }
+                moved[tree.Key] = copy;
+            }
+            guardrails["trees"] = moved;
+        }
+
+        if (old["tasks"] is { } tasks) guardrails["tasks"] = tasks.DeepClone();
+        if (old["replacements"] is { } replacements) guardrails["replacements"] = replacements.DeepClone();
+
+        var screenings = new JsonObject();
+        if (old["models"] is { } models) screenings["models"] = models.DeepClone();
+        if (screen.Count > 0) screenings["screen"] = screen;
+
+        var rewritten = new JsonObject();
+        foreach (KeyValuePair<string, JsonNode?> keep in old)
+            if (keep.Key is Levels.ToolsName) rewritten[keep.Key] = keep.Value?.DeepClone();
+        if (guardrails.Count > 0) rewritten[Levels.GuardrailsName] = guardrails;
+        if (screenings.Count > 0) rewritten[Levels.ScreeningsName] = screenings;
+
+        string json = rewritten.ToJsonString(new JsonSerializerOptions
+        {
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        });
+
+        return $"has \"{found}\" at the top, which is the shape this version no longer reads. "
+            + "Rewrite the file with three sections, one per level. Your entries, rewritten: " + json;
+    }
+
+    // ---- the entries inside a section ----
 
     static Result<TreeDecl> ReadTree(JsonProperty entry, string here, string file)
     {
@@ -352,6 +802,12 @@ public static class RootsFile
 
         if (Separator(raw, $"tree '{entry.Name}' has a \"path\" that", file) is { } badPath)
             return Result<TreeDecl>.Fail(badPath);
+
+        // A screen is a screenings fact and lives in that section, so a
+        // reader can see whether a project screens anything by reading
+        // one place.
+        if (entry.Value.TryGetProperty("screen", out _))
+            return Result<TreeDecl>.Fail(Outcome.Invalid, ScreenMoved($"tree '{entry.Name}'", entry.Name), file);
 
         string path;
         try
@@ -379,19 +835,6 @@ public static class RootsFile
             can = parsed.Value;
         }
 
-        // Off unless the file says otherwise, which is the only safe
-        // default in the direction that matters here: switching a screen
-        // ON by default would deny half the reads in a source tree and
-        // teach everybody to turn it off, and a check people switch off
-        // protects nothing.
-        Screened screen = Screened.None;
-        if (entry.Value.TryGetProperty("screen", out JsonElement screenValue))
-        {
-            Result<Screened> parsed = ReadScreen(screenValue, $"tree '{entry.Name}'", file);
-            if (!parsed.IsOk) return parsed.Carry<TreeDecl>();
-            screen = parsed.Value;
-        }
-
         var scopes = new List<ScopeDecl>();
         if (entry.Value.TryGetProperty("scopes", out JsonElement scopeValue))
         {
@@ -407,35 +850,32 @@ public static class RootsFile
                         $"scope '{scope.Name}' in tree '{entry.Name}' needs a \"can\" array, "
                         + "which may be empty to hide it", file);
 
+                if (scope.Value.TryGetProperty("screen", out _))
+                    return Result<TreeDecl>.Fail(Outcome.Invalid,
+                        ScreenMoved($"scope '{scope.Name}' in tree '{entry.Name}'",
+                            $"{entry.Name}/{scope.Name.TrimEnd('/')}"), file);
+
                 Result<Permission> parsed = ReadCan(scopeCan, $"scope '{scope.Name}'", file);
                 if (!parsed.IsOk) return parsed.Carry<TreeDecl>();
 
                 if (Separator(scope.Name, $"scope '{scope.Name}' in tree '{entry.Name}'", file) is { } badScope)
                     return Result<TreeDecl>.Fail(badScope);
 
-                // Null where the scope said nothing, so it inherits the
-                // tree's rather than silently screening nothing. Writing
-                // "screen": false is how a scope takes screening away,
-                // and it has to be written to mean it.
-                Screened? screened = null;
-                if (scope.Value.TryGetProperty("screen", out JsonElement scopeScreen))
-                {
-                    Result<Screened> read = ReadScreen(
-                        scopeScreen, $"scope '{scope.Name}' in tree '{entry.Name}'", file);
-                    if (!read.IsOk) return read.Carry<TreeDecl>();
-                    screened = read.Value;
-                }
-
-                scopes.Add(new ScopeDecl(scope.Name, parsed.Value, screened));
+                // Null: the scope inherits the tree's screen until a
+                // "screen" entry under "screenings" names it.
+                scopes.Add(new ScopeDecl(scope.Name, parsed.Value, null));
             }
         }
 
-        return Result<TreeDecl>.Ok(new TreeDecl(entry.Name, path, can, scopes, screen));
+        return Result<TreeDecl>.Ok(new TreeDecl(entry.Name, path, can, scopes, Screened.None));
     }
 
+    static string ScreenMoved(string what, string key) =>
+        $"{what} has a \"screen\". A screen now goes under \"screenings\", keyed by the tree or scope: "
+        + $"{{\"screenings\":{{\"screen\":{{\"{key}\":true}}}}}}";
+
     /// <summary>
-    /// The declared tasks of R7, read from the same file that declares the
-    /// trees.
+    /// The declared tasks of R7, read from the <c>guardrails</c> section.
     ///
     /// <para><b><c>run</c> is the command line, written as one string.</b>
     /// It is split once, by <see cref="Tasks.Split"/>, whose grammar is
@@ -445,15 +885,14 @@ public static class RootsFile
     /// list, never with a command line for a shell to re-split.</para>
     ///
     /// <para><b>The file is trusted input, and R7.6 says so out loud.</b>
-    /// Containment guards paths; it does not and cannot guard a command
-    /// list. Whoever can write this file chooses what a caller - a model
+    /// Whoever can write this file chooses what a caller - a model
     /// included - is able to execute, which is why writing it is a
     /// person's act with an editor and why <c>execute</c> is never a
-    /// default. Point Fettler at a tree you trust.</para>
+    /// default.</para>
     /// </summary>
-    static Result<IReadOnlyList<TaskDecl>> ReadTasks(JsonElement root, string file)
+    static Result<IReadOnlyList<TaskDecl>> ReadTasks(JsonElement section, string file)
     {
-        if (!root.TryGetProperty("tasks", out JsonElement tasks))
+        if (!section.TryGetProperty("tasks", out JsonElement tasks))
             return Result<IReadOnlyList<TaskDecl>>.Ok([]);
 
         if (tasks.ValueKind != JsonValueKind.Object)
@@ -514,25 +953,18 @@ public static class RootsFile
     ///
     /// <para><b>There is no formal standard for this - there is a
     /// convention, and it is git's:</b> relative, forward-slashed, no drive
-    /// letter. <c>.gitignore</c>, Docker, npm and VS Code's own task files
-    /// all use it, and it is the only spelling that means one thing
-    /// everywhere. Windows accepts <c>/</c> in every API; on macOS and
-    /// Linux a backslash is an ordinary character in a file name rather
-    /// than a separator, so a checked-in <c>..\tree</c> does not name a
-    /// parent there - it names a file with a backslash in it, and finds
-    /// nothing.</para>
+    /// letter. On macOS and Linux a backslash is an ordinary character in a
+    /// file name rather than a separator, so a checked-in <c>..\tree</c>
+    /// does not name a parent there.</para>
     ///
     /// <para><b>Refused rather than converted</b>, because converting would
     /// make a file legitimately called <c>a\b</c> unreachable on the
     /// platforms where that is a legal name.</para>
     ///
-    /// <para><b>Only a RELATIVE path is held to it.</b> A relative path is
-    /// the one that travels - it is the one worth checking in, and the one
-    /// that has to mean the same thing on the next machine. An absolute
-    /// path names a particular disk and cannot travel whatever its
-    /// separators are, so <c>C:\work\tree</c> in a gitignored
-    /// <c>.fettler.local.json</c> is a person describing their own machine
-    /// and is left alone.</para>
+    /// <para><b>Only a RELATIVE path is held to it.</b> An absolute path
+    /// names a particular disk and cannot travel whatever its separators
+    /// are, so <c>C:\work\tree</c> in a gitignored
+    /// <c>.fettler.local.json</c> is left alone.</para>
     /// </summary>
     static Failure? Separator(string raw, string what, string file) =>
         raw.Contains('\\') && !Absolute(raw)
@@ -543,8 +975,7 @@ public static class RootsFile
 
     /// <summary>Whether a declared path names a particular disk. A drive
     /// letter is recognised on every platform, because the question being
-    /// asked is what the author MEANT, and they meant an absolute Windows
-    /// path even when this is read on Linux.</summary>
+    /// asked is what the author MEANT.</summary>
     static bool Absolute(string raw) =>
         Path.IsPathRooted(raw)
         || (raw.Length > 1 && raw[1] == ':' && char.IsLetter(raw[0]))
@@ -557,22 +988,16 @@ public static class RootsFile
     /// <para><b>The value comes from this file and never from the
     /// caller.</b> <c>run</c> still takes a task name and a timeout and
     /// nothing else, so a model cannot choose any part of what a command
-    /// executes. What makes that worth having is <see cref="RuleFiles"/>:
-    /// Fettler refuses to write this file, so a branch name in it is
-    /// there because a PERSON typed it. The default state of a task with
-    /// an undeclared placeholder is to refuse, and arming it is a
-    /// deliberate human edit.</para>
+    /// executes.</para>
     ///
     /// <para><b>They are not for secrets.</b> Every value is shown by
-    /// <c>tasks</c>, deliberately, so that what is listed is what runs. A
-    /// token belongs in the environment of the process a task launches,
-    /// not here.</para>
+    /// <c>tasks</c>, deliberately, so that what is listed is what runs.</para>
     /// </summary>
-    static Result<IReadOnlyDictionary<string, string>> ReadReplacements(JsonElement root, string file)
+    static Result<IReadOnlyDictionary<string, string>> ReadReplacements(JsonElement section, string file)
     {
         var declared = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        if (!root.TryGetProperty("replacements", out JsonElement replacements))
+        if (!section.TryGetProperty("replacements", out JsonElement replacements))
             return Result<IReadOnlyDictionary<string, string>>.Ok(declared);
 
         if (replacements.ValueKind != JsonValueKind.Object)
@@ -581,18 +1006,11 @@ public static class RootsFile
 
         foreach (JsonProperty entry in replacements.EnumerateObject())
         {
-            // The same charset a task refers to one by, so a name that can
-            // be declared can always be reached. Narrow on purpose: see
-            // Tasks.IsName for why a brace already on a command line has
-            // to keep meaning what it meant.
             if (!Tasks.IsName(entry.Name))
                 return Result<IReadOnlyDictionary<string, string>>.Fail(Outcome.Invalid,
                     $"replacement '{entry.Name}' has a name no task could refer to; a name is "
                     + "letters, digits, dot, underscore or hyphen, and at least one of them", file);
 
-            // A string, because a command line word is a string. A number
-            // or a list would need a rule about how it is rendered into
-            // one, and that rule is the first sentence of a language.
             if (entry.Value.ValueKind != JsonValueKind.String || entry.Value.GetString() is not { } value)
                 return Result<IReadOnlyDictionary<string, string>>.Fail(Outcome.Invalid,
                     $"replacement '{entry.Name}' needs its value written as a string", file);
@@ -606,15 +1024,11 @@ public static class RootsFile
     /// <summary>
     /// The tasks with their placeholders filled from the replacements.
     ///
-    /// <para><b>This happens once the overlay has been merged, and not
-    /// while either file is being read.</b> The split is the point: the
-    /// checked-in file declares the task, and the gitignored one beside
-    /// it supplies today's value. Filling during the first read would
-    /// refuse a configuration that is perfectly complete the moment both
-    /// halves are in hand - and would make the useful arrangement the
-    /// unusable one.</para>
+    /// <para><b>This happens once every file has been merged</b>, because
+    /// the checked-in file declares the task and the gitignored one beside
+    /// it supplies today's value.</para>
     /// </summary>
-    static Result<Found> Fill(Found found)
+    static Result<Found> Fill(Found found, string file)
     {
         if (found.Tasks.Count == 0) return Result<Found>.Ok(found);
 
@@ -623,58 +1037,15 @@ public static class RootsFile
         foreach (TaskDecl task in found.Tasks)
         {
             Result<IReadOnlyList<string>> command =
-                Tasks.Fill(task.Command, found.Replacements, task.Name, found.File);
+                Tasks.Fill(task.Command, found.Replacements, task.Name, file);
             if (!command.IsOk) return command.Carry<Found>();
 
             // Line is left exactly as declared, braces and all: it is what
-            // TaskDecl.Display shows, and a listing that cannot be
-            // compared with the file is a listing nobody can check.
+            // TaskDecl.Display shows.
             filled.Add(task with { Command = command.Value });
         }
 
         return Result<Found>.Ok(found with { Tasks = filled });
-    }
-
-    /// <summary>The overlay's replacements over the checked-in ones, by
-    /// the same rule the trees and the tasks use: a name in both is the
-    /// overlay's, and a name only the overlay has is added. A replacement
-    /// is a single string, so whole-entry replacement and key-level
-    /// replacement are the same act - there is no field to merge and so
-    /// no ambiguity to create.</summary>
-    static IReadOnlyDictionary<string, string> MergeReplacements(
-        IReadOnlyDictionary<string, string> shipped, IReadOnlyDictionary<string, string> local)
-    {
-        var merged = new Dictionary<string, string>(shipped, StringComparer.Ordinal);
-        foreach (KeyValuePair<string, string> one in local) merged[one.Key] = one.Value;
-        return merged;
-    }
-
-    /// <summary>The overlay's tasks over the checked-in ones, by the same
-    /// rule the trees use: a name in both is the overlay's entirely, and a
-    /// name only the overlay has is added. Replacing a whole task rather
-    /// than merging its fields keeps two files readable side by side.</summary>
-    static IReadOnlyList<TaskDecl> MergeTasks(
-        IReadOnlyList<TaskDecl> shipped, IReadOnlyList<TaskDecl> local)
-    {
-        var merged = new List<TaskDecl>();
-
-        foreach (TaskDecl task in shipped)
-        {
-            TaskDecl? replacement = null;
-            foreach (TaskDecl l in local)
-                if (l.Name.Equals(task.Name, StringComparison.OrdinalIgnoreCase)) replacement = l;
-            merged.Add(replacement ?? task);
-        }
-
-        foreach (TaskDecl l in local)
-        {
-            bool already = false;
-            foreach (TaskDecl m in merged)
-                if (m.Name.Equals(l.Name, StringComparison.OrdinalIgnoreCase)) already = true;
-            if (!already) merged.Add(l);
-        }
-
-        return merged;
     }
 
     /// <summary>
@@ -684,13 +1055,6 @@ public static class RootsFile
     /// <para><b><c>true</c> means all of them</b>, so the failure mode of
     /// switching the screen on and forgetting to name a category does not
     /// exist. Excluding one takes a single word.</para>
-    ///
-    /// <para><b>An object form was rejected.</b>
-    /// <c>{"include":[...],"exclude":[...]}</c> is two keys carrying one
-    /// fact, and it needs a rule for what happens when both are set. The
-    /// list forms cannot express that conflict at all, which is the
-    /// better kind of answer: the ambiguity is unwritable rather than
-    /// resolved by a paragraph nobody reads.</para>
     /// </summary>
     static Result<Screened> ReadScreen(JsonElement value, string what, string file)
     {
@@ -702,7 +1066,7 @@ public static class RootsFile
 
         if (value.ValueKind != JsonValueKind.Array)
             return Result<Screened>.Fail(Outcome.Invalid,
-                $"{what} has a \"screen\" that is not true, false, or an array of category "
+                $"{what} is not true, false, or an array of category "
                 + $"words; they are: {string.Join(", ", Screens.All.Select(Screens.NameOf))}", file);
 
         var words = new List<string>();
