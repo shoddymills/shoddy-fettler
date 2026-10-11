@@ -246,7 +246,7 @@ jobs:
           # To write to a tree you put a file in it. Paths in it resolve
           # against the file's own directory, so "." is smoke/ wherever this
           # runs from.
-          printf '%s\n' '{"trees":{"smoke":{"path":".","can":["list","read","create","update","rename","delete"]}}}' > smoke/.fettler.json
+          printf '%s\n' '{"guardrails":{"trees":{"smoke":{"path":".","can":["list","read","create","update","rename","delete"]}}}}' > smoke/.fettler.json
 
           # R6.9: the bit this whole clause is about, on the platform that
           # has one.
@@ -334,7 +334,7 @@ jobs:
         run: |
           set -euo pipefail
           exe=./published-pick/pick
-          printf '%s\n' '{"servers":{"nowhere":{"connect":"env:PICK_SMOKE","databases":{"Sales":{"can":["list","select","describe"]}}}}}' > pick-smoke.json
+          printf '%s\n' '{"tools":{"servers":{"nowhere":{"connect":"env:PICK_SMOKE"}}},"guardrails":{"servers":{"nowhere":{"databases":{"Sales":{"can":["list","select","describe"]}}}}}}' > pick-smoke.json
 
           "$exe" --version
           out=$("$exe" --config pick-smoke.json catalogs --json)
@@ -357,7 +357,7 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $false
 
           $exe = './published-pick/pick.exe'
-          Set-Content pick-smoke.json '{"servers":{"nowhere":{"connect":"env:PICK_SMOKE","databases":{"Sales":{"can":["list","select","describe"]}}}}}' -Encoding utf8
+          Set-Content pick-smoke.json '{"tools":{"servers":{"nowhere":{"connect":"env:PICK_SMOKE"}}},"guardrails":{"servers":{"nowhere":{"databases":{"Sales":{"can":["list","select","describe"]}}}}}}' -Encoding utf8
 
           & $exe --version
           $out = & $exe --config pick-smoke.json catalogs --json

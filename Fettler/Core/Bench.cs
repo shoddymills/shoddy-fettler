@@ -941,7 +941,7 @@ public sealed class Bench : IDisposable
         return null;
     }
 
-    static Excludes ExcludesFor(bool includeGenerated, IReadOnlyList<string>? extra)
+    Excludes ExcludesFor(bool includeGenerated, IReadOnlyList<string>? extra)
     {
         var globs = new List<Glob>();
         foreach (string pattern in extra ?? [])
@@ -950,7 +950,7 @@ public sealed class Bench : IDisposable
             if (compiled.IsOk) globs.Add(compiled.Value);
         }
 
-        return new Excludes(includeGenerated ? [] : Excludes.Generated, globs);
+        return new Excludes(includeGenerated ? [] : Roots.Generated, globs);
     }
 
     static LineEnding? ParseEnding(string? name) => name?.ToLowerInvariant() switch

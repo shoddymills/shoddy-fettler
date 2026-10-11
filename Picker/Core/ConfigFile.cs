@@ -1,4 +1,6 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace Picker.Core;
@@ -7,23 +9,28 @@ namespace Picker.Core;
 /// Reading <c>.picker.json</c> and <c>.picker.local.json</c>: the files
 /// that say what this tool may do.
 ///
+/// <para><b>Three sections, one per level, the same words Fettler
+/// uses.</b> <c>tools</c> holds the servers and their <c>connect</c>.
+/// <c>guardrails</c> holds the databases on each server, their verbs,
+/// scopes and column rules. <c>screenings</c> holds the models directory
+/// and the screens. A file with only <c>tools</c> is the tools level: a
+/// connection and nothing else declared, so every database the login can
+/// reach is there, through the gate unchanged.</para>
+///
 /// <para><b>This tool does not write them - a person edits them</b>, and
 /// serve re-reads both before every call so an edit binds on the next
-/// request. The RuleFiles discipline, unchanged.</para>
+/// request.</para>
 ///
 /// <para><b>The two files divide by what belongs in a diff.</b> The
-/// checked-in file declares the surface - servers, databases, verbs,
-/// scopes, columns, screens - and is reviewed like the boundary it is.
-/// The local, gitignored file holds what never belongs in a diff: the
-/// models directory, which is per-machine, and connection strings,
-/// which carry credentials. A password literal in the CHECKED-IN file
-/// is refused at load - the Secrets argument, applied to this tool's
-/// own configuration.</para>
+/// checked-in file declares the surface and is reviewed like the boundary
+/// it is. The local, gitignored file holds what never belongs in a diff:
+/// the models directory, which is per-machine, and connection strings,
+/// which carry credentials. It may supply those and nothing else. A
+/// password literal in the CHECKED-IN file is refused at load.</para>
 ///
 /// <para><b>An unknown word anywhere refuses the load</b>, naming the
 /// valid set - a misspelt key would otherwise silently withhold a grant
-/// or a screen, and the failure would arrive much later as a refusal
-/// nobody can explain.</para>
+/// or a screen.</para>
 /// </summary>
 public static class ConfigFile
 {
@@ -52,7 +59,8 @@ public static class ConfigFile
 
     public const string NothingDeclared =
         "no " + FileName + " found at or above the current directory. A person writes "
-        + "that file; pick does not";
+        + "that file; pick does not. The smallest one is "
+        + "{\"tools\":{\"servers\":{\"main\":{\"connect\":\"env:MAIN_SQL\"}}}}";
 
     /// <summary>
     /// Open one configuration file, merging its local twin when one sits
@@ -79,68 +87,82 @@ public static class ConfigFile
 
     // ---- the shapes one file parses into ----
 
-    sealed record Parsed(
-        string Path,
-        IReadOnlyList<ParsedServer> Servers,
-        string? Models);
+    sealed record Parsed(string Path)
+    {
+        public bool Tools { get; init; }
+        public IReadOnlyList<(string Name, string? Connect)> Servers { get; init; } = [];
 
-    sealed record ParsedServer(
-        string Name, string? Connect, IReadOnlyList<DatabaseDecl> Databases);
+        public bool Guardrails { get; init; }
+        public IReadOnlyList<(string Server, IReadOnlyList<DatabaseDecl> Databases)> Guarded { get; init; } = [];
+
+        public bool Screenings { get; init; }
+        public string? Models { get; init; }
+        public IReadOnlyList<(string Key, Screened Screen)> Screens { get; init; } = [];
+    }
 
     /// <summary>
     /// Merge the checked-in surface with the local supplements.
     ///
     /// <para><b>The local file cannot widen the surface.</b> It may name
     /// the models directory and supply <c>connect</c> for servers the
-    /// main file declares - and nothing else. A database declared only
-    /// locally would be a boundary nobody reviewed.</para>
+    /// main file declares - and nothing else.</para>
+    ///
+    /// <para><b>Guardrails on means today's surface</b>: the databases a
+    /// server declares are the only ones there. <b>Guardrails off</b>
+    /// means each server is open: its databases are the ones the login
+    /// can reach, found when a call needs them.</para>
     /// </summary>
     static Result<Boundary> Merge(Parsed main, Parsed? local, string origin)
     {
         var servers = new List<ServerDecl>();
 
-        foreach (ParsedServer declared in main.Servers)
+        foreach ((string name, string? declaredConnect) in main.Servers)
         {
-            string? connect = declared.Connect;
+            string? connect = declaredConnect;
             bool fromLocal = false;
 
             if (local is not null)
-                foreach (ParsedServer supplement in local.Servers)
-                    if (supplement.Name.Equals(declared.Name, StringComparison.OrdinalIgnoreCase))
+                foreach ((string supplied, string? localConnect) in local.Servers)
+                    if (supplied.Equals(name, StringComparison.OrdinalIgnoreCase) && localConnect is not null)
                     {
-                        if (supplement.Databases.Count > 0)
-                            return Result<Boundary>.Fail(Outcome.Invalid,
-                                $"{LocalFileName} declares databases on '{declared.Name}'. The local "
-                                + "file may supply models and connect only. Declare databases in "
-                                + $"{FileName}",
-                                local.Path);
-
-                        if (supplement.Connect is { } supplied)
-                        {
-                            connect = supplied;
-                            fromLocal = true;
-                        }
+                        connect = localConnect;
+                        fromLocal = true;
                     }
 
             if (connect is null)
                 return Result<Boundary>.Fail(Outcome.Invalid,
-                    $"server '{declared.Name}' has no \"connect\". Name an environment "
+                    $"server '{name}' has no \"connect\". Name an environment "
                     + $"variable as env:NAME, or put the connection string in {LocalFileName}",
                     main.Path);
 
-            Result<Connect> made = MakeConnect(connect, fromLocal, declared.Name, main.Path);
+            Result<Connect> made = MakeConnect(connect, fromLocal, name, main.Path);
             if (!made.IsOk) return made.Carry<Boundary>();
 
-            servers.Add(new ServerDecl(declared.Name, made.Value, declared.Databases));
+            IReadOnlyList<DatabaseDecl> databases = [];
+            foreach ((string server, IReadOnlyList<DatabaseDecl> declared) in main.Guarded)
+                if (server.Equals(name, StringComparison.OrdinalIgnoreCase)) databases = declared;
+
+            servers.Add(new ServerDecl(name, made.Value, databases, Open: !main.Guardrails));
         }
 
+        foreach ((string server, _) in main.Guarded)
+            if (!main.Servers.Any(s => s.Name.Equals(server, StringComparison.OrdinalIgnoreCase)))
+                return Result<Boundary>.Fail(Outcome.Invalid,
+                    $"\"guardrails\" declares databases on '{server}', which \"tools\" does not declare. "
+                    + "Declare the server under \"tools\" with its \"connect\"", main.Path);
+
         if (local is not null)
-            foreach (ParsedServer supplement in local.Servers)
-                if (!main.Servers.Any(s => s.Name.Equals(supplement.Name, StringComparison.OrdinalIgnoreCase)))
+            foreach ((string supplied, _) in local.Servers)
+                if (!main.Servers.Any(s => s.Name.Equals(supplied, StringComparison.OrdinalIgnoreCase)))
                     return Result<Boundary>.Fail(Outcome.Invalid,
-                        $"{LocalFileName} names a server '{supplement.Name}' that {FileName} does not "
+                        $"{LocalFileName} names a server '{supplied}' that {FileName} does not "
                         + "declare. Declare servers in " + FileName,
                         local.Path);
+
+        if (servers.Count == 0)
+            return Result<Boundary>.Fail(Outcome.Invalid,
+                $"{FileName} declares no servers; there is nothing to open. Declare one under \"tools\"",
+                main.Path);
 
         // The models directory is per-machine - usually local - and is
         // resolved against the file that named it.
@@ -151,11 +173,92 @@ public static class ConfigFile
             models = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(against)!, models));
         }
 
-        if (servers.Count == 0)
-            return Result<Boundary>.Fail(Outcome.Invalid,
-                $"{FileName} declares no servers; there is nothing to open", main.Path);
+        var openScreens = new Dictionary<string, Screened>(StringComparer.OrdinalIgnoreCase);
+        foreach ((string key, Screened screen) in main.Screens)
+        {
+            Result<bool> applied = main.Guardrails
+                ? ApplyScreen(servers, key, screen, main.Path)
+                : OpenScreen(openScreens, key, screen, main.Path);
+            if (!applied.IsOk) return applied.Carry<Boundary>();
+        }
 
-        return Result<Boundary>.Ok(new Boundary(servers, models, origin));
+        var tools = new List<string>();
+        var guardrails = new List<string>();
+        var screenings = new List<string>();
+        Parsed[] parts = local is null ? [main] : [main, local];
+        foreach (Parsed part in parts)
+        {
+            if (part.Tools) tools.Add(part.Path);
+            if (part.Guardrails) guardrails.Add(part.Path);
+            if (part.Screenings) screenings.Add(part.Path);
+        }
+
+        return Result<Boundary>.Ok(new Boundary(servers, models, origin)
+        {
+            Levels = new Levels(tools, guardrails, screenings),
+            OpenScreens = openScreens,
+        });
+    }
+
+    /// <summary>
+    /// Put one <c>screen</c> entry on the database or scope it names. The
+    /// key is a database name, or a database name, a slash, and a scope's
+    /// object pattern as the scope writes it. A screen naming nothing
+    /// would screen nothing while saying it screens something.
+    /// </summary>
+    static Result<bool> ApplyScreen(List<ServerDecl> servers, string key, Screened screen, string path)
+    {
+        int slash = key.IndexOf('/');
+        string database = slash < 0 ? key : key[..slash];
+        string? scope = slash < 0 ? null : key[(slash + 1)..];
+        bool found = false;
+
+        for (int s = 0; s < servers.Count; s++)
+        {
+            var databases = new List<DatabaseDecl>(servers[s].Databases);
+            for (int d = 0; d < databases.Count; d++)
+            {
+                if (!databases[d].Name.Equals(database, StringComparison.OrdinalIgnoreCase)) continue;
+
+                if (scope is null)
+                {
+                    databases[d] = databases[d] with { Screen = screen };
+                    found = true;
+                    continue;
+                }
+
+                var scopes = new List<ScopeDecl>(databases[d].Scopes);
+                int at = scopes.FindIndex(x => x.Pattern.Typed.Equals(scope, StringComparison.OrdinalIgnoreCase));
+                if (at < 0)
+                    return Result<bool>.Fail(Outcome.Invalid,
+                        $"has a \"screen\" for '{key}', and database '{database}' declares no scope "
+                        + $"'{scope}'. Declare the scope under \"guardrails\", or screen the whole database", path);
+
+                scopes[at] = scopes[at] with { Screen = screen };
+                databases[d] = databases[d] with { Scopes = scopes };
+                found = true;
+            }
+
+            servers[s] = servers[s] with { Databases = databases };
+        }
+
+        return found
+            ? Result<bool>.Ok(true)
+            : Result<bool>.Fail(Outcome.Invalid,
+                $"has a \"screen\" for '{database}', which no server declares under \"guardrails\"", path);
+    }
+
+    /// <summary>At the tools level there are no scopes, so a screen names
+    /// a database, and applies to it when the server lists it.</summary>
+    static Result<bool> OpenScreen(Dictionary<string, Screened> into, string key, Screened screen, string path)
+    {
+        if (key.Contains('/'))
+            return Result<bool>.Fail(Outcome.Invalid,
+                $"has a \"screen\" for '{key}', which names a scope. Scopes belong to the guardrails "
+                + "level, which is off. Screen the whole database, or declare the scope under \"guardrails\"", path);
+
+        into[key] = screen;
+        return Result<bool>.Ok(true);
     }
 
     static Result<Connect> MakeConnect(string value, bool fromLocal, string server, string mainPath)
@@ -215,92 +318,280 @@ public static class ConfigFile
 
         using (doc)
         {
+            string file = Path.GetFileName(path);
             if (doc.RootElement.ValueKind != JsonValueKind.Object)
                 return Result<Parsed>.Fail(Outcome.Invalid,
-                    $"{Path.GetFileName(path)} is not a JSON object", path);
+                    $"{file} is not a JSON object", path);
 
-            var servers = new List<ParsedServer>();
-            string? models = null;
+            // The flat shape of the last release, refused with its own
+            // entries rewritten, so the fix is to paste the message.
+            foreach (string old in new[] { "servers", "models" })
+                if (doc.RootElement.TryGetProperty(old, out _))
+                    return Result<Parsed>.Fail(Outcome.Invalid, Rewrite(doc.RootElement, old, file), path);
+
+            var parsed = new Parsed(path);
 
             foreach (JsonProperty top in doc.RootElement.EnumerateObject())
             {
                 switch (top.Name)
                 {
-                    case "servers":
-                        if (top.Value.ValueKind != JsonValueKind.Object)
-                            return Result<Parsed>.Fail(Outcome.Invalid,
-                                $"\"servers\" is not an object in {Path.GetFileName(path)}", path);
-                        foreach (JsonProperty server in top.Value.EnumerateObject())
-                        {
-                            Result<ParsedServer> parsed = ParseServer(server, path, isLocal);
-                            if (!parsed.IsOk) return parsed.Carry<Parsed>();
-                            servers.Add(parsed.Value);
-                        }
+                    case Levels.ToolsName:
+                    {
+                        Result<Parsed> read = ReadTools(top.Value, path, isLocal, parsed);
+                        if (!read.IsOk) return read;
+                        parsed = read.Value;
                         break;
+                    }
 
-                    case "models":
-                        if (top.Value.ValueKind != JsonValueKind.String
-                            || top.Value.GetString() is not { Length: > 0 } dir)
-                            return Result<Parsed>.Fail(Outcome.Invalid,
-                                $"\"models\" is not a non-empty string in {Path.GetFileName(path)}; "
-                                + "it names the directory holding the screening models", path);
-                        models = dir;
+                    case Levels.GuardrailsName:
+                    {
+                        if (isLocal)
+                            return Result<Parsed>.Fail(Outcome.Invalid, LocalOnly, path);
+                        Result<Parsed> read = ReadGuardrails(top.Value, path, parsed);
+                        if (!read.IsOk) return read;
+                        parsed = read.Value;
                         break;
+                    }
+
+                    case Levels.ScreeningsName:
+                    {
+                        Result<Parsed> read = ReadScreenings(top.Value, path, isLocal, parsed);
+                        if (!read.IsOk) return read;
+                        parsed = read.Value;
+                        break;
+                    }
 
                     default:
                         return Result<Parsed>.Fail(Outcome.Invalid,
-                            $"'{top.Name}' is not something {Path.GetFileName(path)} declares; "
-                            + "it takes: servers, models", path);
+                            $"'{top.Name}' is not something {file} declares; it takes three sections, one "
+                            + "per level: tools, guardrails, screenings", path);
                 }
             }
 
-            return Result<Parsed>.Ok(new Parsed(path, servers, models));
+            return Result<Parsed>.Ok(parsed);
         }
     }
 
-    static Result<ParsedServer> ParseServer(JsonProperty server, string path, bool isLocal)
+    const string LocalOnly =
+        LocalFileName + " may supply models and connect only. Declare servers, databases and "
+        + "screens in " + FileName;
+
+    static Result<Parsed> ReadTools(JsonElement value, string path, bool isLocal, Parsed parsed)
     {
-        if (server.Value.ValueKind != JsonValueKind.Object)
-            return Result<ParsedServer>.Fail(Outcome.Invalid,
-                $"server '{server.Name}' is not an object in {Path.GetFileName(path)}", path);
+        if (value.ValueKind != JsonValueKind.Object)
+            return Result<Parsed>.Fail(Outcome.Invalid, "\"tools\" is not an object; it takes: servers", path);
 
-        string? connect = null;
-        var databases = new List<DatabaseDecl>();
+        var servers = new List<(string, string?)>();
+        foreach (JsonProperty entry in value.EnumerateObject())
+        {
+            if (entry.Name != "servers")
+                return Result<Parsed>.Fail(Outcome.Invalid,
+                    $"'{entry.Name}' is not something \"tools\" declares; it takes: servers", path);
 
-        foreach (JsonProperty entry in server.Value.EnumerateObject())
+            if (entry.Value.ValueKind != JsonValueKind.Object)
+                return Result<Parsed>.Fail(Outcome.Invalid,
+                    "\"servers\" under \"tools\" is not an object", path);
+
+            foreach (JsonProperty server in entry.Value.EnumerateObject())
+            {
+                if (server.Value.ValueKind != JsonValueKind.Object)
+                    return Result<Parsed>.Fail(Outcome.Invalid,
+                        $"server '{server.Name}' is not an object in {Path.GetFileName(path)}", path);
+
+                string? connect = null;
+                foreach (JsonProperty field in server.Value.EnumerateObject())
+                {
+                    if (field.Name == "databases")
+                        return Result<Parsed>.Fail(Outcome.Invalid, isLocal
+                            ? $"{LocalFileName} declares databases on '{server.Name}'. {LocalOnly}"
+                            : $"server '{server.Name}' declares \"databases\" under \"tools\". Databases go "
+                              + "under \"guardrails\", as {\"guardrails\":{\"servers\":{\""
+                              + server.Name + "\":{\"databases\":{...}}}}}", path);
+
+                    if (field.Name != "connect")
+                        return Result<Parsed>.Fail(Outcome.Invalid,
+                            $"'{field.Name}' is not something a server declares under \"tools\"; it takes: connect",
+                            path);
+
+                    if (field.Value.ValueKind != JsonValueKind.String
+                        || field.Value.GetString() is not { Length: > 0 } text)
+                        return Result<Parsed>.Fail(Outcome.Invalid,
+                            $"server '{server.Name}' has a \"connect\" that is not a non-empty string", path);
+                    connect = text;
+                }
+
+                servers.Add((server.Name, connect));
+            }
+        }
+
+        return Result<Parsed>.Ok(parsed with { Tools = true, Servers = servers });
+    }
+
+    static Result<Parsed> ReadGuardrails(JsonElement value, string path, Parsed parsed)
+    {
+        if (value.ValueKind != JsonValueKind.Object)
+            return Result<Parsed>.Fail(Outcome.Invalid, "\"guardrails\" is not an object; it takes: servers", path);
+
+        var guarded = new List<(string, IReadOnlyList<DatabaseDecl>)>();
+        foreach (JsonProperty entry in value.EnumerateObject())
+        {
+            if (entry.Name != "servers" || entry.Value.ValueKind != JsonValueKind.Object)
+                return Result<Parsed>.Fail(Outcome.Invalid,
+                    $"'{entry.Name}' is not something \"guardrails\" declares; it takes: servers", path);
+
+            foreach (JsonProperty server in entry.Value.EnumerateObject())
+            {
+                if (server.Value.ValueKind != JsonValueKind.Object)
+                    return Result<Parsed>.Fail(Outcome.Invalid,
+                        $"server '{server.Name}' under \"guardrails\" is not an object", path);
+
+                var databases = new List<DatabaseDecl>();
+                foreach (JsonProperty field in server.Value.EnumerateObject())
+                {
+                    if (field.Name == "connect")
+                        return Result<Parsed>.Fail(Outcome.Invalid,
+                            $"server '{server.Name}' has a \"connect\" under \"guardrails\". A connection "
+                            + "is the tools level: put it under \"tools\"", path);
+
+                    if (field.Name != "databases")
+                        return Result<Parsed>.Fail(Outcome.Invalid,
+                            $"'{field.Name}' is not something a server declares under \"guardrails\"; it "
+                            + "takes: databases", path);
+
+                    if (field.Value.ValueKind != JsonValueKind.Object)
+                        return Result<Parsed>.Fail(Outcome.Invalid,
+                            $"server '{server.Name}' has a \"databases\" that is not an object", path);
+
+                    foreach (JsonProperty database in field.Value.EnumerateObject())
+                    {
+                        Result<DatabaseDecl> one = ParseDatabase(database, server.Name, path);
+                        if (!one.IsOk) return one.Carry<Parsed>();
+                        databases.Add(one.Value);
+                    }
+                }
+
+                guarded.Add((server.Name, databases));
+            }
+        }
+
+        return Result<Parsed>.Ok(parsed with { Guardrails = true, Guarded = guarded });
+    }
+
+    static Result<Parsed> ReadScreenings(JsonElement value, string path, bool isLocal, Parsed parsed)
+    {
+        if (value.ValueKind != JsonValueKind.Object)
+            return Result<Parsed>.Fail(Outcome.Invalid,
+                "\"screenings\" is not an object; it takes: models, screen", path);
+
+        string? models = null;
+        var screens = new List<(string, Screened)>();
+
+        foreach (JsonProperty entry in value.EnumerateObject())
         {
             switch (entry.Name)
             {
-                case "connect":
+                case "models":
                     if (entry.Value.ValueKind != JsonValueKind.String
-                        || entry.Value.GetString() is not { Length: > 0 } value)
-                        return Result<ParsedServer>.Fail(Outcome.Invalid,
-                            $"server '{server.Name}' has a \"connect\" that is not a non-empty string",
-                            path);
-                    connect = value;
+                        || entry.Value.GetString() is not { Length: > 0 } dir)
+                        return Result<Parsed>.Fail(Outcome.Invalid,
+                            $"\"models\" is not a non-empty string in {Path.GetFileName(path)}; "
+                            + "it names the directory holding the screening models", path);
+                    models = dir;
                     break;
 
-                case "databases":
+                case "screen":
+                    if (isLocal)
+                        return Result<Parsed>.Fail(Outcome.Invalid, LocalOnly, path);
+
                     if (entry.Value.ValueKind != JsonValueKind.Object)
-                        return Result<ParsedServer>.Fail(Outcome.Invalid,
-                            $"server '{server.Name}' has a \"databases\" that is not an object", path);
-                    foreach (JsonProperty database in entry.Value.EnumerateObject())
+                        return Result<Parsed>.Fail(Outcome.Invalid,
+                            "\"screen\" under \"screenings\" is not an object. Each key is a database "
+                            + "name, or a database name, a slash and a scope's object pattern", path);
+
+                    foreach (JsonProperty one in entry.Value.EnumerateObject())
                     {
-                        Result<DatabaseDecl> parsed = ParseDatabase(database, server.Name, path);
-                        if (!parsed.IsOk) return parsed.Carry<ParsedServer>();
-                        databases.Add(parsed.Value);
+                        if (one.Name.Length == 0 || one.Name.StartsWith('/'))
+                            return Result<Parsed>.Fail(Outcome.Invalid,
+                                "a \"screen\" key names no database. Write the database name first", path);
+
+                        Result<Screened> read = ReadScreen(one.Value, $"the \"screen\" for '{one.Name}'", path);
+                        if (!read.IsOk) return read.Carry<Parsed>();
+                        screens.Add((one.Name, read.Value));
                     }
                     break;
 
                 default:
-                    return Result<ParsedServer>.Fail(Outcome.Invalid,
-                        $"'{entry.Name}' is not something a server declares; it takes: "
-                        + "connect, databases", path);
+                    return Result<Parsed>.Fail(Outcome.Invalid,
+                        $"'{entry.Name}' is not something \"screenings\" declares; it takes: models, screen", path);
             }
         }
 
-        return Result<ParsedServer>.Ok(new ParsedServer(server.Name, connect, databases));
+        return Result<Parsed>.Ok(parsed with { Screenings = true, Models = models, Screens = screens });
     }
+
+    /// <summary>
+    /// The refusal for the flat shape, holding the file's own entries
+    /// under the new sections: <c>connect</c> under <c>tools</c>, the
+    /// databases under <c>guardrails</c>, and <c>models</c> and every
+    /// <c>screen</c> under <c>screenings</c>.
+    /// </summary>
+    static string Rewrite(JsonElement root, string found, string file)
+    {
+        JsonObject old = JsonNode.Parse(root.GetRawText())!.AsObject();
+
+        var tools = new JsonObject();
+        var guarded = new JsonObject();
+        var screen = new JsonObject();
+
+        if (old["servers"] is JsonObject servers)
+            foreach (KeyValuePair<string, JsonNode?> server in servers)
+            {
+                if (server.Value is not JsonObject entry) continue;
+
+                var connection = new JsonObject();
+                if (entry["connect"] is { } connect) connection["connect"] = connect.DeepClone();
+                tools[server.Key] = connection;
+
+                if (entry["databases"] is not JsonObject databases) continue;
+
+                var moved = new JsonObject();
+                foreach (KeyValuePair<string, JsonNode?> database in databases)
+                {
+                    JsonNode? copy = database.Value?.DeepClone();
+                    if (copy is JsonObject db)
+                    {
+                        if (db.Remove("screen", out JsonNode? s)) screen[database.Key] = s;
+
+                        if (db["scopes"] is JsonArray scopes)
+                            foreach (JsonNode? scope in scopes)
+                                if (scope is JsonObject declared
+                                    && declared["object"]?.GetValue<string>() is { } pattern
+                                    && declared.Remove("screen", out JsonNode? ss))
+                                    screen[$"{database.Key}/{pattern}"] = ss;
+                    }
+                    moved[database.Key] = copy;
+                }
+                guarded[server.Key] = new JsonObject { ["databases"] = moved };
+            }
+
+        var rewritten = new JsonObject();
+        if (tools.Count > 0) rewritten[Levels.ToolsName] = new JsonObject { ["servers"] = tools };
+        if (guarded.Count > 0) rewritten[Levels.GuardrailsName] = new JsonObject { ["servers"] = guarded };
+
+        var screenings = new JsonObject();
+        if (old["models"] is { } models) screenings["models"] = models.DeepClone();
+        if (screen.Count > 0) screenings["screen"] = screen;
+        if (screenings.Count > 0) rewritten[Levels.ScreeningsName] = screenings;
+
+        string json = rewritten.ToJsonString(new JsonSerializerOptions
+        {
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        });
+
+        return $"{file} has \"{found}\" at the top, which is the shape this version no longer reads. "
+            + "Rewrite it with three sections, one per level. Your entries, rewritten: " + json;
+    }
+
 
     static Result<DatabaseDecl> ParseDatabase(JsonProperty database, string server, string path)
     {
@@ -326,13 +617,10 @@ public static class ConfigFile
                 }
 
                 case "screen":
-                {
-                    Result<Screened> parsed = ReadScreen(entry.Value,
-                        $"database '{database.Name}'", path);
-                    if (!parsed.IsOk) return parsed.Carry<DatabaseDecl>();
-                    screen = parsed.Value;
-                    break;
-                }
+                    return Result<DatabaseDecl>.Fail(Outcome.Invalid,
+                        $"database '{database.Name}' has a \"screen\". A screen now goes under "
+                        + $"\"screenings\", keyed by the database: {{\"screenings\":{{\"screen\":{{\"{database.Name}\":true}}}}}}",
+                        path);
 
                 case "scopes":
                 {
@@ -351,7 +639,7 @@ public static class ConfigFile
                 default:
                     return Result<DatabaseDecl>.Fail(Outcome.Invalid,
                         $"'{entry.Name}' is not something a database declares; it takes: "
-                        + "can, screen, scopes", path);
+                        + "can, scopes", path);
             }
         }
 
@@ -414,18 +702,15 @@ public static class ConfigFile
                 }
 
                 case "screen":
-                {
-                    Result<Screened> parsed = ReadScreen(entry.Value,
-                        $"a scope in database '{database}'", path);
-                    if (!parsed.IsOk) return parsed.Carry<ScopeDecl>();
-                    screened = parsed.Value;
-                    break;
-                }
+                    return Result<ScopeDecl>.Fail(Outcome.Invalid,
+                        $"a scope in database '{database}' has a \"screen\". A screen now goes under "
+                        + "\"screenings\", keyed by the database, a slash and the scope's object pattern",
+                        path);
 
                 default:
                     return Result<ScopeDecl>.Fail(Outcome.Invalid,
                         $"'{entry.Name}' is not something a scope declares; it takes: "
-                        + "object, can, columns, screen", path);
+                        + "object, can, columns", path);
             }
         }
 

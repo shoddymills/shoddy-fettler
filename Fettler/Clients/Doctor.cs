@@ -3,11 +3,11 @@ using Fettler.Core;
 
 namespace Fettler.Clients;
 
-/// <summary>How one client at one level stands.</summary>
+/// <summary>How one client at one reach stands.</summary>
 public enum Verdict
 {
     /// <summary>The client is not installed, or has no configuration at
-    /// this level. Never a failure - Claude Desktop has no project scope
+    /// this reach. Never a failure - Claude Desktop has no project scope
     /// at all, and reporting that as broken would train a reader to
     /// ignore the report.</summary>
     NotApplicable,
@@ -23,10 +23,17 @@ public enum Verdict
     Healthy,
 }
 
-public sealed record ClientReport(string Client, Level Level, Verdict Verdict, string Detail, string? Where);
+public sealed record ClientReport(string Client, Reach Reach, Verdict Verdict, string Detail, string? Where);
 
-/// <summary>One thing letting the assistant go round the boundary.</summary>
-public sealed record Finding(string Check, bool Serious, string Message, string? Where);
+/// <summary>One thing letting the assistant go round the boundary, and
+/// the level it belongs to. A finding is reported only when its level is
+/// on.</summary>
+public sealed record Finding(string Check, bool Serious, string Message, string? Where,
+    string Level = Levels.GuardrailsName);
+
+/// <summary>One line of plain fact in a level's section: where a folder
+/// is, what a level holds. Never a warning.</summary>
+public sealed record Fact(string Level, string Text);
 
 /// <summary>Which binary answered, and whether anything else would.</summary>
 public sealed record Installation(string Binary, string Version, bool OnPath, string? PathBinary);
@@ -36,7 +43,17 @@ public sealed record Diagnosis(
     IReadOnlyList<ClientReport> Clients,
     IReadOnlyList<Finding> Findings)
 {
-    public bool AnyBroken => Clients.Any(c => c.Verdict == Verdict.Broken);
+    /// <summary>Which levels are on for the project examined.</summary>
+    public Levels Levels { get; init; } = Levels.ToolsOnly;
+
+    /// <summary>The plain facts, by level, in the order they are printed.</summary>
+    public IReadOnlyList<Fact> Facts { get; init; } = [];
+
+    /// <summary>A broken registration, or a companion whose root sits
+    /// where the guardrails cannot reach it (R12.3). Either is exit 2.</summary>
+    public bool AnyBroken =>
+        Clients.Any(c => c.Verdict == Verdict.Broken)
+        || Findings.Any(f => f.Check == Doctor.CompanionCheck);
 
     public bool AnyWarning => Clients.Any(c => c.Verdict == Verdict.Absent) || Findings.Count > 0;
 }
@@ -60,22 +77,43 @@ public sealed record Diagnosis(
 /// </summary>
 public static class Doctor
 {
+    /// <summary>
+    /// Examine the machine for the project <paramref name="roots"/>
+    /// describes.
+    ///
+    /// <para><b>Every check runs; a finding is kept only for a level that
+    /// is on (R5.5).</b> A tools-level project with no deny list is
+    /// correctly configured, and is not told otherwise. The registration
+    /// rows and the tools facts are always reported.</para>
+    /// </summary>
     public static Diagnosis Examine(Machine machine, Roots? roots, string version)
     {
         var clients = new List<ClientReport>();
         var findings = new List<Finding>();
+        var facts = new List<Fact>();
 
         Installation install = WhichBinary(version);
+        Levels levels = roots?.Levels ?? Levels.ToolsOnly;
 
         foreach (string client in Places.Clients)
-            foreach (Level level in new[] { Level.Global, Level.Repo })
-                clients.Add(Look(machine, client, level, install));
+            foreach (Reach reach in new[] { Reach.Global, Reach.Repo })
+                clients.Add(Look(machine, client, reach, install));
 
         Overrides(machine, roots, findings);
         Declarations(roots, findings);
+        ToolsFacts(roots, facts);
+        CompanionRoots(machine, roots, levels, facts, findings);
+        ScreeningsFacts(roots, levels, facts);
 
-        return new Diagnosis(install, clients, findings);
+        return new Diagnosis(install, clients, [.. findings.Where(f => levels.IsOn(f.Level))])
+        {
+            Levels = levels,
+            Facts = facts,
+        };
     }
+
+    /// <summary>The number of the companion-root finding of R12.3.</summary>
+    public const string CompanionCheck = "2.19";
 
     // ---- 5.2: what answered, and whether anything else would ----
 
@@ -122,38 +160,38 @@ public static class Doctor
 
     // ---- the first job: is Fettler wired in ----
 
-    static ClientReport Look(Machine machine, string client, Level level, Installation install)
+    static ClientReport Look(Machine machine, string client, Reach reach, Installation install)
     {
-        IReadOnlyList<Place> places = [.. Places.All(machine).Where(p => p.Client == client && p.Level == level)];
+        IReadOnlyList<Place> places = [.. Places.All(machine).Where(p => p.Client == client && p.Reach == reach)];
 
         if (places.Count == 0)
-            return new ClientReport(client, level, Verdict.NotApplicable,
-                client == Places.ClaudeDesktop && level == Level.Repo
-                    ? "this client has no project level"
-                    : "nothing to configure at this level",
+            return new ClientReport(client, reach, Verdict.NotApplicable,
+                client == Places.ClaudeDesktop && reach == Reach.Repo
+                    ? "this client has no project registration"
+                    : "nothing to configure here",
                 null);
 
         Place? servers = places.FirstOrDefault(p => p.Purpose == Purpose.Servers);
 
         if (servers is null)
-            return new ClientReport(client, level, Verdict.NotApplicable,
-                "this client's servers are registered at the other level", null);
+            return new ClientReport(client, reach, Verdict.NotApplicable,
+                "this client's servers are registered at the other reach", null);
 
         if (!File.Exists(servers.Path))
-            return new ClientReport(client, level, Verdict.NotApplicable,
-                "no configuration file at this level", servers.Path);
+            return new ClientReport(client, reach, Verdict.NotApplicable,
+                "no configuration file here", servers.Path);
 
         Result<JsonDocument> read = ReadJson(machine, servers.Path);
         if (!read.IsOk)
-            return new ClientReport(client, level, Verdict.Broken, read.Failure!.Message, servers.Path);
+            return new ClientReport(client, reach, Verdict.Broken, read.Failure!.Message, servers.Path);
 
         using JsonDocument doc = read.Value;
 
         if (!Registration(doc.RootElement, out JsonElement entry))
-            return new ClientReport(client, level, Verdict.Absent,
+            return new ClientReport(client, reach, Verdict.Absent,
                 $"'{Places.ServerName}' is not registered in this file", servers.Path);
 
-        return Judge(client, level, entry, servers.Path, install);
+        return Judge(client, reach, entry, servers.Path, install);
     }
 
     /// <summary>
@@ -189,24 +227,24 @@ public static class Doctor
         return false;
     }
 
-    static ClientReport Judge(string client, Level level, JsonElement entry, string where, Installation install)
+    static ClientReport Judge(string client, Reach reach, JsonElement entry, string where, Installation install)
     {
         if (entry.ValueKind != JsonValueKind.Object
             || !entry.TryGetProperty("command", out JsonElement command)
             || command.ValueKind != JsonValueKind.String)
-            return new ClientReport(client, level, Verdict.Broken,
+            return new ClientReport(client, reach, Verdict.Broken,
                 "the registration has no command", where);
 
         string named = command.GetString()!;
         string? resolved = Resolve(named);
 
         if (resolved is null)
-            return new ClientReport(client, level, Verdict.Broken,
+            return new ClientReport(client, reach, Verdict.Broken,
                 $"the registration runs '{named}', and nothing on this machine has that name"
                 + (install.OnPath ? "" : ". fettle is not on PATH"),
                 where);
 
-        return new ClientReport(client, level, Verdict.Healthy,
+        return new ClientReport(client, reach, Verdict.Healthy,
             $"registered; runs {resolved}", where);
     }
 
@@ -220,14 +258,20 @@ public static class Doctor
     /// </summary>
     static void Overrides(Machine machine, Roots? roots, List<Finding> findings)
     {
+        // 2.8 is judged per client across that client's repo-level
+        // policy files, so the denies are collected here first.
+        var repoDenies = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
         foreach (Place place in Places.All(machine))
         {
             if (!File.Exists(place.Path)) continue;
 
-            if (place.Purpose == Purpose.Policy) Policy(machine, place, roots, findings);
+            if (place.Purpose == Purpose.Policy) Policy(machine, place, roots, findings, repoDenies);
             if (place.Purpose == Purpose.Instructions) Instructions(place, findings);
             if (place.Purpose == Purpose.Servers) Servers(machine, place, findings);
         }
+
+        MissingDenies(machine, repoDenies, findings);
 
         // 2.13: a personal settings file never appears in review, so a
         // permission granted there is invisible to everybody else.
@@ -237,50 +281,39 @@ public static class Doctor
                     "settings.local.json is present. Permissions granted there are not committed, "
                     + "so nobody else on the project sees them", place.Path));
 
-        // 2.15: the assistant's own scratch directory, which nothing here
-        // granted - the harness gives it - so work staged there is invisible
-        // to this boundary.
-        //
-        // It matters most at the moment the deny list lands. With the
-        // built-in Write denied and no tree covering the scratch, an
-        // assistant has nowhere to stage anything at all, and learns that at
-        // its first write rather than while running setup. Reporting it
-        // BEFORE the deny bites is the whole value of the check.
-        // Satisfied by a tree INSIDE the scratch root as well as by one
-        // containing it, because the advice is to declare the per-project
-        // folder rather than the lot. A check that cannot be cleared by
-        // doing what it says is a check people learn to scroll past.
-        if (roots is not null && ScratchRoot() is { } scratch
-            && !InSomeTree(roots, scratch) && !HasTreeInside(roots, scratch))
-            findings.Add(new Finding("2.15", false,
-                "the assistant's scratch directory is outside every declared tree. Once the "
-                + "built-in Write is denied, the assistant cannot write there. Declare this "
-                + $"project's folder inside it as a tree in {RootsFile.LocalFileName}: "
-                + "{\"trees\":{\"scratch\":{\"path\":\"<that folder>\",\"can\":"
-                + "[\"list\",\"read\",\"create\",\"update\",\"rename\",\"delete\"]}}}. "
-                + "Declare the project's folder, not the directory named below, which holds "
-                + "every project's scratch. A person edits that file; setup does not",
-                scratch));
+        // 2.15 is retired and its number is not reused. fettle now opens
+        // this session's scratch folder itself, at every level, so the
+        // condition it reported no longer arises.
     }
 
     /// <summary>
-    /// Where an assistant stages files, if it is there at all.
+    /// 2.8: registering Fettler makes it available; only a deny makes it
+    /// the route.
     ///
-    /// <para>A well-known directory under the system temp, read the same way
-    /// the client-configuration paths are: a compiled-in location, probed
-    /// for existence and nothing else. Absent means absent - no finding, and
-    /// no guess about what a harness might have done instead.</para>
+    /// <para><b>Judged the way the client merges its files (R5.6).</b> A
+    /// deny in <c>.claude/settings.json</c> binds whatever
+    /// <c>.claude/settings.local.json</c> says, so a tool is missing only
+    /// when no repo-level file of that client denies it. The finding names
+    /// the file <c>setup guardrails</c> writes, so the path in the report
+    /// and the remedy point at the same place, and running the remedy
+    /// clears the finding (R5.7).</para>
     /// </summary>
-    static string? ScratchRoot()
+    static void MissingDenies(Machine machine, Dictionary<string, List<string>> repoDenies, List<Finding> findings)
     {
-        try
+        foreach ((string client, List<string> denied) in repoDenies)
         {
-            string at = Path.Combine(Path.GetTempPath(), "claude");
-            return Directory.Exists(at) ? Path.GetFullPath(at) : null;
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
-        {
-            return null;
+            var missing = Denied.Where(r => !denied.Any(d =>
+                d.Equals(r, StringComparison.Ordinal) || d.StartsWith(r + "(", StringComparison.Ordinal))).ToList();
+
+            if (missing.Count == 0) continue;
+
+            string writes = Places.All(machine)
+                .First(p => p.Client == client && p.Reach == Reach.Repo && p.Purpose == Purpose.Policy).Path;
+
+            findings.Add(new Finding("2.8", false,
+                $"deny does not list the built-in {string.Join(", ", missing)}. "
+                + $"Run: fettle setup guardrails {client} --local",
+                writes));
         }
     }
 
@@ -400,7 +433,8 @@ public static class Doctor
     /// </summary>
     public const string InventoryOf = "2026-08-20";
 
-    static void Policy(Machine machine, Place place, Roots? roots, List<Finding> findings)
+    static void Policy(Machine machine, Place place, Roots? roots, List<Finding> findings,
+                       Dictionary<string, List<string>> repoDenies)
     {
         Result<JsonDocument> read = ReadJson(machine, place.Path);
         if (!read.IsOk)
@@ -463,17 +497,13 @@ public static class Doctor
                 + "Remove those entries",
                 place.Path));
 
-        // 2.8: registering Fettler makes it available; only a deny makes
-        // it the route. Both lists, because a shell left open is a route
-        // round the boundary exactly as an undenied Write is.
-        var missing = Denied.Where(r => !denied.Any(d =>
-            d.Equals(r, StringComparison.Ordinal) || d.StartsWith(r + "(", StringComparison.Ordinal))).ToList();
-
-        if (missing.Count > 0 && place.Level == Level.Repo)
-            findings.Add(new Finding("2.8", false,
-                $"deny does not list the built-in {string.Join(", ", missing)}. "
-                + "Run: fettle setup claude-code --local",
-                place.Path));
+        // 2.8 is judged after every file is read: see MissingDenies.
+        if (place.Reach == Reach.Repo)
+        {
+            if (!repoDenies.TryGetValue(place.Client, out List<string>? all))
+                repoDenies[place.Client] = all = [];
+            all.AddRange(denied);
+        }
 
         // 2.18: 2.8 can only check the tools this fettle has heard of,
         // and the client keeps growing new ones. Where the configuration
@@ -564,14 +594,6 @@ public static class Doctor
         return false;
     }
 
-    /// <summary>Whether any declared tree lies inside a directory - the
-    /// question <see cref="InSomeTree"/> asks, the other way round.</summary>
-    static bool HasTreeInside(Roots roots, string directory)
-    {
-        foreach (string name in roots.Names)
-            if (Roots.IsWithin(directory, roots.PathOf(name))) return true;
-        return false;
-    }
 
     /// <summary>The shells whose command line can carry a script for them
     /// to parse, by the name the program is launched under.</summary>
@@ -742,10 +764,185 @@ public static class Doctor
                 findings.Add(new Finding("2.11", true,
                     $"two project entries name one directory with different spellings: '{first}' "
                     + $"and '{project.Name}'. Permissions apply to only one of them. Merge them by hand",
-                    place.Path));
+                    place.Path, Levels.ToolsName));
                 continue;
             }
             seen[key] = key;
+        }
+    }
+
+    // ---- the facts each level reports ----
+
+    /// <summary>
+    /// The tools section's facts: the client's folders fettle opened, with
+    /// how each was found, and the machine file.
+    ///
+    /// <para>A folder that is not there is a fact, not a finding. The
+    /// client makes these folders when it needs them, and the tree appears
+    /// on the next call.</para>
+    /// </summary>
+    static void ToolsFacts(Roots? roots, List<Fact> facts)
+    {
+        if (roots is null) return;
+
+        foreach (string name in Harness.Names)
+        {
+            string? found = roots.Names.FirstOrDefault(n =>
+                n.Equals(name, Roots.PathComparison) && roots.HowFound(n) is not null);
+
+            facts.Add(new Fact(Levels.ToolsName, found is not null
+                ? $"{name}: {roots.PathOf(found)}, found as {roots.HowFound(found)}"
+                : $"{name}: not found for this project. The tree appears once the client makes the folder"));
+        }
+
+        foreach (string file in roots.Levels.Tools.Concat(roots.Levels.Screenings).Distinct(StringComparer.Ordinal))
+            if (Path.GetFileName(file).Equals(Host.MachineFileName, StringComparison.Ordinal))
+            {
+                facts.Add(new Fact(Levels.ToolsName, $"machine file: {file}"));
+                break;
+            }
+    }
+
+    /// <summary>
+    /// R12.3: where each companion server's root sits, measured against
+    /// the declared trees.
+    ///
+    /// <para><b>With guardrails off</b>, each root is one line of fact in
+    /// the tools section and nothing is a finding. No tree states a rule
+    /// the companion could ignore.</para>
+    ///
+    /// <para><b>With guardrails on</b>, a root inside a declared tree,
+    /// inside a screened tree or scope, or in a folder a governed file
+    /// switches, is a serious finding. The remedy it names is to move the
+    /// root. Denying the companion would remove what it is for.</para>
+    /// </summary>
+    static void CompanionRoots(Machine machine, Roots? roots, Levels levels, List<Fact> facts, List<Finding> findings)
+    {
+        IReadOnlyList<Companion> companions = Companions.Find(machine);
+
+        foreach (Companion c in companions)
+        {
+            if (c.Root is not { } root) continue;
+
+            if (!levels.GuardrailsOn || roots is null)
+            {
+                facts.Add(new Fact(Levels.ToolsName,
+                    $"{c.Name} reads and writes every file under {root}, from {c.Registration}"));
+                continue;
+            }
+
+            var problems = new List<string>();
+            string? pairing = null;
+            Screened screened = Screened.None;
+
+            foreach (string name in roots.Names)
+            {
+                if (roots.HowFound(name) is not null) continue;
+
+                string tree = roots.PathOf(name);
+                if (!Roots.IsWithin(tree, root)) continue;
+
+                Grant grant = roots.GrantOf(name);
+                screened |= grant.At(tree, root).Screen;
+                foreach (Scope scope in grant.Scopes)
+                    if (Roots.IsWithin(root, scope.Path) && scope.Screen is { } s) screened |= s;
+
+                if (Roots.IsWithin(root, tree))
+                {
+                    pairing = name;
+                    continue;
+                }
+
+                problems.Add($"It is inside the tree '{name}', which grants {Permissions.Write(grant.Can)}"
+                    + (grant.Scopes.Count > 0 ? " and declares scopes" : "")
+                    + $". {c.Name} follows none of that");
+            }
+
+            if (screened != Screened.None)
+                problems.Add($"It holds files screened for {Screens.Write(screened)}, and {c.Name} reads them unscreened");
+
+            if (GovernedAt(root) is { } governed)
+                problems.Add($"{governed}, so {c.Name} can rewrite the file that turns guardrails on and off");
+
+            if (problems.Count > 0)
+                findings.Add(new Finding(CompanionCheck, true,
+                    $"{c.Name} reads and writes every file under {root} with none of fettle's rules. "
+                    + string.Join(". ", problems)
+                    + $". Move the --root of {c.Name} to a folder outside every tree",
+                    c.Registration));
+            else
+                facts.Add(new Fact(Levels.GuardrailsName, pairing is not null
+                    ? $"{c.Name}: its root {root} is the tree '{pairing}', so the two share files"
+                    : $"{c.Name}: its root {root} is outside every declared tree"));
+        }
+
+        var rootless = companions.Where(c => c.Root is null).Select(c => c.Name).ToList();
+        if (rootless.Count > 0)
+            facts.Add(new Fact(Levels.ToolsName,
+                $"other servers that pass no --root: {string.Join(", ", rootless)}. fettle opens no tree for them. "
+                + "To share files with one, pass --root PATH in its registration, and fettle opens PATH under its name"));
+    }
+
+    /// <summary>
+    /// Whether a governed file switches the folder, or sits in it: a
+    /// <c>.fettler.json</c> or a <c>.picker.json</c> at or above it, or a
+    /// governed file directly inside it.
+    /// </summary>
+    static string? GovernedAt(string root)
+    {
+        try
+        {
+            for (DirectoryInfo? dir = new(root); dir is not null; dir = dir.Parent)
+                foreach (string name in new[] { RootsFile.FileName, RootsFile.LocalFileName, ".picker.json", ".picker.local.json" })
+                    if (File.Exists(Path.Combine(dir.FullName, name)))
+                        return $"A {name} at {dir.FullName} governs the folder";
+
+            foreach (string tail in RuleFiles.Tails)
+                if (File.Exists(Path.Combine(root, tail.Replace('/', Path.DirectorySeparatorChar))))
+                    return $"The folder holds {tail}";
+
+            foreach (string file in Directory.EnumerateFiles(root))
+                if (RuleFiles.Governs(Path.GetFileName(file)))
+                    return $"The folder holds {Path.GetFileName(file)}";
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException
+                                      or System.Security.SecurityException)
+        {
+            return null;
+        }
+
+        return null;
+    }
+
+    /// <summary>The screenings section's facts: burler, the models
+    /// directory, and the model installed for each category. Reported
+    /// only when screenings are on.</summary>
+    static void ScreeningsFacts(Roots? roots, Levels levels, List<Fact> facts)
+    {
+        if (roots is null || !levels.ScreeningsOn) return;
+
+        string burler = Sidecar.Executable();
+        facts.Add(new Fact(Levels.ScreeningsName, File.Exists(burler)
+            ? $"burler: {burler}"
+            : $"burler: not beside fettle at {burler}, so only identifiers are screened"));
+
+        if (roots.Models is not { } models)
+        {
+            facts.Add(new Fact(Levels.ScreeningsName, "models: none named, so only identifiers are screened"));
+            return;
+        }
+
+        facts.Add(new Fact(Levels.ScreeningsName, Directory.Exists(models)
+            ? $"models: {models}"
+            : $"models: {models} does not exist, so a screened category that needs a model refuses every read"));
+
+        foreach (Screened one in Screens.All)
+        {
+            if (one == Screened.Identifiers) continue;
+
+            IReadOnlyList<Installed.Model> installed = Installed.For(models, Screens.NameOf(one));
+            facts.Add(new Fact(Levels.ScreeningsName,
+                $"{Screens.NameOf(one)}: {(installed.Count == 0 ? "no model installed" : string.Join(", ", installed))}"));
         }
     }
 

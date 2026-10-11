@@ -259,15 +259,22 @@ public sealed class Arguments
     /// included, cannot perform, because
     /// <see cref="Fettler.Core.RuleFiles"/> refuses it.</para>
     ///
-    /// <para><b>Finding no configuration is now a refusal.</b> It used to
-    /// fall back to the current directory, which is the "searching
-    /// around" this boundary exists to stop: a cwd above the intended
-    /// tree contains the intended tree, so the fallback silently WIDENED
-    /// the boundary exactly when nobody had stated one.</para>
+    /// <para><b>Finding no configuration is the tools level.</b> The
+    /// launch folder is one tree called <c>work</c>, granted everything
+    /// but execute. It is the folder the caller is in, never a folder
+    /// above it, so it cannot be wider than where the work is.</para>
+    ///
+    /// <para><b>Every boundary gets the client's folders</b>: this
+    /// session's scratch folder, the client's <c>tool-results</c> and
+    /// <c>memory</c>, and the root of each companion server. See
+    /// <see cref="Harness"/> and <see cref="Fettler.Clients.Companions"/>.</para>
     /// </summary>
-    public Result<Roots> DeclaredRoots()
+    public Result<Roots> DeclaredRoots() => DeclaredRoots(Host.Real());
+
+    /// <summary><see cref="DeclaredRoots()"/> on a given machine.</summary>
+    public Result<Roots> DeclaredRoots(Host host)
     {
-        Result<Boundary> boundary = DeclaredBoundary();
+        Result<Boundary> boundary = DeclaredBoundary(host, Directory.GetCurrentDirectory());
         return boundary.IsOk ? Result<Roots>.Ok(boundary.Value.Roots) : boundary.Carry<Roots>();
     }
 
@@ -278,8 +285,34 @@ public sealed class Arguments
     /// re-reads before every request, and a boundary with no file behind
     /// it (--root) is the one that stays as launched.
     /// </summary>
-    public Result<Boundary> DeclaredBoundary()
+    public Result<Boundary> DeclaredBoundary() => DeclaredBoundary(Host.Real(), Directory.GetCurrentDirectory());
+
+    /// <summary><see cref="DeclaredBoundary()"/> on a given machine, for a
+    /// process launched in <paramref name="launch"/>.</summary>
+    public Result<Boundary> DeclaredBoundary(Host host, string launch)
     {
+        Func<Result<Roots>> open = Opener(host, launch);
+        Result<Roots> roots = open();
+        return roots.IsOk
+            ? Result<Boundary>.Ok(new Boundary(roots.Value, roots.Value.ConfigFile, open))
+            : roots.Carry<Boundary>();
+    }
+
+    /// <summary>
+    /// How to open this command line's boundary, again and again.
+    ///
+    /// <para><b>serve calls this before every request</b>, so an edit to
+    /// the file, a new scratch folder, or a newly registered companion
+    /// binds on the next call. A file named or found at launch is the
+    /// file re-read, never a fresh discovery: walking up again from where
+    /// it was could find a broader one above it. With no file at launch,
+    /// discovery runs again from the launch folder, and the first file it
+    /// finds is then the file re-read from then on.</para>
+    /// </summary>
+    Func<Result<Roots>> Opener(Host host, string launch)
+    {
+        string? machine = host.MachineFile;
+
         IReadOnlyList<string> declared = Values("root");
         if (declared.Count > 0)
         {
@@ -298,39 +331,60 @@ public sealed class Arguments
                 decls.Add(new TreeDecl(name, path, Permissions.ReadOnly));
             }
 
-            return From(Roots.Open(decls, "--root on the command line, which grants list read only"), null);
+            // The machine file still supplies the tools settings: where
+            // the client's folders are is a fact about the machine.
+            return () =>
+            {
+                Result<RootsFile.Found> tools = RootsFile.ToolsLevel(launch, machine);
+                if (!tools.IsOk) return tools.Carry<Roots>();
+
+                return Roots.Open(decls, "--root on the command line, which grants list read only",
+                    null, tools.Value.Models, Levels.ToolsOnly, tools.Value.Generated,
+                    Extra(host, launch, tools.Value));
+            };
         }
 
         if (Value("config") is { } named)
+            return () => Opened(host, launch, RootsFile.ReadWithOverlay(named, launch, machine));
+
+        if (Has("no-config"))
+            return () => Opened(host, launch, RootsFile.ToolsLevel(launch, machine));
+
+        string? locked = null;
+        return () =>
         {
-            Result<RootsFile.Found> told = RootsFile.ReadWithOverlay(named);
-            return told.IsOk
-                ? From(Roots.Open(told.Value.Trees, told.Value.Origin, told.Value.Tasks, told.Value.Models), told.Value.File)
-                : told.Carry<Boundary>();
-        }
+            Result<RootsFile.Found> found = locked is null
+                ? RootsFile.Discover(launch, machine)
+                : RootsFile.ReadWithOverlay(locked, launch, machine);
 
-        if (!Has("no-config"))
-        {
-            Result<RootsFile.Found> found = RootsFile.Discover(Directory.GetCurrentDirectory());
-            if (found.IsOk)
-                return From(Roots.Open(found.Value.Trees, found.Value.Origin, found.Value.Tasks, found.Value.Models), found.Value.File);
-
-            // Anything but NotFound means a configuration WAS there and
-            // was wrong, and its own message says what.
-            if (found.Failure!.Outcome != Outcome.NotFound) return found.Carry<Boundary>();
-        }
-
-        return Result<Boundary>.Fail(Outcome.Invalid, Roots.NothingDeclared);
+            if (found.IsOk && found.Value.File is { } file) locked = file;
+            return Opened(host, launch, found);
+        };
     }
 
-    static Result<Boundary> From(Result<Roots> opened, string? file) =>
-        opened.IsOk
-            ? Result<Boundary>.Ok(new Boundary(opened.Value, file))
-            : opened.Carry<Boundary>();
+    static Result<Roots> Opened(Host host, string launch, Result<RootsFile.Found> found) =>
+        found.IsOk
+            ? RootsFile.Open(found.Value, Extra(host, launch, found.Value))
+            : found.Carry<Roots>();
+
+    /// <summary>The trees fettle opens itself: the client's folders, then
+    /// each companion's root.</summary>
+    static IReadOnlyList<HarnessTree> Extra(Host host, string launch, RootsFile.Found found)
+    {
+        var extra = new List<HarnessTree>(Harness.Find(host, launch, found.Harness));
+
+        if (host.Home is { } home)
+        {
+            var machine = new Fettler.Clients.Machine(home, host.AppData ?? home, launch);
+            extra.AddRange(Fettler.Clients.Companions.Trees(Fettler.Clients.Companions.Find(machine)));
+        }
+
+        return extra;
+    }
 }
 
-/// <summary>The boundary and where it came from: the opened trees, and
-/// the configuration file they were read from - null when --root
-/// declared them on the command line, the one source with no file to
-/// re-read.</summary>
-public sealed record Boundary(Roots Roots, string? File);
+/// <summary>The boundary and where it came from: the opened trees, the
+/// configuration file they were read from (null when none was), and how
+/// to open the same boundary again, which is what serve does before every
+/// request.</summary>
+public sealed record Boundary(Roots Roots, string? File, Func<Result<Roots>> Reopen);

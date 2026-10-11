@@ -163,7 +163,7 @@ public sealed class ScreenTests
     public void ScreenTrueMeansEveryCategory()
     {
         Result<RootsFile.Found> found = RootsFile.Read(Configured(
-            """{"trees":{"work":{"path":".","screen":true}}}"""));
+            """{"guardrails":{"trees":{"work":{"path":"."}}},"screenings":{"screen":{"work":true}}}"""));
 
         Assert.True(found.IsOk, found.Failure?.Message);
         Assert.Equal(Screens.Everything, found.Value.Trees[0].Screen);
@@ -173,7 +173,7 @@ public sealed class ScreenTests
     public void ATreeThatSaysNothingScreensNothing()
     {
         Result<RootsFile.Found> found = RootsFile.Read(Configured(
-            """{"trees":{"work":{"path":"."}}}"""));
+            """{"guardrails":{"trees":{"work":{"path":"."}}}}"""));
 
         Assert.True(found.IsOk, found.Failure?.Message);
         Assert.Equal(Screened.None, found.Value.Trees[0].Screen);
@@ -183,7 +183,7 @@ public sealed class ScreenTests
     public void AMixedListIsRefusedWhenTheConfigurationIsREAD()
     {
         Result<RootsFile.Found> found = RootsFile.Read(Configured(
-            """{"trees":{"work":{"path":".","screen":["identifiers","-scientific"]}}}"""));
+            """{"screenings":{"screen":{"work":["identifiers","-scientific"]}}}"""));
 
         Assert.False(found.IsOk);
         Assert.Equal(Outcome.Invalid, found.Failure!.Outcome);
@@ -194,7 +194,7 @@ public sealed class ScreenTests
     public void AScreenThatIsNotTrueFalseOrAListIsRefused()
     {
         Result<RootsFile.Found> found = RootsFile.Read(Configured(
-            """{"trees":{"work":{"path":".","screen":"identifiers"}}}"""));
+            """{"screenings":{"screen":{"work":"identifiers"}}}"""));
 
         Assert.False(found.IsOk);
         Assert.Equal(Outcome.Invalid, found.Failure!.Outcome);
@@ -207,8 +207,9 @@ public sealed class ScreenTests
     {
         Result<RootsFile.Found> found = RootsFile.Read(Configured(
             """
-            {"trees":{"work":{"path":".","screen":true,
-              "scopes":{"public":{"can":["list","read"],"screen":false}}}}}
+            {"guardrails":{"trees":{"work":{"path":".",
+              "scopes":{"public":{"can":["list","read"]}}}}},
+             "screenings":{"screen":{"work":true,"work/public":false}}}
             """));
 
         Assert.True(found.IsOk, found.Failure?.Message);
@@ -227,8 +228,9 @@ public sealed class ScreenTests
     {
         Result<RootsFile.Found> found = RootsFile.Read(Configured(
             """
-            {"trees":{"work":{"path":".","screen":["clinical"],
-              "scopes":{"inner":{"can":["list","read"]}}}}}
+            {"guardrails":{"trees":{"work":{"path":".",
+              "scopes":{"inner":{"can":["list","read"]}}}}},
+             "screenings":{"screen":{"work":["clinical"]}}}
             """));
 
         Assert.True(found.IsOk, found.Failure?.Message);
@@ -1119,7 +1121,7 @@ public sealed class ScreenTests
 
         CliResult listed = await Run(box, "roots");
 
-        Assert.Contains("screen: identifiers", listed.Stdout, StringComparison.Ordinal);
+        Assert.Matches(@"screens\r?\nroot\s+identifiers", listed.Stdout);
         Assert.DoesNotContain("models", listed.Stdout, StringComparison.Ordinal);
         Assert.DoesNotContain("no model installed", listed.Stdout, StringComparison.Ordinal);
     }

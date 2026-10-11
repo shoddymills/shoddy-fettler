@@ -218,7 +218,7 @@ public static class Tasks
                 return Result<string>.Fail(Outcome.Invalid,
                     replacements.Count == 0
                         ? $"task '{task}' uses {{{name}}}, and no \"replacements\" are declared. "
-                          + $"Add a \"replacements\" object to {RootsFile.FileName}, or to "
+                          + $"Add a \"replacements\" object under \"guardrails\" in {RootsFile.FileName}, or in "
                           + $"{RootsFile.LocalFileName} beside it for a value of your own"
                         : $"task '{task}' uses {{{name}}}, which is not declared; \"replacements\" has: "
                           + string.Join(", ", replacements.Keys.OrderBy(k => k, StringComparer.Ordinal)),
@@ -278,9 +278,12 @@ public static class Tasks
                 return Result<TaskDecl>.Ok(task);
 
         return Result<TaskDecl>.Fail(Outcome.NotFound,
-            all.Value.Count == 0
-                ? $"no task is declared; add a \"tasks\" object to {RootsFile.FileName}"
-                : $"no task called '{name}'; {RootsFile.FileName} declares: {string.Join(", ", all.Value.Select(t => t.Name))}");
+            all.Value.Count > 0
+                ? $"no task called '{name}'; {RootsFile.FileName} declares: {string.Join(", ", all.Value.Select(t => t.Name))}"
+                : roots.Levels.GuardrailsOn
+                    ? $"no task is declared. Add a \"tasks\" object under \"guardrails\" in {RootsFile.FileName}"
+                    : $"no task is declared, because tasks belong to the guardrails level and it is off. "
+                      + $"Write a {RootsFile.FileName} with a \"guardrails\" section holding \"trees\" and \"tasks\"");
     }
 
     /// <summary>
@@ -362,7 +365,7 @@ public static class Tasks
             return cwd.Failure!.Outcome == Outcome.Refused
                 ? Result<TaskRun>.Fail(Outcome.Refused,
                     $"'{task.Name}' would run in a tree that does not allow execute. "
-                    + "Add \"execute\" to that tree's or scope's \"can\" in "
+                    + "Add \"execute\" to that tree's or scope's \"can\" under \"guardrails\" in "
                     + $"{RootsFile.FileName}. execute is never a default.",
                     cwd.Failure.Path)
                 : cwd.Carry<TaskRun>();

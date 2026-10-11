@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Pick's tools level, which is always on: a server, its connection, the five verbs and the query gate. A tools-only .picker.json opens every database the login can reach.">
+<title>Tools | Picker</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* A file beside the answer it produces, and the level drawing. */
+.beside{display:grid; grid-template-columns:minmax(0,2fr) minmax(0,3fr); gap:.8rem; align-items:start; margin:1rem 0}
+.beside .promptbox{margin:0}
+.beside pre{overflow-x:auto}
+.beside h4{margin:0 0 .35rem; font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft)}
+@media (max-width:700px){.beside{grid-template-columns:1fr}}
+figure.levelfig{margin:1.4rem 0}
+figure.levelfig img{display:block; width:100%; max-width:640px; height:auto; border-radius:.5rem}
+figure.levelfig figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2rem 0}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="inner">
+  <div class="row">
+    <a class="phase" href="index.html"><img class="mark" src="media/brand/shoddy-icon.svg" alt="" width="23" height="23">Shoddy &middot; Fettler</a>
+    <span class="spacer"></span>
+    <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
+  </div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle-tools.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><a href="pick.html">Overview</a><a href="pick-quickstart.html">Quick start</a><span class="here">Tools</span><a href="pick-guardrails.html">Guardrails</a><a href="pick-screenings.html">Screenings</a><a href="pick-install.html">Install</a><a href="pick-reference.html">Reference</a></nav></div>
+</div></div>
+<div class="wrap">
+<header class="mast">
+<p class="eyebrow">Shoddy &middot; Picker</p>
+<h1 id="tools">Tools</h1>
+<p class="kicker">The first of three levels. A server, its connection, and the gate every query passes through. The picker takes what the login can reach and changes none of it.</p>
+</header>
+
+<nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a href="pick-quickstart.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Quick Start</span></span></a><a class="next" href="pick-guardrails.html"><span class="pnwrap"><span class="ttl">Guardrails</span><span class="dir">Next &rarr;</span></span></a></nav>
+
+<p><b>This page describes the tools level, which is always on and which no setting turns off.</b> All it needs is a <code>.picker.json</code> that names a server and says how to connect to it. With nothing more in the file, you get every database the login can reach, and every query goes through the same gate.</p>
+
+<p>pick does three kinds of work, called <b>levels</b>. Each level is a section of <code>.picker.json</code> with the same name, and you add the second and third only when a project needs them.</p>
+
+<table>
+<tr><th>Level</th><th>On when</th><th>What it adds</th></tr>
+<tr><td><b>tools</b></td><td>always</td><td>a connection, the five verbs, the query gate and the caps. This page</td></tr>
+<tr><td><b>guardrails</b></td><td>the file has a <code>guardrails</code> section</td><td>the databases you declare, the verbs each allows, scopes and hidden columns. <a href="pick-guardrails.html">Guardrails</a></td></tr>
+<tr><td><b>screenings</b></td><td>the file has a <code>screenings</code> section</td><td>a check on every answer for regulated data, such as a social security number. <a href="pick-screenings.html">Screenings</a></td></tr>
+</table>
+
+<figure class="levelfig">
+<img src="media/pick-level-tools.svg" width="640" height="320" loading="lazy" alt="The pick tools level. A .picker.json with only a tools section names the server main and its connection, env:MAIN_SQL. An assistant or a script sends a query to pick, which passes it through the query gate: one SELECT, parsed whole, no second statement, no sys catalog, no linked server, no write verb. On the other side is server main, with the databases Sales and Finance: every database the login can reach. No databases are declared, and there are no scopes or column rules.">
+<figcaption><b>The tools level.</b> The file names a server and a connection and nothing else, so every database the login can reach is there. The gate in the middle is the same at every level.</figcaption>
+</figure>
+
+<h2 id="file">A tools-only file, and what it gives you</h2>
+
+<p><b>A tools-only file is a connection and nothing else.</b> It names each server under <code>tools</code> and gives each one a <code>connect</code>, which says how to reach the server. Here is the smallest useful file, beside the answer <code>pick catalogs</code> gives for it.</p>
+
+<div class="beside">
+<div>
+<h4>.picker.json</h4>
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{
+  "tools": {
+    "servers": {
+      "main": {
+        "connect": "env:MAIN_SQL"
+      }
+    }
+  }
+}</code></pre></div>
+</div>
+<div>
+<h4>pick catalogs</h4>
+<pre><code>levels
+  tools       on, always; settings from C:\github\app\.picker.json
+  guardrails  off
+  screenings  off
+
+main  (connect: env:MAIN_SQL)
+  every database this login can reach; guardrails are off, so none is declared
+source: C:\github\app\.picker.json</code></pre>
+</div>
+</div>
+
+<ul>
+<li><b>The <code>levels</code> block comes first, with one line per level.</b> Each line says whether that level is on and which file turned it on.</li>
+<li><b>The server line shows where the connection string comes from.</b> It shows the variable's name, or <code>(local file)</code>, and never the string itself.</li>
+<li><b>The next line says the server is open.</b> An open server is one whose databases pick finds by asking the server, because no file declares them.</li>
+<li><b><code>catalogs</code> opens no connection, so it cannot name the databases.</b> Run <code>pick objects</code> to see the tables and views inside them.</li>
+</ul>
+
+<h2 id="connect">Where the connection comes from</h2>
+
+<p><b>The best place for the connection string is an environment variable.</b> <code>"connect": "env:MAIN_SQL"</code> tells pick to read the string from the variable <code>MAIN_SQL</code> when a call needs it, so nothing secret sits in any file. Set the variable before you start pick, or before you start the assistant that runs it.</p>
+
+<div class="plat win"><span class="os">Windows &middot; PowerShell</span><div class="body">
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$env:MAIN_SQL = "Server=localhost;Integrated Security=true;TrustServerCertificate=true"
+pick catalogs</code></pre></div>
+
+</div></div>
+
+<div class="plat mac"><span class="os">macOS and Linux</span><div class="body">
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>export MAIN_SQL="Server=localhost;User ID=pick_reader;Password=...;TrustServerCertificate=true"
+pick catalogs</code></pre></div>
+
+</div></div>
+
+<ul>
+<li><b>The string can go in a second file instead.</b> <code>.picker.local.json</code> sits beside <code>.picker.json</code>, and you keep it out of source control. <a href="pick-guardrails.html#local">The local file</a> explains what it may hold.</li>
+<li><b>A password in the checked-in file refuses the whole file</b>, because that file ends up in every copy of the project. The message tells you to move it to the local file or to an environment variable.</li>
+<li><b>A server with no <code>connect</code> anywhere also refuses the file</b>, and the message names the server so you know which one to fix.</li>
+</ul>
+
+<h2 id="databases">Which databases are there</h2>
+
+<p><b>Every online database the login can enter is there.</b> The login is the account pick connects as. pick asks the server for this list each time a call needs it, so a database made a minute ago shows up on the next call.</p>
+
+<p><b>The list leaves out the four system databases:</b> <code>master</code>, <code>tempdb</code>, <code>model</code> and <code>msdb</code>. They hold the server's own state, not anybody's data. If you need one, declare it under <a href="pick-guardrails.html">guardrails</a>.</p>
+
+<p><b>Each database on the list allows all three grant words:</b> <code>list</code>, <code>select</code> and <code>describe</code>. <code>list</code> lets <code>objects</code> show a table, <code>select</code> lets a query read its rows, and <code>describe</code> lets a caller read its columns and keys.</p>
+
+<p><b>The login decides how long the list is.</b> A login that can enter two databases gives a list of two, which is one reason to connect as a login with only the rights pick needs. <a href="pick-guardrails.html#login">The login</a> shows the grants.</p>
+
+<h2 id="gate">The query gate</h2>
+
+<p><b>The query gate reads every statement before it reaches the server.</b> It is the same at every level, because guardrails do not change it and no setting turns it off.</p>
+
+<p>The gate first parses the statement. To parse is to break the text into its parts, such as the tables it names and the columns it asks for. The gate then checks each part against a list of parts it knows. If any part is not on that list, the gate refuses the whole statement.</p>
+
+<table>
+<tr><th>The gate refuses</th><th>Because</th></tr>
+<tr><td>a second statement in the same call</td><td>one call carries one <code>SELECT</code>, parsed whole</td></tr>
+<tr><td>a write: <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>MERGE</code>, <code>EXEC</code>, or <code>SELECT &hellip; INTO</code></td><td>pick has no write verb. It reads, and that is all</td></tr>
+<tr><td><code>sys.*</code>, <code>INFORMATION_SCHEMA</code>, and <code>OBJECT_DEFINITION</code></td><td>these are the server's own catalog. <code>describe</code> answers the same questions</td></tr>
+<tr><td>a four-part name, which reaches a linked server</td><td>a linked server is a second server reached through the first</td></tr>
+<tr><td>anything the gate does not know</td><td>it fails closed. An unknown part is refused, never passed</td></tr>
+</table>
+
+<p><b>What passes is rewritten before it runs.</b> Every table name becomes its full three-part name, <code>Database.schema.object</code>. <code>SELECT *</code> becomes the list of columns, and the answer shows that list. <a href="pick-reference.html#gate">The reference</a> lists every refusal.</p>
+
+<h2 id="names">How a name is found</h2>
+
+<p><b>There is no default database.</b> pick never asks the connection which database it is in, and looks for every name in the databases on the list instead.</p>
+
+<ul>
+<li><b>A three-part name</b>, such as <code>Sales.dbo.Customers</code>, names one database. If that database is not on the list, the answer is the same as for a table that does not exist.</li>
+<li><b>A shorter name</b>, such as <code>Customers</code>, is looked for in every database on the list.</li>
+<li><b>A name found in two places is refused</b>, and the message names both places. Write the full name to fix it.</li>
+<li><b>At this level every reachable database is part of that search.</b> A login that reaches many databases meets this refusal more often. Guardrails shorten the list, which shortens the search.</li>
+<li><b>One statement reaches one server.</b> A query may join databases on the same server, but it may not join two servers.</li>
+</ul>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ pick select "SELECT TOP 5 * FROM Customers"
+pick: 'Customers' is in more than one place: Archive.dbo.Customers, Sales.dbo.Customers. Qualify it (Customers)
+$ pick select "SELECT TOP 5 * FROM Sales.dbo.Customers"</code></pre></div>
+
+<p><a href="pick-reference.html#resolution">How a name resolves</a> has the full rules.</p>
+
+<h2 id="caps">The caps</h2>
+
+<p><b>Every answer has a size limit, and the answer says when it hit one.</b> The limits keep one answer from filling the assistant's context, which is the text it can hold at once.</p>
+
+<table>
+<tr><th>Cap</th><th>Limit</th><th>When it is reached</th></tr>
+<tr><td>rows from <code>select</code></td><td>100. <code>--limit N</code> changes it</td><td>the answer says it was cut and how to narrow the query</td></tr>
+<tr><td>characters in one cell</td><td>2,000</td><td>the cell is cut, and says how long it was</td></tr>
+<tr><td>characters in one answer</td><td>40,000</td><td>no more rows are added, and the answer says it was cut</td></tr>
+<tr><td>time for one query</td><td>30 seconds</td><td>the query is stopped, with exit code 10, <code>timed-out</code></td></tr>
+<tr><td>objects from <code>objects</code></td><td>500</td><td>the list ends with <code>(truncated)</code></td></tr>
+</table>
+
+<h2 id="verbs">The five verbs</h2>
+
+<p>The verbs are the same on the command line and through the MCP server, which is the part of pick an assistant talks to. Its answer to a verb is the same as the answer to <code>pick VERB --json</code>.</p>
+
+<table>
+<tr><th>Verb</th><th>What it answers</th></tr>
+<tr><td><code>catalogs</code></td><td>the levels, then each server and what it allows. It opens no connection, so it works while a server is down</td></tr>
+<tr><td><code>objects</code></td><td>the tables and views you may see, with their column counts and grants</td></tr>
+<tr><td><code>select</code></td><td>the rows of one <code>SELECT</code>, after the gate approves it</td></tr>
+<tr><td><code>describe</code></td><td>one table or view: its columns, types, indexes and foreign keys</td></tr>
+<tr><td><code>doctor</code></td><td>the levels, whether the file loads, and whether each server answers. It never prints a connection string</td></tr>
+</table>
+
+<h3 id="describe">What describe tells you</h3>
+
+<p><b><code>describe</code> reads the server's catalog and never runs the object.</b> For each column it gives the type and whether the column may be empty (<code>null</code>), and then it lists the indexes and foreign keys.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ pick describe Sales.dbo.Orders
+Sales.dbo.Orders  (table)
+  OrderId  int not null
+  CustomerId  int not null
+  PlacedOn  date not null
+  index PK_Orders (primary key): OrderId
+  fk FK_Orders_Customers: CustomerId -&gt; Sales.dbo.Customers (CustomerId)
+  hash: 6f1c...</code></pre></div>
+
+<ul>
+<li><b>The last line is a shape hash</b>, a short code worked out from the answer. If the table changes, the code changes, so you can tell when to look again.</li>
+<li><b>A view gives its columns and never its text.</b> The text of a view names the tables under it, which may be the very thing a scope hides.</li>
+</ul>
+
+<p><a href="pick-reference.html#describe">DESCRIBE, in detail</a> is in the reference.</p>
+
+<h2 id="doctor">Check it with doctor</h2>
+
+<p><b>Run <code>pick doctor</code> after you write the file.</b> It opens with the three level lines, then knocks on each server, which means it opens a connection and closes it again.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ pick doctor
+pick X.Y.Z
+  ok tools: on, always; settings from C:\github\app\.picker.json
+  ok guardrails: off
+  ok screenings: off
+  ok configuration: C:\github\app\.picker.json
+  ok server main: connects (guardrails off: every database the login can reach)</code></pre></div>
+
+<p>A level that is off is one line, and its checks do not run. The MCP server tells the assistant the same thing, because its opening note says which levels are on for that launch.</p>
+
+<p><b>To give an assistant these verbs, register pick with it.</b> pick has no setup command, so registering it is one entry you write by hand, as <a href="pick-install.html#register">Installing It</a> shows.</p>
+
+<h2 id="upgrade">A file from an older version</h2>
+
+<p><b>The older shape, with <code>servers</code> or <code>models</code> at the top, is refused.</b> The message holds your own entries, rewritten under the three sections, so to fix the file you paste that part of the message over it.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>pick: .picker.json has "servers" at the top, which is the shape this version no longer
+reads. Rewrite it with three sections, one per level. Your entries, rewritten:
+{"tools":{"servers":{"main":{"connect":"env:MAIN_SQL"}}},"guardrails":{"servers":{...}}}</code></pre></div>
+
+<ul>
+<li><b>An unknown section at the top is refused too.</b> The message names the three sections the file takes: <code>tools</code>, <code>guardrails</code> and <code>screenings</code>.</li>
+<li><b>The <code>tools</code> section takes <code>servers</code>, and each server takes <code>connect</code>.</b> A <code>databases</code> entry under <code>tools</code> is refused. The message shows where it goes under <code>guardrails</code>.</li>
+</ul>
+
+<p><b>When every reachable database is too many, turn on guardrails.</b> The next page shows how to declare the databases you want and hide the rest.</p>
+
+<nav class="pagenav pagenav-bottom" aria-label="Picker, in order">
+  <a href="pick-quickstart.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Quick Start</span></span></a>
+  <a class="next" href="pick-guardrails.html"><span class="pnwrap"><span class="ttl">Guardrails</span><span class="dir">Next &rarr;</span></span></a>
+</nav>
+<footer>Named for the shoddy mills of the West Riding: Useless Things Made
+Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>
+&copy; 2026 Stephen Vincent Foster</footer>
+</div>
+<script src="copy.js"></script>
+</body>
+</html>

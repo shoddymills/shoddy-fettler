@@ -87,17 +87,39 @@ public sealed class Roots
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
 
-    internal sealed record OpenTree(string Name, string Full, Grant Grant);
+    /// <summary>One open tree. <paramref name="How"/> is null for a
+    /// declared tree, and says how fettle found it for a tree fettle
+    /// opened itself.</summary>
+    internal sealed record OpenTree(string Name, string Full, Grant Grant, string? How = null);
 
     readonly List<OpenTree> trees;
 
-    Roots(List<OpenTree> trees, string? origin, IReadOnlyList<TaskDecl> tasks, string? models)
+    Roots(List<OpenTree> trees, string? origin, IReadOnlyList<TaskDecl> tasks, string? models,
+          Levels levels, IReadOnlyList<string> generated, string? file)
     {
         this.trees = trees;
+        ConfigFile = file;
         Origin = origin ?? "the command line";
         Tasks = tasks;
         Models = models;
+        Levels = levels;
+        Generated = generated;
     }
+
+    /// <summary>Which levels are on, and which files turned each on.</summary>
+    public Levels Levels { get; }
+
+    /// <summary>The project's configuration file these trees were read
+    /// from, or null when there was none.</summary>
+    public string? ConfigFile { get; }
+
+    /// <summary>The folder names enumeration skips unless a caller asks
+    /// for generated files.</summary>
+    public IReadOnlyList<string> Generated { get; }
+
+    /// <summary>How fettle found a tree it opened itself, such as the
+    /// client's scratch folder, or null for a tree a person declared.</summary>
+    public string? HowFound(string name) => TreeNamed(name).How;
 
     /// <summary>
     /// Where the screening models live, or null when the configuration
@@ -165,7 +187,8 @@ public sealed class Roots
     /// </summary>
     public static Result<Roots> Open(
         IReadOnlyList<TreeDecl> declared, string? origin = null, IReadOnlyList<TaskDecl>? tasks = null,
-        string? models = null)
+        string? models = null, Levels? levels = null, IReadOnlyList<string>? generated = null,
+        IReadOnlyList<HarnessTree>? extra = null, string? file = null)
     {
         if (declared.Count == 0)
             return Result<Roots>.Fail(Outcome.Invalid, NothingDeclared);
@@ -225,7 +248,37 @@ public sealed class Roots
             opened.Add(new OpenTree(d.Name, resolved, new Grant(d.Can, scopes, d.Screen)));
         }
 
-        return Result<Roots>.Ok(new Roots(opened, origin, tasks ?? [], models));
+        // The trees fettle found itself. Each was probed for existence a
+        // moment ago, so one that has gone since is skipped rather than
+        // refused: it is not a tree anybody named.
+        foreach (HarnessTree h in extra ?? [])
+        {
+            string full;
+            try { full = Path.GetFullPath(h.Path); }
+            catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException) { continue; }
+
+            if (!Directory.Exists(full)) continue;
+
+            string resolved = TrimTrailingSeparator(FinalTarget(full) ?? full);
+
+            // A declared tree of the same name and the same folder is the
+            // pairing written by hand, and it stands. The same name on a
+            // different folder is two trees nobody could tell apart.
+            OpenTree? same = opened.Find(t => t.Name.Equals(h.Name, PathComparison));
+            if (same is not null)
+            {
+                if (same.Full.Equals(resolved, PathComparison)) continue;
+
+                return Result<Roots>.Fail(Outcome.Invalid,
+                    $"tree '{h.Name}' is declared on {same.Full}, and fettle also opens {resolved} under that "
+                    + $"name: {h.How}. Give the declared tree another name");
+            }
+
+            opened.Add(new OpenTree(h.Name, resolved, new Grant(h.Can, [], Screened.None), h.How));
+        }
+
+        return Result<Roots>.Ok(new Roots(opened, origin, tasks ?? [], models,
+            levels ?? Levels.ToolsOnly, generated ?? Excludes.Generated, file));
     }
 
     /// <summary>The refusal when nothing at all was declared. Its own
@@ -234,7 +287,7 @@ public sealed class Roots
     public const string NothingDeclared =
         "no tree is declared. Put a "
         + RootsFile.FileName + " in the folder you mean, holding "
-        + "{\"trees\":{\"work\":{\"path\":\".\"}}}. Or pass --config PATH, or "
+        + "{\"guardrails\":{\"trees\":{\"work\":{\"path\":\".\"}}}}. Or pass --config PATH, or "
         + "--root PATH for read-only access.";
 
     // ---- resolution, which is containment and permission together ----
@@ -467,7 +520,7 @@ public sealed class Roots
 
     // ---- names and components ----
 
-    static bool IsValidName(string name) =>
+    public static bool IsValidName(string name) =>
         // Two characters minimum, so a Windows drive letter can never be
         // mistaken for a tree prefix: 'C:' is a volume and 'repo:' is a
         // tree, and nothing has to guess which was meant.

@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360" role="img" aria-label="The guardrails level: a guardrails section in .fettler.json declares the trees, what each allows, its scopes and its tasks. The client's deny list closes the built-in tools, so fettle is the only route to a file. A path outside every tree is refused.">
+  <rect width="640" height="360" fill="#12151b"/>
+  <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#c9d1dc">
+
+    <!-- the file that turns the level on -->
+    <rect x="20" y="20" width="250" height="118" rx="6" fill="#1c2129" stroke="#5f6b7c"/>
+    <text x="32" y="40" fill="#e6edf5">.fettler.json</text>
+    <text x="32" y="62" fill="#d9a066">"guardrails": {</text>
+    <text x="44" y="80" fill="#c9d1dc">"trees": { ... },</text>
+    <text x="44" y="98" fill="#c9d1dc">"tasks": { ... },</text>
+    <text x="44" y="116" fill="#c9d1dc">"replacements": { ... }</text>
+    <text x="32" y="132" fill="#d9a066">}</text>
+
+    <!-- the client's deny list -->
+    <rect x="20" y="158" width="250" height="92" rx="6" fill="#1c2129" stroke="#d9534f"/>
+    <text x="32" y="178" fill="#e6edf5">.claude/settings.json</text>
+    <text x="32" y="198" fill="#d9534f">deny: Read Write Edit Grep</text>
+    <text x="32" y="216" fill="#d9534f">      Glob Bash PowerShell</text>
+    <text x="32" y="236" fill="#9aa3b2">fettle is the only route</text>
+
+    <!-- the declared trees -->
+    <rect x="300" y="20" width="320" height="230" rx="8" fill="none" stroke="#5f6b7c" stroke-dasharray="5 4"/>
+    <text x="312" y="40" fill="#9aa3b2">the declared trees</text>
+
+    <rect x="314" y="52" width="292" height="96" rx="4" fill="#1c2129"/>
+    <text x="326" y="72" fill="#7ec699">work</text>
+    <text x="374" y="72" fill="#c9d1dc">the folder with the file</text>
+    <text x="326" y="90" fill="#9aa3b2">list read create update rename</text>
+    <text x="326" y="106" fill="#9aa3b2">delete execute</text>
+    <text x="338" y="126" fill="#5fa8de">docs/</text>
+    <text x="400" y="126" fill="#9aa3b2">scope: list read</text>
+    <text x="338" y="142" fill="#d9534f">secrets/</text>
+    <text x="400" y="142" fill="#9aa3b2">scope: hidden</text>
+
+    <rect x="314" y="158" width="292" height="40" rx="4" fill="#1c2129"/>
+    <text x="326" y="176" fill="#5fa8de">shoddy</text>
+    <text x="390" y="176" fill="#c9d1dc">another repository</text>
+    <text x="326" y="191" fill="#9aa3b2">list read</text>
+
+    <rect x="314" y="206" width="292" height="34" rx="4" fill="#1c2129"/>
+    <text x="326" y="227" fill="#c9d1dc">tasks: build test check</text>
+
+    <!-- a path from outside -->
+    <rect x="300" y="270" width="320" height="70" rx="6" fill="#1c2129" stroke="#d9534f" stroke-dasharray="3 3"/>
+    <text x="312" y="292" fill="#d9534f">refused: outside-root (exit 4)</text>
+    <text x="312" y="312" fill="#9aa3b2">the same words whether or not</text>
+    <text x="312" y="328" fill="#9aa3b2">the file exists</text>
+
+    <text x="20" y="286" fill="#9aa3b2">fettle doctor reports the</text>
+    <text x="20" y="304" fill="#9aa3b2">findings for this level only</text>
+    <text x="20" y="322" fill="#9aa3b2">when this section is there</text>
+  </g>
+</svg>

@@ -3,12 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Pick: SELECT and DESCRIBE inside declared SQL Server databases. Fettler's boundary, applied to a catalog: declared databases, scoped objects, scoped columns, and the same disclosure screen.">
+<meta name="description" content="Pick: SELECT and DESCRIBE in SQL Server for an assistant. The tools level is a connection and a query gate. Guardrails declare databases, scopes and hidden columns. Screenings refuse answers that would disclose regulated data.">
 <title>Picker</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="favicon.ico" sizes="48x48">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+figure.level{margin:1.4rem 0; background:var(--card); border:1px solid var(--line);
+  border-radius:.6rem; padding:.6rem}
+figure.level img{display:block; width:100%; height:auto}
+figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2rem .1rem}
+</style>
 </head>
 <body>
 <div class="topbar"><div class="inner">
@@ -17,75 +23,101 @@
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><span class="here">Overview</span><a href="pick-workstation.html">Workstation</a><a href="pick-quickstart.html">Quick start</a><a href="pick-install.html">Install</a><a href="pick-setup.html">In a project</a><a href="pick-screening.html">Screening</a><a href="pick-models.html">Models</a><a href="pick-reference.html">Reference</a></nav></div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><span class="here">Overview</span><a href="pick-quickstart.html">Quick start</a><a href="pick-tools.html">Tools</a><a href="pick-guardrails.html">Guardrails</a><a href="pick-screenings.html">Screenings</a><a href="pick-install.html">Install</a><a href="pick-reference.html">Reference</a></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
 <p class="eyebrow">Shoddy &middot; Picker</p>
 <h1 id="pick">Picker</h1>
-<p class="kicker">SELECT and DESCRIBE inside declared SQL Server databases. Fettler's boundary, applied to a catalog. Nothing else can be said, asked, or run.</p>
+<p class="kicker">SELECT and DESCRIBE in SQL Server, for an assistant. Named for the rag pickers, who sorted the stock by hand and changed none of it.</p>
 </header>
 
-<nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a class="next" href="pick-workstation.html"><span class="pnwrap"><span class="ttl">The Picked Workstation</span><span class="dir">Next &rarr;</span></span></a></nav>
+<nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a class="next" href="pick-quickstart.html"><span class="pnwrap"><span class="ttl">Quick Start</span><span class="dir">Next &rarr;</span></span></a></nav>
 
-<div class="onramp">
-<p><b>An assistant given pick cannot wander through a server.</b> Every object a query touches must sit inside a <em>database</em> you declared ahead of time. That is the same rule Fettler applies to trees, applied to a catalog instead of a disk. Outside the declared databases everything is refused: selecting, describing, listing, even learning that a table exists. There is no default database to fall into, no <code>USE</code> to change it, and no way to reach a linked server, a system view, or a stored procedure. The only statements it will carry are a single <code>SELECT</code> and a metadata <code>DESCRIBE</code>. Both come back through the same disclosure screen Fettler runs.</p>
-<a class="shot" href="pick-reference.html#gate"><img src="media/picker.svg" alt="A terminal showing one declared database with its grants and scoped objects, and a query naming an undeclared database refused" loading="lazy"><span class="lab"><b>pick</b><span>bounded SQL &middot; no shell in between</span></span></a>
-</div>
+<p><b>pick lets an AI assistant read a SQL Server database, and it lets the assistant do nothing more.</b> pick does this work at three levels. Most of this page describes the first one, the tools level, and the last part gives one paragraph each to the other two, guardrails and screenings.</p>
 
-<div class="takeaway"><b>The project is Picker. The command is <code>pick</code>.</b> That is the same arrangement as fettle and Fettler. It is named for the rag pickers of the <a href="heritage.html">shoddy trade</a>, who picked and graded the stock by hand and altered none of it. It is a <b>third executable</b> in this repository, beside <code>fettle</code> and <code>burler</code>. It has its own MCP server, its own CLI, its own configuration, and no project reference to either of the others.</div>
+<p>First, here are the words this page uses. SQL Server is a database server from Microsoft, and a database is a store of data kept in tables. A query is a request for data written in the SQL language, and a <code>SELECT</code> statement is a query that only reads. An assistant reaches pick through MCP, the protocol (a set of rules for messages) that AI clients use to call outside tools.</p>
 
-<h2 id="boundary">The boundary: declared databases</h2>
+<div class="takeaway"><b>The project is Picker. The command is <code>pick</code>.</b> It is the third program in this repository, beside <code>fettle</code> and <code>burler</code>. It has its own server for the assistant, its own command line and its own configuration file, and it shares no code with the other two.</div>
 
-<p><code>.picker.json</code> names servers, and inside each server the databases that exist as far as pick is concerned. That list is the entire world:</p>
+<h2 id="levels">The three levels</h2>
 
-<ul>
-<li><b>No default database.</b> An unqualified <code>FROM Customers</code> is resolved by searching the declared databases. It is never resolved by asking the connection what database it happens to be sitting in. If two declared databases both have a <code>Customers</code>, the query is refused as ambiguous, naming both. The fix is to qualify.</li>
-<li><b>A name outside the boundary is not there.</b> <code>OtherDb.dbo.Anything</code>, where <code>OtherDb</code> is real but undeclared, is refused <em>in the same words</em> as <code>Sales.dbo.NoSuchTable</code>, where the table never existed. A refusal that told the two apart would let a caller map the server by reading refusals. This is the hidden-is-absent rule Fettler applies to paths, applied to a catalog.</li>
-<li><b>Four-part names are refused outright.</b> A linked server is a second server with a prefix.</li>
-<li><b>One server per statement.</b> A query may join across declared databases on the same server. It may not span servers.</li>
-<li><b>The system catalog is closed.</b> <code>sys.*</code> and <code>INFORMATION_SCHEMA</code> are refused by name. The catalog functions that answer the same questions, <code>OBJECT_DEFINITION</code> and its relatives, are refused with them. What pick will say about structure, it says through <code>describe</code>, which respects the scopes.</li>
-</ul>
-
-<h2 id="verbs">The verbs</h2>
-
-<p>Three grant words govern everything a scope may do: <code>list</code>, <code>select</code> and <code>describe</code>. Five tools spend them. The CLI verbs are the same words, and the MCP answers are byte-identical to <code>pick VERB --json</code>.</p>
+<figure class="level">
+<img src="media/pick-levels.svg" width="640" height="360" loading="lazy" alt="The three levels of pick. Tools is first and always on: the file names a server and its connection. Guardrails is second and turns on when the file has a guardrails section. Screenings is third and turns on when the file has a screenings section. On the left, .picker.json with one section per level.">
+<figcaption><b>The three levels.</b> The file has one section per level. The <code>tools</code> section is required, because it names the server. The other two are optional, and each turns its level on.</figcaption>
+</figure>
 
 <table>
-<tr><th>Tool</th><th>What it answers</th></tr>
-<tr><td><code>catalogs</code></td><td>the declared servers, databases and scopes. This is the boundary itself, answered without opening a connection</td></tr>
-<tr><td><code>objects</code></td><td>the tables and views this caller may see: only objects whose scope grants <code>list</code>, and never a hidden one</td></tr>
-<tr><td><code>select</code></td><td>one SELECT statement, through <a href="pick-reference.html#gate">the gate</a>, screened on the way out</td></tr>
-<tr><td><code>describe</code></td><td>an object's columns, indexes and keys from the catalog, with a shape hash so a caller can tell when a table changed underneath it</td></tr>
-<tr><td><code>doctor</code></td><td>whether the configuration loads, whether each server answers a bounded knock, and whether the screening models are where the configuration says. It never prints a credential</td></tr>
+<tr><th>Level</th><th>On when</th><th>What it adds</th></tr>
+<tr><td><a href="pick-tools.html">tools</a></td><td>always, once <code>.picker.json</code> names a server</td><td>a connection, the query gate, the five verbs and the caps</td></tr>
+<tr><td><a href="pick-guardrails.html">guardrails</a></td><td>the file has a <code>guardrails</code> section</td><td>declared databases, verbs per database and scope, hidden columns</td></tr>
+<tr><td><a href="pick-screenings.html">screenings</a></td><td>the file has a <code>screenings</code> section</td><td>the screen on every answer, the models, and exit code 13</td></tr>
 </table>
 
-<p>An object whose scope grants no <code>list</code> is absent from <code>objects</code> <em>and</em> refused as nonexistent everywhere else. An object that is listed but not granted <code>select</code> is refused plainly instead, naming what its scope does grant. The listing already disclosed that it exists.</p>
+<h2 id="tools">The tools level: a connection and a gate</h2>
 
-<h2 id="gate">One statement, through a gate that fails closed</h2>
+<p><b>The tools level is always on, and it needs one file with one section in it.</b> The file is <code>.picker.json</code> in your project folder, and the section is <code>tools</code>. That section names each server and says how to connect to it, and it declares nothing else.</p>
 
-<p>Every statement is parsed to a syntax tree before anything touches a connection. The tree is walked against an <b>allowlist</b> of constructs the gate understands, and anything unrecognised refuses the whole statement. What passes is rewritten before it runs: every reference becomes its full three-part name, and <code>SELECT *</code> is expanded to the columns this caller is permitted. A hidden column is refused everywhere it could appear: the select list, <code>WHERE</code>, <code>ORDER BY</code>, inside expressions. The refusal uses the same words as a column that does not exist. <a href="pick-reference.html">Every refusal, in full &rarr;</a></p>
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{ "tools": { "servers": { "main": { "connect": "env:MAIN_SQL" } } } }</code></pre></div>
 
-<h2 id="screening">The same screen, over result sets</h2>
+<p>The value <code>env:MAIN_SQL</code> tells pick to read the connection string from the environment variable called <code>MAIN_SQL</code>. A connection string is the text that says which server to reach and how to sign in to it. An environment variable is a named value your system keeps outside any file, so the password never sits in the project.</p>
 
-<p>A database or a scope may declare <code>screen</code>, exactly as a Fettler tree does, and the mechanism is the same one. <a href="pick-screening.html">Tier one</a> matches structured identifiers in process with nothing installed. The model-backed categories are judged by <a href="pick-models.html">models you install</a> through the same <code>burler</code> sidecar. One detection refuses the whole response, and the refusal names a category and a count and quotes nothing back. No rows are trimmed to make a result pass. A result set with the offending rows quietly removed would be a fabricated answer with a clean verdict. <a href="pick-screening.html">Screening, for the rows &rarr;</a></p>
+<p><b>At this level, every database the login can enter is open to the assistant.</b> A login is the account that pick signs in with, and the server decides which databases it may enter. pick leaves out the four system databases that every SQL Server has. Each open database allows the same three verbs: <code>list</code>, <code>select</code> and <code>describe</code>.</p>
 
-<div class="takeaway"><b>The screen is a safety net under the scopes, not a substitute for them.</b> A column somebody can <em>name</em> as sensitive belongs in a column exclusion, where the boundary refuses it every time. The screen exists for what nobody predicted: an SSN pasted into a notes column, an email in a free-text field.</div>
+<h3 id="gate">The query gate</h3>
 
-<h2 id="start">Getting started</h2>
+<p>Every statement passes through the query gate before it can reach the server. The gate first parses the statement, which means it breaks the text into its parts and checks each one. If any part is not on the gate's list of known parts, the gate refuses the whole statement.</p>
 
 <ul>
-<li><b><a href="pick-workstation.html">The workstation</a>.</b> The server as pick sees it, drawn: one database lit, one way in, and the boundaries that hold it.</li>
-<li><b><a href="pick-quickstart.html">Quick start</a>.</b> From nothing to a first bounded SELECT in about five minutes.</li>
-<li><b><a href="pick-install.html">Install</a>.</b> The per-machine wiring: the archive, <code>burler</code> beside it, and the registration.</li>
-<li><b><a href="pick-setup.html">In a project</a>.</b> Declaring servers, databases, scopes and columns, the two files, and the least-privilege login.</li>
-<li><b><a href="pick-screening.html">Screening</a>.</b> The refusal to disclose regulated rows, and proving it refuses. <a href="pick-models.html">The models</a> have a page of their own.</li>
-<li><b><a href="pick-reference.html">Reference</a>.</b> The query gate refusal by refusal, column scoping everywhere it binds, what DESCRIBE will and will not say, the caps, and the exit codes.</li>
+<li><b>One SELECT, parsed whole.</b> The gate reads the entire statement from start to end, not just its first word.</li>
+<li><b>No second statement.</b> <code>SELECT 1; SELECT 2</code> is refused, because one call carries one statement.</li>
+<li><b>No write verb.</b> <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>MERGE</code> and <code>EXEC</code> are refused, because pick has no way to change data.</li>
+<li><b>No system catalog.</b> <code>sys.*</code> and <code>INFORMATION_SCHEMA</code> hold facts about the server itself, and both are refused. The <code>describe</code> verb answers questions about a table's shape instead.</li>
+<li><b>No linked server.</b> A linked server is a second server that the first one can reach for you. A name with four parts points at a linked server, so pick refuses it.</li>
+<li><b>Short names are searched for.</b> pick looks up a short name such as <code>FROM Customers</code> in all of the open databases. If two databases both hold a <code>Customers</code> table, pick refuses the query and names both of them, and you write the full name to fix it.</li>
 </ul>
 
+<p>pick rewrites a statement that passes before it runs it. Each table name becomes its full three-part name, such as <code>Sales.dbo.Customers</code>. The star in <code>SELECT *</code> becomes a list of the columns, and the answer shows you that list.</p>
+
+<h3 id="verbs">The verbs</h3>
+
+<p>Five verbs do all of pick's work. You type them at the command line and the assistant calls them through MCP, and the answer is the same either way.</p>
+
+<table>
+<tr><th>Verb</th><th>What it answers</th></tr>
+<tr><td><code>catalogs</code></td><td>which levels are on, then each server and its databases, without opening a connection</td></tr>
+<tr><td><code>objects</code></td><td>the tables and views you may see, where a view is a saved query that looks like a table</td></tr>
+<tr><td><code>select</code></td><td>the rows from one SELECT statement, after the gate passes it.</td></tr>
+<tr><td><code>describe</code></td><td>a table's columns, indexes and keys, with a hash code that changes when the table changes</td></tr>
+<tr><td><code>doctor</code></td><td>whether the file loads and each server answers, and it never prints a password</td></tr>
+</table>
+
+<h3 id="caps">The caps</h3>
+
+<p>A cap is a limit that pick sets on every answer, so that one query cannot flood the assistant. Each answer says so when a cap cut it short.</p>
+
+<ul>
+<li><b>Rows:</b> an answer holds at most 100 rows, unless you pass <code>--limit N</code> with another number.</li>
+<li><b>Text:</b> one cell holds at most 2,000 characters, and one answer holds at most 40,000.</li>
+<li><b>Time:</b> a query may run for 30 seconds, and pick stops a slower one and reports it as <code>timed-out</code>.</li>
+</ul>
+
+<p><a href="pick-tools.html">The tools level, in full &rarr;</a></p>
+
+<h2 id="guardrails">Guardrails</h2>
+
+<p>If <code>.picker.json</code> has a <code>guardrails</code> section, only the databases that section declares exist for the assistant. Each database and each scope says which of the three verbs it allows. A scope is a rule for a set of tables, and it can also hide columns. pick refuses a hidden table or column in the same words it uses for one that does not exist. <a href="pick-guardrails.html">Guardrails &rarr;</a></p>
+
+<h2 id="screenings">Screenings</h2>
+
+<p>If the file has a <code>screenings</code> section, pick checks each answer before it leaves. When an answer would show regulated data, such as a social security number, pick refuses the whole answer with exit code 13. The refusal names a category and a count, and it quotes none of the data back. Some categories need models, which run in <code>burler</code>, a helper program that sits beside pick. <a href="pick-screenings.html">Screenings &rarr;</a></p>
+
+<h2 id="start">Where to go next</h2>
+
+<p>To start, go to the <a href="pick-quickstart.html">quick start</a>, which sets up the tools level in two steps. <a href="pick-tools.html">Tools</a>, <a href="pick-guardrails.html">guardrails</a> and <a href="pick-screenings.html">screenings</a> each have a page, and <a href="pick-reference.html">the reference</a> holds every refusal and exit code.</p>
+
 <nav class="pagenav pagenav-bottom" aria-label="Picker, in order">
-  
-  <a class="next" href="pick-workstation.html"><span class="pnwrap"><span class="ttl">The Picked Workstation</span><span class="dir">Next &rarr;</span></span></a>
+  <a class="next" href="pick-quickstart.html"><span class="pnwrap"><span class="ttl">Quick Start</span><span class="dir">Next &rarr;</span></span></a>
 </nav>
 <footer>Named for the shoddy mills of the West Riding: Useless Things Made
 Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>

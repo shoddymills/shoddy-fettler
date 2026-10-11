@@ -53,7 +53,7 @@ public static class ToolCatalogue
             }}
             """),
 
-        new("read", "Read files. Returns content, encoding, line ending, trailing-newline state and a content hash. Takes several paths in one call. Reads notebooks as cells, PDFs as text per page, spreadsheets as rows with their formulas, Word documents as paragraphs and tables, and images as facts plus the image itself. Rendered documents cannot be written back. Stops at 2000 lines unless `to` says otherwise, and at 40,000 characters per call; the answer says how many lines were left out. Use `tail` for the end of a log. With `numbered`, each line starts with its number and a bar, which is a rendering and not the file's content, so leave that prefix out of an edit.", """
+        new("read", "Read files. Returns content, encoding, line ending, trailing-newline state and a content hash. Takes several paths in one call. Reads notebooks as cells, PDFs as text per page, spreadsheets as rows with their formulas, Word documents as paragraphs and tables, and images as facts plus the image itself. Rendered documents cannot be written back. Stops at 2000 lines unless `to` says otherwise, and at 40,000 characters per call; the answer says how many lines were left out. Use `tail` for the end of a log. With `numbered`, each line starts with its number and a bar, which is a rendering and not the file's content, so leave that prefix out of an edit. When screenings are on, a read that would disclose a screened category is refused.", """
             {"type":"object","required":["paths"],"properties":{
               "paths":{"type":"array","items":{"type":"string"}},
               "numbered":{"type":"boolean","description":"start each line with its number and a bar"},
@@ -137,22 +137,22 @@ public static class ToolCatalogue
             }}
             """),
 
-        new("roots", "List the declared trees: path, what each allows, the scopes inside it, and which tree an unqualified path lands in. Call this first.", """
+        new("roots", "Name the levels that are on, then list the trees: path, what each allows, the scopes inside it, and which tree an unqualified path lands in. The client's scratch, tool-results and memory folders are listed with how each was found. Call this first.", """
             {"type":"object","properties":{}}
             """),
 
-        new("tasks", "List the declared tasks. \"run\" is the line as declared; \"command\" is the argument list that would be launched, with declared values filled in.", """
+        new("tasks", "List the declared tasks. \"run\" is the line as declared; \"command\" is the argument list that would be launched, with declared values filled in. Tasks belong to the guardrails level, so with guardrails off there are none.", """
 
             {"type":"object","properties":{}}
             """),
 
-        new("run", "Run a declared task and return its output and exit code. A task takes no arguments: name and timeout are the only inputs, and anything else is refused. Values written {like-this} in a task come from the configuration file, never from the caller. The result names the argument list that was launched. Needs the tree to grant execute, which is never a default.", """
+        new("run", "Run a declared task and return its output and exit code. A task takes no arguments: name and timeout are the only inputs, and anything else is refused. Values written {like-this} in a task come from the configuration file, never from the caller. The result names the argument list that was launched. Needs the tree to grant execute, which is never a default. Tasks belong to the guardrails level, so with guardrails off nothing runs.", """
             {"type":"object","required":["name"],"additionalProperties":false,"properties":{
               "name":{"type":"string"},"timeout":{"type":"integer","description":"seconds; 0 means no timeout"}
             }}
             """),
 
-        new("doctor", "Report whether fettle is registered with each assistant client at each level, and what on this machine still lets the assistant reach files without it. Changes nothing.", """
+        new("doctor", "Report whether fettle is registered with each assistant client, globally and in this project, then report each level in its own section. Findings appear only for a level that is on. Changes nothing.", """
             {"type":"object","properties":{
               "client":{"type":"string","enum":["claude-code","claude-desktop","vscode-copilot","github-copilot"],
                         "description":"report only this client; every client is still scanned"},

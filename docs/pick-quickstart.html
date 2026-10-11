@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Pick's quick start: from nothing to a first bounded SELECT. The executable, a server, the two configuration files, doctor, the first refusals, and the client wiring.">
+<meta name="description" content="Pick's quick start: the tools level in two steps. Install the executable, then register it: a tools-only .picker.json, the connection, catalogs, and one JSON entry for the assistant.">
 <title>Quick Start | Picker</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -17,22 +17,35 @@
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle-quickstart.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><a href="pick.html">Overview</a><a href="pick-workstation.html">Workstation</a><span class="here">Quick start</span><a href="pick-install.html">Install</a><a href="pick-setup.html">In a project</a><a href="pick-screening.html">Screening</a><a href="pick-models.html">Models</a><a href="pick-reference.html">Reference</a></nav></div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle-quickstart.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><a href="pick.html">Overview</a><span class="here">Quick start</span><a href="pick-tools.html">Tools</a><a href="pick-guardrails.html">Guardrails</a><a href="pick-screenings.html">Screenings</a><a href="pick-install.html">Install</a><a href="pick-reference.html">Reference</a></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
 <p class="eyebrow">Shoddy &middot; Picker</p>
 <h1 id="quickstart">Quick Start</h1>
-<p class="kicker">Install it, point it at a server, declare one database, check it, refuse something. Five steps, and the refusals are the part worth watching.</p>
+<p class="kicker">The tools level in two steps: install pick, then register it. At the end, an assistant can read your database through the query gate.</p>
 </header>
 
-<nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a href="pick-workstation.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">The Picked Workstation</span></span></a><a class="next" href="pick-install.html"><span class="pnwrap"><span class="ttl">Installing It</span><span class="dir">Next &rarr;</span></span></a></nav>
+<nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a href="pick.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Picker</span></span></a><a class="next" href="pick-tools.html"><span class="pnwrap"><span class="ttl">Tools</span><span class="dir">Next &rarr;</span></span></a></nav>
 
-<div class="takeaway"><b>You need two things before you start:</b> the <code>pick</code> archive for your platform from the latest release, and a SQL Server with a database in it. If you have neither server nor database, step 2 creates both from nothing on a Windows machine. Everything else is below.</div>
+<p>This page sets up the tools level, the first of pick's three levels. At this level pick has a connection to one server, checks every query at its gate, and needs you to declare nothing else. The other two levels, guardrails and screenings, come after, and you turn each one on by adding one section to a file.</p>
+
+<div class="takeaway"><b>Before you start, you need two things.</b> The first is the archive for your computer from the latest release, where an archive is one file that holds others, like a zip file. The second is a SQL Server you can reach, with a database in it. If you have no server, the next section makes one on a Windows machine.</div>
+
+<h2 id="server">Before you start: a server</h2>
+
+<p>If you can already reach a SQL Server, skip this section and keep its connection string to hand. A connection string is the text that says which server to reach and how to sign in to it. If you have no server, start LocalDB, the small SQL Server that comes with the Windows development tools:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>sqllocaldb start MSSQLLocalDB</code></pre></div>
+
+<p>If your system says that <code>sqllocaldb</code> is not a command, install <b>SQL Server Express LocalDB</b> and run the line again. Then make a small database with one table in it, so you have something to read:</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>sqlcmd -S "(localdb)\MSSQLLocalDB" -E -Q "CREATE DATABASE Sales;"
+sqlcmd -S "(localdb)\MSSQLLocalDB" -E -d Sales -Q "CREATE TABLE dbo.Customers(id int PRIMARY KEY, name nvarchar(80)); INSERT dbo.Customers VALUES (1, N'Iris Sutcliffe'), (2, N'Harold Wilson');"</code></pre></div>
 
 <h2 id="install">1. Install it</h2>
 
-<p>One file. No .NET runtime, no installer. <code>X.Y.Z</code> is whatever version you downloaded.</p>
+<p>pick is a single file, and it needs no .NET runtime and no installer. In the commands below, put the version you downloaded in place of <code>X.Y.Z</code>.</p>
 
 <div class="plat win"><span class="os">Windows &middot; PowerShell</span><div class="body">
 
@@ -55,82 +68,62 @@ xattr -d com.apple.quarantine ~/.local/bin/pick   # macOS only</code></pre></div
 
 </div></div>
 
-<p><b>Open a new terminal.</b> The one you just used still has the old <code>PATH</code>. Then check it:</p>
+<p><b>Open a new terminal, because the one you just used still has the old <code>PATH</code>.</b> That is the list of folders where your system looks for commands. Then check that pick runs:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>pick version</code></pre></div>
 
-<div class="note"><b>If that says <em>not recognised</em> or <em>command not found</em></b>, open a new terminal first, then re-check the directory. Nothing later on this page works until this line does. <a href="pick-install.html#path">Putting it on <code>PATH</code></a> is the long version.</div>
+<p>You should see the word <code>pick</code> followed by the version number you downloaded.</p>
 
-<h2 id="server">2. Have a server</h2>
+<div class="note"><b>If you see <em>not recognised</em> or <em>command not found</em></b>, open a new terminal and try again. Nothing later on this page will work until this line does. <a href="pick-install.html#path">Putting it on <code>PATH</code></a> has the details.</div>
 
-<p>Any SQL Server you can already reach works. Skip to step 3 with its connection string, ideally for <a href="pick-setup.html#login">a login granted only SELECT and VIEW DEFINITION</a>. With nothing at hand, LocalDB is the zero-install instance on a Windows development machine:</p>
+<h2 id="register">2. Register it</h2>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>sqllocaldb start MSSQLLocalDB</code></pre></div>
+<p>To register pick is to tell it which server to use, and to tell the assistant where pick is. You write two short files and set one value, and you do it by hand, because pick has no setup command.</p>
 
-<p>If <code>sqllocaldb</code> is not a command, install <b>SQL Server Express LocalDB</b> (the <code>SqlLocalDB.msi</code> from the SQL Server Express installer's Download Media option) and run it again. If there is no database worth pointing at yet, make a toy one:</p>
+<h3 id="file">The configuration file</h3>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>sqlcmd -S "(localdb)\MSSQLLocalDB" -E -Q "CREATE DATABASE Sales;"
-sqlcmd -S "(localdb)\MSSQLLocalDB" -E -d Sales -Q "CREATE TABLE dbo.Customers(id int PRIMARY KEY, name nvarchar(80)); INSERT dbo.Customers VALUES (1, N'Iris Sutcliffe'), (2, N'Harold Wilson');"</code></pre></div>
+<p>In your project folder, make a file called <code>.picker.json</code> with this line in it:</p>
 
-<h2 id="declare">3. Declare the boundary: two short files</h2>
+<div class="promptbox"><button class="copy">Copy</button><pre><code>{"tools":{"servers":{"main":{"connect":"env:MAIN_SQL"}}}}</code></pre></div>
 
-<p>In the project directory, the checked-in surface:</p>
+<p>This file has only a <code>tools</code> section, so it sets up the tools level and nothing more. It names one server, <code>main</code>, and says its connection string is in an environment variable called <code>MAIN_SQL</code>. An environment variable is a named value your system keeps outside any file, so no password sits in the project.</p>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>// .picker.json
-{
-  "servers": {
-    "local": {
-      "databases": {
-        "Sales": { "can": ["list", "select", "describe"] }
-      }
-    }
-  }
-}</code></pre></div>
+<h3 id="connect">The connection</h3>
 
-<p>And beside it, kept out of source control, the connection:</p>
+<p>Set <code>MAIN_SQL</code> to your connection string. The Windows line below is for LocalDB, and if you use another server, put its connection string in place of this one.</p>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>// .picker.local.json
-{
-  "servers": {
-    "local": {
-      "connect": "Server=(localdb)\\MSSQLLocalDB;Integrated Security=true;TrustServerCertificate=true"
-    }
-  }
-}</code></pre></div>
+<div class="plat win"><span class="os">Windows &middot; PowerShell</span><div class="body">
 
-<div class="note"><b>A password literal in the checked-in file refuses the whole load</b>, with directions. Credentials go in the local file or an <code>env:NAME</code> variable. The reviewed file is the one that ends up in source control and in every copy of the project.</div>
+<div class="promptbox"><button class="copy">Copy</button><pre><code>[Environment]::SetEnvironmentVariable('MAIN_SQL', 'Server=(localdb)\MSSQLLocalDB;Integrated Security=true;TrustServerCertificate=true', 'User')</code></pre></div>
 
-<p>Then check the wiring: the configuration, a bounded knock on the server, and the screening pieces if any:</p>
+</div></div>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>pick doctor
-pick catalogs    # the boundary you just declared - no connection opened
-pick objects     # the tables and views you may see</code></pre></div>
+<div class="plat mac"><span class="os">macOS and Linux</span><div class="body">
 
-<h2 id="first">4. The first SELECT, and the first refusals</h2>
+<div class="promptbox"><button class="copy">Copy</button><pre><code>echo 'export MAIN_SQL="Server=myhost;User Id=reader;Password=...;TrustServerCertificate=true"' >> ~/.profile</code></pre></div>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>pick select "SELECT TOP 5 * FROM Customers"
-pick describe Sales.dbo.Customers</code></pre></div>
+</div></div>
 
-<p>An unqualified name is resolved against the declared databases, never against a default the connection happens to be sitting in. Now watch it refuse, because the refusals are the feature:</p>
+<p><b>Open a new terminal again</b>, so that it sees the new value. Then ask pick what it can see:</p>
 
-<table>
-<tr><th>Command</th><th>Exit</th><th>Because</th></tr>
-<tr><td><code>pick select "DELETE FROM Customers"</code></td><td><b>8</b></td><td>not a SELECT. There is no write verb anywhere in pick</td></tr>
-<tr><td><code>pick select "SELECT 1; SELECT 2"</code></td><td><b>8</b></td><td>one statement per call, parsed whole</td></tr>
-<tr><td><code>pick select "SELECT name FROM sys.tables"</code></td><td><b>8</b></td><td>the catalog is closed. <code>describe</code> answers instead, governed by the scopes</td></tr>
-<tr><td><code>pick select "SELECT * FROM master.dbo.spt_values"</code></td><td><b>3</b></td><td>an undeclared database, refused in the same words as a table that never existed</td></tr>
-</table>
+<div class="promptbox"><button class="copy">Copy</button><pre><code>pick catalogs</code></pre></div>
 
-<p>That last one in full, because the wording is the point:</p>
+<p>You should see the three level lines first, and then the server you named:</p>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>not-found: there is no table or view called 'master.dbo.spt_values' in the declared
-databases. Run objects to list what is here</code></pre></div>
+<div class="promptbox"><button class="copy">Copy</button><pre><code>levels
+  tools       on, always; settings from C:\github\app\.picker.json
+  guardrails  off
+  screenings  off
 
-<p><code>master</code> is real and inches away. The refusal does not know that, and neither can anyone reading refusals.</p>
+main  (connect: env:MAIN_SQL)
+  every database this login can reach; guardrails are off, so none is declared
+source: C:\github\app\.picker.json</code></pre></div>
 
-<h2 id="client">5. Wire it into the assistant</h2>
+<p>Notice the line under <code>main</code>, which says the server is open. Every database the login can enter is there, apart from the four system databases that every SQL Server has. The <code>catalogs</code> verb opens no connection, so it works even when the server is down. To test the connection itself, run <code>pick doctor</code>.</p>
 
-<p>One entry in the project's <code>.mcp.json</code>, written by hand. Nothing else changes, because the client has no built-in SQL tool to deny:</p>
+<h3 id="client">The entry for the assistant</h3>
+
+<p>For Claude Code, add one entry to the file <code>.mcp.json</code> in your project folder. If the file does not exist yet, make it and put exactly this in it:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>{
   "mcpServers": {
@@ -138,30 +131,37 @@ databases. Run objects to list what is here</code></pre></div>
   }
 }</code></pre></div>
 
-<p><b>Then restart the assistant</b>, because a client reads its server list at launch, and ask it what it can see. <code>catalogs</code> answers with the boundary. Everything outside it answers as if it were not there. A changed <code>.picker.json</code> needs no restart at all: the server re-reads it before every call.</p>
+<p>Other clients take the same command and arguments in a file of their own, and <a href="pick-install.html#register">Registering, per client</a> lists each one.</p>
 
-<h2 id="screen-on">6. Turn the screen on (optional, one line)</h2>
+<p><b>Then restart the assistant, because a client reads its list of servers only when it starts.</b> Ask it to call <code>catalogs</code>, and it should show the same lines you saw above. When you change <code>.picker.json</code> later, you need no restart, because pick reads the file again before every call.</p>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>"Sales": { "can": ["list", "select", "describe"], "screen": ["identifiers"] }</code></pre></div>
+<h2 id="try">Try the gate</h2>
 
-<p>From the next call, a result set carrying an SSN, a valid card number, an email, a phone number, or a labelled record number or date of birth refuses whole. The refusal names a category and a count, and quotes nothing back. <a href="pick-screening.html">Screening, for the rows</a> proves each edge with synthetic data.</p>
+<p>Run one query that works and one <code>describe</code>, which shows a table's columns. Then try the commands in the table below, each of which the gate refuses:</p>
 
-<h2 id="next">Where to go next</h2>
+<div class="promptbox"><button class="copy">Copy</button><pre><code>pick select "SELECT TOP 5 * FROM Sales.dbo.Customers"
+pick describe Sales.dbo.Customers</code></pre></div>
 
 <table>
-<tr><th>You want</th><th>Page</th></tr>
-<tr><td>To scope objects and columns one by one, or hide a schema entirely</td><td><a href="pick-setup.html#scopes">Scopes, in a project</a></td></tr>
-<tr><td>The least-privilege login, with the T-SQL that creates it</td><td><a href="pick-setup.html#login">The login</a></td></tr>
-<tr><td>To prove the guardrails hold, item by item</td><td><a href="pick-setup.html#verify">Verifying the boundary</a></td></tr>
-<tr><td>Every refusal the query gate makes, and why</td><td><a href="pick-reference.html#gate">The reference</a></td></tr>
-<tr><td>Every exit code a script can branch on</td><td><a href="pick-reference.html#codes">Exit codes</a></td></tr>
-<tr><td>To stop customer rows leaving in a transcript</td><td><a href="pick-screening.html">Screening</a></td></tr>
-<tr><td>The models the clinical, legal and scientific tiers need</td><td><a href="pick-models.html">The models</a></td></tr>
+<tr><th>Command</th><th>Exit</th><th>Why it is refused</th></tr>
+<tr><td><code>pick select "DELETE FROM Sales.dbo.Customers"</code></td><td><b>8</b></td><td>It is not a SELECT, and pick has no way to change data.</td></tr>
+<tr><td><code>pick select "SELECT 1; SELECT 2"</code></td><td><b>8</b></td><td>One call may carry only one statement.</td></tr>
+<tr><td><code>pick select "SELECT name FROM sys.tables"</code></td><td><b>8</b></td><td>The system catalog is closed, so use <code>describe</code> instead.</td></tr>
+<tr><td><code>pick select "SELECT * FROM master.dbo.spt_values"</code></td><td><b>3</b></td><td><code>master</code> is a system database, so pick says it is not there.</td></tr>
 </table>
 
+<p>An exit code is the number a command hands back when it ends, so that a script can tell what happened. The reference lists <a href="pick-reference.html#codes">every exit code</a> and what it means.</p>
+
+<h2 id="more">Turning on more</h2>
+
+<ul>
+<li><b>Guardrails:</b> add a <code>guardrails</code> section to declare which databases exist and to hide tables or columns, as <a href="pick-guardrails.html">Guardrails</a> shows.</li>
+<li><b>Screenings:</b> add a <code>screenings</code> section to refuse any answer that would show regulated data, as <a href="pick-screenings.html">Screenings</a> shows.</li>
+</ul>
+
 <nav class="pagenav pagenav-bottom" aria-label="Picker, in order">
-  <a href="pick-workstation.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">The Picked Workstation</span></span></a>
-  <a class="next" href="pick-install.html"><span class="pnwrap"><span class="ttl">Installing It</span><span class="dir">Next &rarr;</span></span></a>
+  <a href="pick.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Picker</span></span></a>
+  <a class="next" href="pick-tools.html"><span class="pnwrap"><span class="ttl">Tools</span><span class="dir">Next &rarr;</span></span></a>
 </nav>
 <footer>Named for the shoddy mills of the West Riding: Useless Things Made
 Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>

@@ -211,11 +211,21 @@ public sealed record DatabaseDecl(
 
 /// <summary>
 /// One declared server: a name, the way to connect to it, and the
-/// databases declared on it. Everything else the server holds does not
-/// exist.
+/// databases declared on it.
+///
+/// <para><b>Guardrails on</b>: the declared databases are the only ones
+/// there, and everything else the server holds does not exist.
+/// <b>Guardrails off</b> (<paramref name="Open"/>): no database is
+/// declared, and the databases are the ones the login can reach, found
+/// when a call needs them.</para>
 /// </summary>
 public sealed record ServerDecl(
-    string Name, Connect Connect, IReadOnlyList<DatabaseDecl> Databases);
+    string Name, Connect Connect, IReadOnlyList<DatabaseDecl> Databases, bool Open = false)
+{
+    /// <summary>What an open server grants on each database it lists:
+    /// every verb, and nothing narrowed. The gate still applies.</summary>
+    public const Verb OpenGrant = Verb.List | Verb.Select | Verb.Describe;
+}
 
 /// <summary>
 /// How a connection string is obtained - and the one place credential
@@ -256,6 +266,14 @@ public sealed record Connect(string Value, bool FromEnvironment)
 public sealed record Boundary(
     IReadOnlyList<ServerDecl> Servers, string? Models, string Origin)
 {
+    /// <summary>Which levels are on, and which files turned each on.</summary>
+    public Levels Levels { get; init; } = Levels.ToolsOnly;
+
+    /// <summary>The screens for databases on an open server, by database
+    /// name. At the tools level there are no scopes to key by.</summary>
+    public IReadOnlyDictionary<string, Screened> OpenScreens { get; init; } =
+        new Dictionary<string, Screened>(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Every declared database, with its server - the flat list
     /// resolution searches.</summary>
     public IEnumerable<(ServerDecl Server, DatabaseDecl Database)> Databases()

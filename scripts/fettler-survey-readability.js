@@ -60,6 +60,15 @@ const root = path.resolve(__dirname, "..");
 
 const ch = c => String.fromCharCode(c);
 
+// Inline code is stripped, as the standard asks, but a sentence may start
+// with a code word ("<code>search</code> takes several patterns"), and
+// stripping it to a space left no capital for the splitter to see, so
+// two sentences counted as one. Each code span becomes this mark instead.
+// wordsOf drops it, so it is never a word; it only ends the sentence
+// before it. A lowercase product name does the same.
+const MARK = ch(1);
+const SPLIT = new RegExp("(?<=[.!?][\"')\\]]?) (?=[\"'(\\[]?(?:[A-Z0-9]|" + MARK + "|(?:fettle|pick|burler|sparky)\\b))");
+
 const args = process.argv.slice(2);
 const flags = new Set(args.filter(a => a.startsWith("--")));
 const named = args.filter(a => !a.startsWith("--"));
@@ -124,7 +133,8 @@ const STRIP_HTML = ["script", "style", "pre", "code", "nav", "footer", "title",
 function proseOfHtml(html) {
   let s = html;
   for (const tag of STRIP_HTML)
-    s = s.replace(new RegExp("<" + tag + "\\b[\\s\\S]*?</" + tag + ">", "gi"), " ");
+    s = s.replace(new RegExp("<" + tag + "\\b[\\s\\S]*?</" + tag + ">", "gi"),
+                  tag === "code" ? " " + MARK + " " : " ");
   s = s.replace(/<div class="topbar">[\s\S]*?<\/div><\/div>/, " ");
   s = s.replace(/<!--[\s\S]*?-->/g, " ");
   // paragraph boundaries survive as blank lines
@@ -140,7 +150,7 @@ function proseOfMarkdown(md) {
   s = s.replace(/<!--[\s\S]*?-->/g, " ");
   s = s.replace(/<table[\s\S]*?<\/table>/gi, "\n\n");   // README's galleries
   s = s.replace(/<picture[\s\S]*?<\/picture>/gi, " ");
-  s = s.replace(/`[^`\n]*`/g, " ");                     // inline code
+  s = s.replace(/`[^`\n]*`/g, " " + MARK + " ");       // inline code
   s = s.replace(/!\[[^\]]*\]\([^)]*\)/g, " ");          // images
   s = s.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1");        // links keep their text
   s = s.replace(/^#{1,6} .*$/gm, "");                   // headings
@@ -173,7 +183,7 @@ function paragraphsOf(text) {
   for (const para of text.split(/\n\s*\n/)) {
     const flat = para.replace(/\s+/g, " ").trim();
     if (!flat) continue;
-    const parts = flat.split(/(?<=[.!?]["')\]]?) (?=["'(\[]?[A-Z0-9])/);
+    const parts = flat.split(SPLIT);
     const sents = [];
     for (const p of parts) {
       const words = wordsOf(p);

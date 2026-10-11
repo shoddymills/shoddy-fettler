@@ -243,6 +243,42 @@ function screenSurface(file) {
   }
 }
 
+// ---- the level twins: the three words and the sections they name ----
+// Fettler and Picker each carry a Levels record, for the same reason they
+// each carry a screen: no assembly is shared. The level words are what
+// both configuration files use as their top-level sections, so a word
+// that drifts on one side is a section one program reads and the other
+// refuses. Compared: the three constant values, and the order of Names.
+function levelSurface(file) {
+  const text = fs.readFileSync(path.join(root, file), "utf8");
+  const words = {};
+  for (const m of text.matchAll(/public const string (\w+Name) = "([a-z]+)";/g)) words[m[1]] = m[2];
+  const order = /Names = \[([^\]]*)\]/.exec(text);
+  return { words, order: order ? order[1].replace(/\s+/g, "") : "" };
+}
+
+{
+  const A = "Fettler/Core/Levels.cs";
+  const B = "Picker/Core/Levels.cs";
+
+  if (!fs.existsSync(path.join(root, A)) || !fs.existsSync(path.join(root, B))) {
+    problems.push(`the level twins need both ${A} and ${B}`);
+  } else {
+    const a = levelSurface(A);
+    const b = levelSurface(B);
+
+    if (Object.keys(a.words).length !== 3)
+      problems.push(`${A}: found ${Object.keys(a.words).length} level words, not 3 - the extractor is broken, not the code`);
+    if (JSON.stringify(a.words) !== JSON.stringify(b.words))
+      problems.push(`the level twins disagree about the words: ${A} has ` +
+        JSON.stringify(a.words) + `, ${B} has ` + JSON.stringify(b.words));
+    if (a.order !== b.order)
+      problems.push(`the level twins list the levels in a different order: ${A} has [${a.order}], ${B} has [${b.order}]`);
+
+    seen.add("Fettler/Core/Levels.cs + Picker/Core/Levels.cs");
+  }
+}
+
 if (problems.length === 0) {
   console.log(`ALL TWINS AGREE (${seen.size} pair(s))`);
   process.exit(0);

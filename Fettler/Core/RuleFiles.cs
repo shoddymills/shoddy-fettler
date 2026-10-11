@@ -83,6 +83,11 @@ public static class RuleFiles
         ".claude/settings.json",
         ".claude/settings.local.json",
         ".vscode/mcp.json",
+
+        // The machine file. It turns screenings on in every project and
+        // says where the client's folders are, so it is a switch between
+        // levels like the others.
+        Host.MachineFolder + "/" + Host.MachineFileName,
     ];
 
     /// <summary>Everything refused, for the message that says so.</summary>
