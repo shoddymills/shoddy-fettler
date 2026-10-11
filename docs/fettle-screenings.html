@@ -23,7 +23,7 @@ figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick-screenings.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-quickstart.html">Quick start</a><a href="fettle-install.html">Install</a><a href="fettle-tools.html">Tools</a><a href="fettle-guardrails.html">Guardrails</a><span class="here">Screenings</span><a href="fettle-reference.html">Reference</a></nav></div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick-screenings.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-quickstart.html">Quick start</a><a href="fettle-tools.html">Tools</a><a href="fettle-guardrails.html">Guardrails</a><span class="here">Screenings</span><a href="fettle-install.html">Install</a><a href="fettle-reference.html">Reference</a></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
@@ -32,16 +32,32 @@ figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2
 <p class="kicker">The third level. Stop a regulated document leaving a tree by accident. The first tier needs nothing installed and one line of configuration.</p>
 </header>
 
-<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="fettle-guardrails.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Guardrails</span></span></a><a class="next" href="fettle-reference.html"><span class="pnwrap"><span class="ttl">Reference</span><span class="dir">Next &rarr;</span></span></a></nav>
+<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="fettle-guardrails.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Guardrails</span></span></a><a class="next" href="fettle-install.html"><span class="pnwrap"><span class="ttl">Installing It</span><span class="dir">Next &rarr;</span></span></a></nav>
 
 <p><b>This page describes the screenings level, which is off until a configuration file has a <code>screenings</code> section.</b> With it on, Fettler checks what a read or a search is about to send back. If the answer holds regulated data, such as a patient's record number, Fettler refuses the whole answer. Most projects never turn this level on, and you can turn it on with or without <a href="fettle-guardrails.html">guardrails</a>.</p>
 
+<p><b>There are four screens, and you name each one by a single word.</b> The first runs inside fettle with nothing installed. The other three run a model you fetch, through burler, a second program that comes in its own archive.</p>
+
+<table>
+<tr><th>Screen</th><th>What it catches</th><th>What does the checking</th></tr>
+<tr><td><code>identifiers</code></td><td>Social security numbers, valid card numbers, formatted phone numbers, email addresses, labelled record numbers and labelled dates of birth</td><td><b>Six patterns inside fettle.</b> Nothing to install, and no model.</td></tr>
+<tr><td><code>clinical</code></td><td>Patient names, dates and record numbers in clinical text, which no pattern finds</td><td><b>A de-identification model from the BioBERT or ClinicalBERT family</b>, run by burler</td></tr>
+<tr><td><code>legal</code></td><td>Contract clauses and consumer-report content</td><td><b>A contract-clause model trained on CUAD, or LegalBERT</b>, run by burler</td></tr>
+<tr><td><code>scientific</code></td><td>Named entities in research and scientific data</td><td><b>A SciBERT model trained to find entities</b>, run by burler</td></tr>
+</table>
+
+<p>No model ships with Fettler, and none is downloaded for you. <a href="#choose">Choose the models</a> says what to look for and what each licence allows.</p>
+
 <div class="takeaway"><b>Read <a href="#need">do you need this</a> before anything else.</b> The screen refuses whole answers, so in a tree it does not belong in, it refuses a great deal of ordinary work. People get out of that by turning it off, which leaves them worse off than never turning it on. Point it at the tree that holds the records, and at nothing else.</div>
+
+<p><b>Here is the path one read takes with the screen on.</b> The patterns run first and the models second. One detection by either refuses the whole answer, and a clean answer is served as it would be at any other level.</p>
 
 <figure class="level">
 <img src="media/level-screenings.svg" width="640" height="300" loading="lazy" alt="The screenings level. A read from a screened tree passes the tier one patterns, then the models burler runs. One detection refuses the whole answer with exit 13. A clean answer is served.">
 <figcaption><b>The screenings level.</b> A read from a screened tree passes the tier one patterns first, then the models that burler runs. One detection refuses the whole answer with exit&nbsp;13, and a clean answer is served.</figcaption>
 </figure>
+
+<p><b>Turning it on is two steps, and two commands confirm them.</b></p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code># 1. decide whether you need it at all             &lt;- most trees do not
 # 2. add a "screenings" section to .fettler.json      &lt;- works on the next call
@@ -579,7 +595,7 @@ declared by C:\github\app\.fettler.json (with C:\github\app\.fettler.local.json)
 
 <nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
   <a href="fettle-guardrails.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Guardrails</span></span></a>
-  <a class="next" href="fettle-reference.html"><span class="pnwrap"><span class="ttl">Reference</span><span class="dir">Next &rarr;</span></span></a>
+  <a class="next" href="fettle-install.html"><span class="pnwrap"><span class="ttl">Installing It</span><span class="dir">Next &rarr;</span></span></a>
 </nav>
 <footer>Named for the shoddy mills of the West Riding: Useless Things Made
 Useful Through Skill (<a href="heritage.html">the heritage of the name</a>).<br>

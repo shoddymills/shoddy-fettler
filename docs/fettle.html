@@ -9,6 +9,12 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="favicon.ico" sizes="48x48">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+figure.level{margin:1.4rem 0; background:var(--card); border:1px solid var(--line);
+  border-radius:.6rem; padding:.6rem}
+figure.level img{display:block; width:100%; height:auto}
+figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2rem .1rem}
+</style>
 </head>
 <body>
 <div class="topbar"><div class="inner">
@@ -17,7 +23,7 @@
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><span class="here">Overview</span><a href="fettle-quickstart.html">Quick start</a><a href="fettle-install.html">Install</a><a href="fettle-tools.html">Tools</a><a href="fettle-guardrails.html">Guardrails</a><a href="fettle-screenings.html">Screenings</a><a href="fettle-reference.html">Reference</a></nav></div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><span class="here">Overview</span><a href="fettle-quickstart.html">Quick start</a><a href="fettle-tools.html">Tools</a><a href="fettle-guardrails.html">Guardrails</a><a href="fettle-screenings.html">Screenings</a><a href="fettle-install.html">Install</a><a href="fettle-reference.html">Reference</a></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
@@ -50,6 +56,8 @@
 
 <div class="takeaway"><b>The measurement that decided the design.</b> Each tool call costs the model a round trip and a block of its context. <em>Context</em> is the text a model can hold at one time. Scanning this repository&rsquo;s 15&nbsp;MB of text takes a few hundred milliseconds. So the call costs about a thousand times more than the work, and the number of calls is what to cut.</div>
 
+<p><a href="index.html#why">The home page</a> sets each verb beside the tool it replaces, with what used to go wrong. This page is the short form.</p>
+
 <h2 id="does">What the tools do</h2>
 
 <table>
@@ -69,6 +77,11 @@
 <h2 id="levels">The three levels</h2>
 
 <p>The tools need no setup file. The other two levels each turn on when the project&rsquo;s <code>.fettler.json</code> file has a section with that level&rsquo;s name.</p>
+
+<figure class="level">
+<img src="media/levels.svg" width="640" height="360" loading="lazy" alt="The three levels. Tools is first and always on with no file. Guardrails is second and turns on when the file has a guardrails section. Screenings is third and turns on when the file has a screenings section. On the left, .fettler.json with one section per level.">
+<figcaption><b>The three levels.</b> The file has one section per level, and a section turns its level on. The <code>tools</code> section only adjusts settings, and the tools level is on with no file at all.</figcaption>
+</figure>
 
 <table>
 <tr><th>Level</th><th>On when</th><th>What it adds</th></tr>

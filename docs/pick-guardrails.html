@@ -43,7 +43,7 @@ figure.wsdiag figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle-guardrails.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><a href="pick.html">Overview</a><a href="pick-quickstart.html">Quick start</a><a href="pick-install.html">Install</a><a href="pick-tools.html">Tools</a><span class="here">Guardrails</span><a href="pick-screenings.html">Screenings</a><a href="pick-reference.html">Reference</a></nav></div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle-guardrails.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><a href="pick.html">Overview</a><a href="pick-quickstart.html">Quick start</a><a href="pick-tools.html">Tools</a><span class="here">Guardrails</span><a href="pick-screenings.html">Screenings</a><a href="pick-install.html">Install</a><a href="pick-reference.html">Reference</a></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
@@ -123,29 +123,6 @@ source: C:\github\app\.picker.json</code></pre>
 <li><b>A <code>connect</code> under <code>guardrails</code> is refused</b>, because a connection belongs to the tools level.</li>
 <li><b>With guardrails on, a server the section does not list has no databases.</b> Guardrails apply to every server in the file, so declare what each one should show.</li>
 </ul>
-
-<h2 id="map">The server, as pick sees it</h2>
-
-<p><b>No command made this picture.</b> Every line of it was written by hand into <code>.picker.json</code> and its local twin, and pick refuses to write either file.</p>
-
-<figure class="wsdiag">
-<div class="wsfig" id="pmfig">
-<button class="wsfs" id="pmfs" type="button" title="Show the diagram full screen">&#x26F6; Full screen</button>
-<img src="media/pick-map.svg" width="1280" height="900" loading="lazy"
-  alt="A map of a SQL Server as pick sees it. The whole server is one hatched area meaning out of bounds by default. Inside it, one database, Sales, is lit: dbo.Orders may be selected and described, dbo.Customers may be selected without its ssn and dob columns which do not exist here, dbo.TopCustomers is a view whose columns answer and whose stored text never does, and the audit schema is sealed and never even listed. The rest of the server is dark: the system databases, an adjacent undeclared database, the system catalog, and linked servers. A strip across the bottom of the server names the login pick connects as, granted only SELECT and VIEW DEFINITION. Below the server is the one way in: pick, carrying one SELECT at a time, parsed whole, rewritten three-part and screened on the way back; beside it, everything else - there is no shell, no EXEC, no second statement, and no write verb exists to try.">
-</div>
-<figcaption><b>The server, and the one way onto it.</b> The hatched ground is the whole server, and it is the default. The lit database is the whole list, and inside it the scopes decide: a schema sealed, two columns that do not exist here, a view that gives its columns and never its text. The system databases, the other databases, the catalog and the linked servers are not on the map at all. Asking for any of them answers in the same words as asking for a table that never existed.</figcaption>
-</figure>
-
-<table>
-<tr><th>On the map</th><th>What says so</th></tr>
-<tr><td><code>Sales</code> lit, and nothing else</td><td>the one entry under <code>databases</code>. Whatever is not declared stays dark</td></tr>
-<tr><td><code>audit.*</code> sealed, never listed</td><td><code>"can": []</code> on its scope. A scope replaces what the database allows, so an empty one allows nothing</td></tr>
-<tr><td><code>ssn</code> and <code>dob</code> missing from <code>Customers</code></td><td><code>"columns": ["-ssn", "-dob"]</code>. They are taken out of <code>SELECT *</code> before the server sees the query, and refused anywhere else</td></tr>
-<tr><td>the view's text never answering</td><td><b>no line, and no line could.</b> View text names the tables under it, which may be what a scope hides</td></tr>
-<tr><td>the login's short reach</td><td><b>not pick's file at all.</b> A person grants it on the server, as <a href="#login">the login</a> shows</td></tr>
-<tr><td>the one way in</td><td>the <code>connect</code> under <code>tools</code>, and the gate in front of it, which no line turns off</td></tr>
-</table>
 
 <h2 id="declared">Declared databases: the whole list</h2>
 
@@ -323,24 +300,6 @@ ALTER ROLE pick_reading ADD MEMBER [DOMAIN\report-readers];</code></pre></div>
 
 <p>On a development machine with LocalDB, integrated security covers all of this, because the instance is yours alone. On a shared server, the grants are the whole task. A SQL login's password goes in the local file or an environment variable, never in the checked-in file.</p>
 
-<h2 id="boundaries">How the boundary is held</h2>
-
-<figure class="wsdiag">
-<div class="wsfig" id="pwfig">
-<button class="wsfs" id="pwfs" type="button" title="Show the diagram full screen">&#x26F6; Full screen</button>
-<img src="media/pick-workstation.svg" width="1570" height="1150" loading="lazy"
-  alt="Component diagram of three boundaries. First, the model, Claude in VS Code - the same client that runs fettle, with no built-in SQL tool to deny, so the one route is the five picker tools. Second, the Picker MCP server, pick, whose boundary comes from .picker.json and is re-read before every call, offering only catalogs, objects, select, describe and doctor, with no write verb to deny. Third, the SQL Server, visible only as the declared databases: one database Sales with a hidden audit schema and excluded columns, a least-privilege login granted only SELECT and VIEW DEFINITION, and everything undeclared, including the system catalog and linked servers, refused in the same words as a table that was never there.">
-</div>
-<figcaption><b>Three boundaries.</b> The assistant has no built-in SQL tool, so adding pick adds one route and closes nothing. pick takes its rules from a file it reads before every call and never writes. The server shows only the declared databases, behind a login that could not do more even if the gate failed. <b>Full screen</b> shows the drawing at a size you can read.</figcaption>
-</figure>
-
-<ul>
-<li><b>The assistant needs nothing new denied.</b> Its built-in tools work on files and shells, and none of them speaks SQL, so registering pick is one entry in the client's settings.</li>
-<li><b>pick's boundary is a file it reads before every call.</b> No verb takes a connection string or a database name, so no call can widen it, and pick has no write verb at all.</li>
-<li><b>The server's boundary is the declared databases.</b> There is no default database, no <code>USE</code>, no <code>sys.*</code> and no linked server. <a href="pick-reference.html">The reference</a> holds every refusal.</li>
-<li><b>Under all of it is the login</b>, granted only <code>SELECT</code> and <code>VIEW DEFINITION</code>, so the server keeps a boundary of its own.</li>
-</ul>
-
 <h2 id="doctor">Check the wiring</h2>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>$ pick doctor
@@ -372,6 +331,48 @@ pick X.Y.Z
 </table>
 
 <p>If a screen is declared, add the screening checks, which <a href="pick-screenings.html#prove">Prove it refuses</a> lists.</p>
+
+<h2 id="map">The server, as pick sees it</h2>
+
+<p><b>No command made this picture.</b> Every line of it was written by hand into <code>.picker.json</code> and its local twin, and pick refuses to write either file.</p>
+
+<figure class="wsdiag">
+<div class="wsfig" id="pmfig">
+<button class="wsfs" id="pmfs" type="button" title="Show the diagram full screen">&#x26F6; Full screen</button>
+<img src="media/pick-map.svg" width="1280" height="900" loading="lazy"
+  alt="A map of a SQL Server as pick sees it. The whole server is one hatched area meaning out of bounds by default. Inside it, one database, Sales, is lit: dbo.Orders may be selected and described, dbo.Customers may be selected without its ssn and dob columns which do not exist here, dbo.TopCustomers is a view whose columns answer and whose stored text never does, and the audit schema is sealed and never even listed. The rest of the server is dark: the system databases, an adjacent undeclared database, the system catalog, and linked servers. A strip across the bottom of the server names the login pick connects as, granted only SELECT and VIEW DEFINITION. Below the server is the one way in: pick, carrying one SELECT at a time, parsed whole, rewritten three-part and screened on the way back; beside it, everything else - there is no shell, no EXEC, no second statement, and no write verb exists to try.">
+</div>
+<figcaption><b>The server, and the one way onto it.</b> The hatched ground is the whole server, and it is the default. The lit database is the whole list, and inside it the scopes decide: a schema sealed, two columns that do not exist here, a view that gives its columns and never its text. The system databases, the other databases, the catalog and the linked servers are not on the map at all. Asking for any of them answers in the same words as asking for a table that never existed.</figcaption>
+</figure>
+
+<table>
+<tr><th>On the map</th><th>What says so</th></tr>
+<tr><td><code>Sales</code> lit, and nothing else</td><td>the one entry under <code>databases</code>. Whatever is not declared stays dark</td></tr>
+<tr><td><code>audit.*</code> sealed, never listed</td><td><code>"can": []</code> on its scope. A scope replaces what the database allows, so an empty one allows nothing</td></tr>
+<tr><td><code>ssn</code> and <code>dob</code> missing from <code>Customers</code></td><td><code>"columns": ["-ssn", "-dob"]</code>. They are taken out of <code>SELECT *</code> before the server sees the query, and refused anywhere else</td></tr>
+<tr><td>the view's text never answering</td><td><b>no line, and no line could.</b> View text names the tables under it, which may be what a scope hides</td></tr>
+<tr><td>the login's short reach</td><td><b>not pick's file at all.</b> A person grants it on the server, as <a href="#login">the login</a> shows</td></tr>
+<tr><td>the one way in</td><td>the <code>connect</code> under <code>tools</code>, and the gate in front of it, which no line turns off</td></tr>
+</table>
+
+<h2 id="boundaries">How the boundary is held</h2>
+
+<figure class="wsdiag">
+<div class="wsfig" id="pwfig">
+<button class="wsfs" id="pwfs" type="button" title="Show the diagram full screen">&#x26F6; Full screen</button>
+<img src="media/pick-workstation.svg" width="1570" height="1150" loading="lazy"
+  alt="Component diagram of three boundaries. First, the model, Claude in VS Code - the same client that runs fettle, with no built-in SQL tool to deny, so the one route is the five picker tools. Second, the Picker MCP server, pick, whose boundary comes from .picker.json and is re-read before every call, offering only catalogs, objects, select, describe and doctor, with no write verb to deny. Third, the SQL Server, visible only as the declared databases: one database Sales with a hidden audit schema and excluded columns, a least-privilege login granted only SELECT and VIEW DEFINITION, and everything undeclared, including the system catalog and linked servers, refused in the same words as a table that was never there.">
+</div>
+<figcaption><b>Three boundaries.</b> The assistant has no built-in SQL tool, so adding pick adds one route and closes nothing. pick takes its rules from a file it reads before every call and never writes. The server shows only the declared databases, behind a login that could not do more even if the gate failed. <b>Full screen</b> shows the drawing at a size you can read.</figcaption>
+</figure>
+
+<ul>
+<li><b>The assistant needs nothing new denied.</b> Its built-in tools work on files and shells, and none of them speaks SQL, so registering pick is one entry in the client's settings.</li>
+<li><b>pick's boundary is a file it reads before every call.</b> No verb takes a connection string or a database name, so no call can widen it, and pick has no write verb at all.</li>
+<li><b>The server's boundary is the declared databases.</b> There is no default database, no <code>USE</code>, no <code>sys.*</code> and no linked server. <a href="pick-reference.html">The reference</a> holds every refusal.</li>
+<li><b>Under all of it is the login</b>, granted only <code>SELECT</code> and <code>VIEW DEFINITION</code>, so the server keeps a boundary of its own.</li>
+</ul>
+
 
 <nav class="pagenav pagenav-bottom" aria-label="Picker, in order">
   <a href="pick-tools.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Tools</span></span></a>

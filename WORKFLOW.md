@@ -180,7 +180,7 @@ Three things it asserts before publishing, each of which has broken a release
 somewhere:
 
 - **the unix archives carry the executable bit.** It only survives a tar
-  made on a filesystem that has one, and a `fettle` that arrives without it
+  made on a filesystem that has one. A `fettle` that arrives without it
   does not run;
 - **the binary reports the version on the archive**, proving the tag reached
   `-p:Version=` rather than the build falling back to the development

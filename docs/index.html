@@ -3,12 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Fettler and Picker: bounded tools for an assistant and for scripts. Files through fettle, SQL Server through pick. What they are, what they guarantee, and where the boundary comes from.">
+<meta name="description" content="Fettler and Picker: file and SQL Server tools built for an AI assistant, in place of the 1970s command-line tools it reaches for. Fewer calls, less context, nothing half done. Three levels: tools, always on; guardrails and screenings, optional.">
 <title>Fettler &amp; Picker</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="favicon.ico" sizes="48x48">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+figure.level{margin:1.4rem 0; background:var(--card); border:1px solid var(--line);
+  border-radius:.6rem; padding:.6rem}
+figure.level img{display:block; width:100%; height:auto}
+figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2rem .1rem}
+</style>
 </head>
 <body>
 <div class="topbar"><div class="inner">
@@ -17,13 +23,13 @@
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle.html">fettle<small>for files</small></a><a href="pick.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-quickstart.html">Quick start</a><a href="fettle-install.html">Install</a><a href="fettle-tools.html">Tools</a><a href="fettle-guardrails.html">Guardrails</a><a href="fettle-screenings.html">Screenings</a><a href="fettle-reference.html">Reference</a></nav></div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle.html">fettle<small>for files</small></a><a href="pick.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-quickstart.html">Quick start</a><a href="fettle-tools.html">Tools</a><a href="fettle-guardrails.html">Guardrails</a><a href="fettle-screenings.html">Screenings</a><a href="fettle-install.html">Install</a><a href="fettle-reference.html">Reference</a></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
 <p class="eyebrow">Shoddy &middot; Fettler</p>
 <h1 id="fettler">Fettler &amp; Picker</h1>
-<p class="kicker">Bounded tools for an AI assistant and for scripts. Files through <code>fettle</code>, SQL Server through <code>pick</code>. Each is one program with two front ends, and neither one uses a shell.</p>
+<p class="kicker">A fettler kept a mill&rsquo;s machines in working order. These two programs keep an AI assistant&rsquo;s work in order: <code>fettle</code> for the files and <code>pick</code> for the SQL Server. Fewer calls, less context, and nothing left half done.</p>
 </header>
 
 <nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a class="next" href="fettle.html"><span class="pnwrap"><span class="ttl">Fettle, for the files</span><span class="dir">Next &rarr;</span></span></a></nav>
@@ -31,50 +37,115 @@
 <div class="pair">
 <div class="prog">
 <p class="cmd">fettle: the files</p>
-<p><b>Find, search, read and edit files, with answers a script or an assistant can hand straight back.</b> A batch of edits lands whole or not at all. With no configuration, the folder you start in is the one tree. Turn on guardrails to declare the trees and what each allows. Turn on screenings to refuse regulated data.</p>
+<p><b>Find, search, read and edit files, with answers a script or an assistant can hand straight back.</b> Start it in a folder and it works. Guardrails and screenings are optional levels on top.</p>
 <a class="go" href="fettle.html">Start with the files &rarr;</a>
 </div>
 <div class="prog">
 <p class="cmd">pick: the SQL Server</p>
-<p><b>SELECT and DESCRIBE, one checked statement at a time.</b> There is no default database, no <code>USE</code>, and no system catalog. A parser refuses anything it cannot check. Turn on guardrails to declare the databases, tables and columns that exist. The same screen covers the rows that come out.</p>
+<p><b>SELECT and DESCRIBE, one checked statement at a time.</b> There is no default database, no <code>USE</code>, and no system catalog. A parser refuses anything it cannot check. The same two optional levels sit on top.</p>
 <a class="go" href="pick.html">Start with the SQL &rarr;</a>
 </div>
 </div>
 
+<h2 id="why">Why is an AI assistant in 2026 using command-line tools like it&rsquo;s 1976?</h2>
+
+<p>Ask an assistant to rename a type across a project, then watch what it runs. It reaches for <code>grep</code>, <code>sed</code> and <code>find</code>, or for its own copies of them, one file at a time through a shell. Those tools are fifty years old, and they were written for a person at a terminal. They answer in text meant for eyes, they know nothing about the call that comes next, and each one costs the assistant a round trip and a block of its <em>context</em>, the text it can hold at one time.</p>
+
+<p>Fettler gives the assistant the same jobs as verbs built for it. Each answer is shaped to be the next call&rsquo;s argument, several things happen in one call, and a change lands whole or not at all.</p>
+
+<table>
+<tr><th>The job</th><th>The built-in tool, or the shell</th><th>What went wrong</th><th><code>fettle</code></th></tr>
+<tr><td>Find files</td><td><code>Glob</code>, or <code>find</code></td><td>Results swamped by <code>bin</code> and <code>node_modules</code>. A pattern that matches on one platform and not another. A list with no size or time, so a second call asks for them.</td><td><code>find</code>: a pattern that means the same on every platform, with each file&rsquo;s size and time. Generated folders are skipped. It stops at 1,000 files and says so.</td></tr>
+<tr><td>Search text</td><td><code>Grep</code>, or <code>grep</code></td><td>A pattern that runs away. A hit printed as text to be parsed again. A PDF or a spreadsheet skipped in silence, so the search reports nothing and looks complete. A brace pattern that matched nothing and said nothing.</td><td><code>search</code>: several patterns in one call, each under a time limit. Each hit is <code>tree:path:line:column</code>. It looks inside PDF, Word and Excel files, and a pattern that matched no file says so.</td></tr>
+<tr><td>Read a file</td><td><code>Read</code>, or <code>cat</code></td><td>A whole file into context for three lines of it. A minified file as one enormous line. An encoding guessed wrong and written back wrong. An answer so large the client rejects it, which costs a turn and returns nothing.</td><td><code>read</code>: several paths in one call, a range or a tail, numbered lines, a hash of the content, and a size cap it states. The encoding is read from the file, never guessed.</td></tr>
+<tr><td>Read a notebook</td><td><code>NotebookEdit</code></td><td>A megabyte of image data pasted into the conversation, for a picture nobody can see.</td><td><code>read</code> returns the cells and measures an image output instead of pasting it. A notebook is JSON underneath, so <code>edit</code> changes it like any text file.</td></tr>
+<tr><td>Create a file</td><td><code>Write</code>, or <code>echo &gt;</code></td><td>A file overwritten without asking. A secret written into a checked-in file. A PowerShell here-string putting CRLF into an LF file.</td><td><code>write</code>, <code>new</code>, <code>mkdir</code>: replacing a file needs saying so. Refused if the text would add a password or key, or if the file says what Fettler or the assistant may do.</td></tr>
+<tr><td>Change a file</td><td><code>Edit</code>, or <code>sed</code></td><td>An anchor that no longer matches exactly, so the edit is retried until it lands, sometimes in the wrong place. Quotes, backslashes and newlines escaped onto a command line. <code>sed -i</code> rewriting every line ending for a one-line change. A byte-order mark spliced into the middle of a file.</td><td><code>edit</code>: a batch of edits, anchored on text or on a line number, checked whole before a byte is written. Refused if the file changed since you read it, and a failed edit is named. Text can come from a file, so nothing is escaped. Line endings and encoding stay as they were.</td></tr>
+<tr><td>Change many files</td><td>a <code>sed -i</code> loop</td><td>A loop that fails at file 15 and leaves 14 changed. No way to see the change before it is made.</td><td><code>replace</code>: one substitution across a pattern of files, with a dry run first. All files change, or none do.</td></tr>
+<tr><td>Move, copy, delete</td><td><code>mv</code>, <code>cp</code>, <code>rm</code></td><td><code>rm -r</code> taking a folder nobody meant. A move that replaces its target without saying so. A path that climbs out of the project.</td><td><code>move</code>, <code>copy</code>, <code>delete</code>: a path that leaves the tree is refused. Replacing a target needs saying so. A recursive delete that would reach a protected folder is refused whole.</td></tr>
+<tr><td>Unpack an archive</td><td><code>tar</code>, <code>unzip</code></td><td>A member named <code>../../etc/passwd</code> landing outside the folder. A half-unpacked archive. A link member that escapes after every path check passed.</td><td><code>extract</code>: every member is checked first, and the archive is refused whole if any would land outside. Links are refused. The execute bit is carried.</td></tr>
+<tr><td>Several steps</td><td>a shell pipeline</td><td>Quoting that differs in every shell. A pipeline that fails halfway and leaves the state unknown. PowerShell 5.1 turning a native program&rsquo;s error output into an error of its own, with <code>$?</code> false on exit 0.</td><td><code>batch</code>: one call, in order, stopping at the first step that fails and naming it. In JSON mode the whole answer is on standard output, failures included.</td></tr>
+<tr><td>Run the build</td><td><code>Bash</code>, <code>PowerShell</code>, <code>Monitor</code></td><td>A command line composed from arguments, so a quote or a semicolon in a value changes what runs. A command that works on one machine and fails on the next.</td><td><code>run</code>: a task the project declares, by name, with no arguments and a timeout. Nothing is composed. There is no shell.</td></tr>
+<tr><td>Read back a long output</td><td><code>BashOutput</code>, <code>TaskOutput</code></td><td>Bytes that reach the model without passing the tree boundary, the credential check or the screen.</td><td>The client saves a long answer in its tool-results folder. <code>read</code> opens it there, read-only, through the same caps and checks as any other file.</td></tr>
+</table>
+
+<p>The second column is the eleven built-in tools that guardrails deny: six file tools, three shells and two output readers. Each has a verb here that answers in a form the next call can use. And there is no current directory. Every path names its tree, so a call cannot land in the wrong folder.</p>
+
+<h3 id="arithmetic">One job, with the arithmetic</h3>
+
+<p>Renaming a C# type in this repository touches <b>200 places across 23 files</b>. Here it is done with the built-in tools, and done with Fettler.</p>
+
+<table>
+<tr><th></th><th>Built-in file tools</th><th>Fettler</th></tr>
+<tr><td><b>Calls</b></td><td>one search, then a read and an edit for each file: <b>47</b></td><td><code>search</code>, <code>replace --dry-run</code>, <code>replace</code>: <b>3</b></td></tr>
+<tr><td><b>Context spent</b></td><td>23 whole files</td><td>the matching lines</td></tr>
+<tr><td><b>If it fails at file 15</b></td><td>14 files renamed and 9 not, and nothing says which half changed</td><td>nothing is written until all 23 files are checked</td></tr>
+</table>
+
+<div class="takeaway"><b>Scanning this repository&rsquo;s 15&nbsp;MB of text takes a few hundred milliseconds. So a call costs about a thousand times more than the work, and the number of calls is what Fettler cuts.</b></div>
+
+<h3 id="does">What the tools do</h3>
+
+<table>
+<tr><th></th><th></th></tr>
+<tr><td><b>Batching and pipelining</b></td><td><code>read</code> takes several paths. <code>search</code> takes several patterns. <code>batch</code> takes a whole sequence. Every answer is the next call&rsquo;s argument: <code>search</code> gives the place, <code>read</code> gives a hash, and <code>edit</code> takes the hash back.</td></tr>
+<tr><td><b>Paging and large answers</b></td><td>A read stops at 2,000 lines and 40,000 characters and says how much it left out. A range reads the middle of a file, and <code>tail</code> reads the end of a log. A notebook&rsquo;s image output is measured, not pasted. One file cannot fill the assistant&rsquo;s context by accident.</td></tr>
+<tr><td><b>Documents, not only source</b></td><td>Notebooks come back as cells. Excel comes back as rows, with the formulas, and with dates as dates. Word comes back as paragraphs under their headings, PDF as text per page, images as facts, and archive members without unpacking. A search looks inside all of them and cites the page.</td></tr>
+<tr><td><b>Reliability</b></td><td>A batch is all or nothing. A file keeps its own encoding, line endings and execute bit. Results are ordered before any limit, so a cut answer is the same cut twice. A refusal says why in its first sentence. In JSON mode the whole answer is on standard output, failures included.</td></tr>
+<tr><td><b>Writes it refuses</b></td><td>A write that would add a password or an access key to a file. A write to any file that says what Fettler or the assistant may do.</td></tr>
+<tr><td><b>The client&rsquo;s own folders</b></td><td>This session&rsquo;s scratch folder, the tool-results and memory folders, and the working folder of a companion server such as sparky, all opened with nothing declared.</td></tr>
+<tr><td><b>One file, two front ends</b></td><td>One self-contained file per operating system, with no .NET to install. A command line for scripts and an MCP server for assistants, and the two give the same answer byte for byte.</td></tr>
+</table>
+
+<h3 id="wsl">No WSL, no Git Bash, no Python</h3>
+
+<p><b>On Windows, Fettler needs no WSL, no Git Bash, no Python and no .NET.</b> It is one file that runs natively on Windows, macOS and Linux, and its verbs are the same on each. The command an assistant runs from PowerShell is the command it runs from bash. Nothing else is installed to make the file tools work.</p>
+
 <h2 id="levels">Three levels</h2>
 
-<p>Both programs do three kinds of work, called <b>levels</b>. You turn a level on by writing a section of that name in the program's configuration file. The tools level is always on.</p>
+<p>Both programs do three kinds of work, called <b>levels</b>. The tools are always on. The other two turn on when the project&rsquo;s configuration file has a section of that name, so a project that only wants the tools writes nothing.</p>
+
+<figure class="level">
+<img src="media/levels.svg" width="640" height="360" loading="lazy" alt="The three levels. Tools is first and always on with no file. Guardrails is second and turns on when the file has a guardrails section. Screenings is third and turns on when the file has a screenings section. On the left, .fettler.json with one section per level.">
+<figcaption><b>The three levels.</b> The file on the left, <code>.fettler.json</code>, has one section per level, and a section turns its level on. The <code>tools</code> section is optional and only adjusts settings. The tools level is on with no file at all.</figcaption>
+</figure>
 
 <table>
 <tr><th>Level</th><th>On when</th><th>What it gives you</th></tr>
-<tr><td><b>tools</b></td><td>always, with no file</td><td>the operations themselves: search, read, edit and batch for files; SELECT and DESCRIBE through the query gate for data</td></tr>
-<tr><td><b>guardrails</b></td><td>the file has a <code>guardrails</code> section</td><td>a declared list of trees or databases, what may be done in each, and nothing else existing</td></tr>
-<tr><td><b>screenings</b></td><td>the file has a <code>screenings</code> section</td><td>the screen that refuses to disclose regulated data</td></tr>
+<tr><td><b>tools</b></td><td>always, with no file</td><td>everything above. For data: SELECT and DESCRIBE through the query gate</td></tr>
+<tr><td><b>guardrails</b></td><td>the file has a <code>guardrails</code> section</td><td>the folders or databases you name, what may be done in each, and nothing else existing</td></tr>
+<tr><td><b>screenings</b></td><td>the file has a <code>screenings</code> section</td><td>a screen that refuses any answer that would disclose regulated data</td></tr>
 </table>
 
-<h2 id="discipline">One set of rules, used twice</h2>
+<h3 id="guardrails">Guardrails: the folders you name</h3>
 
-<p>The two programs apply one set of rules to two kinds of data. Every rule below holds for both.</p>
+<p><b>With guardrails on, the world is a declared list.</b> A <em>tree</em> is a folder you name, with a list of what may be done in it. Whatever you do not name does not exist, and a path outside the trees is refused in the same words as a file that was never there. The rules people arrive with are all sayable:</p>
 
-<ul>
-<li><b>With guardrails on, the world is a declared list.</b> fettle works in the trees listed in <code>.fettler.json</code>. pick works in the databases listed in <code>.picker.json</code>. Whatever a file does not name does not exist.</li>
-<li><b>Hidden means absent.</b> A path outside the trees, a hidden folder, an undeclared database and a hidden column are all refused in the same words as something that was never there. A refusal cannot be used to map what it protects.</li>
-<li><b>No shell, anywhere.</b> fettle runs only declared tasks, whole and without arguments. pick runs only one parsed and rewritten SELECT. Neither builds a command line.</li>
-<li><b>A person writes the rules.</b> The tools refuse to write their own configuration files, whatever permissions they hold.</li>
-<li><b>Two front ends, one behaviour.</b> Each program is a command-line tool for scripts and an MCP server for an assistant. MCP is the Model Context Protocol, the standard way an assistant launches a tool and talks to it. Both front ends use the same core, and the MCP answers are byte for byte the same as the command line's <code>--json</code> output. Where the two programs share an outcome word, they share <a href="fettle-reference.html#codes">the exit code</a> too.</li>
-</ul>
+<table>
+<tr><th>The rule you want</th><th>With guardrails on</th></tr>
+<tr><td><b>Look, don&rsquo;t touch.</b></td><td>A tree can be read-only. It is the default for every tree but the one that holds the file.</td></tr>
+<tr><td><b>Work here, not there.</b></td><td>Two trees. One grants writes, and the other keeps the read-only default.</td></tr>
+<tr><td><b>May add and revise, never destroy.</b></td><td>Grant create, update and rename, and withhold delete. Most tooling cannot say this at all.</td></tr>
+<tr><td><b>Not for you.</b></td><td>A folder granted nothing does not exist. It never appears in a search, and guessing its path answers the same as a path that was never there.</td></tr>
+<tr><td><b>Run the build, and nothing else.</b></td><td>Declare the task by name and grant execute in one tree. There is no shell, so there is nothing else to run.</td></tr>
+<tr><td><b>All of that, but only under one folder.</b></td><td>A scope: the same words, stated inside a tree.</td></tr>
+</table>
 
-<h2 id="screen">They can refuse to disclose regulated data</h2>
+<p>A setup command then turns off the assistant&rsquo;s built-in file tools and shell, so Fettler is the only route to a file. Picker does the same for databases, tables and columns, and a hidden column is missing from <code>SELECT *</code> before the server sees the query. <a href="fettle-guardrails.html">Guardrails for the files</a> and <a href="pick-guardrails.html">guardrails for the data</a> draw the whole arrangement, line by line.</p>
 
-<p><b>The screen is the screenings level: optional, off by default, and shared by both programs.</b> A tree or a database can declare that certain things must not leave it. The first tier runs inside the program with nothing installed. It catches labelled record numbers, dates of birth, social security numbers, valid card numbers, email addresses and phone numbers.</p>
+<h3 id="screen">Screenings: refusing regulated data</h3>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>"screenings": {
-  "screen": { "records": ["identifiers"] }
-}</code></pre></div>
+<p><b>The screen refuses any answer that would disclose regulated data, and it is off by default.</b> You name the tree or the database that holds the records, and every answer leaving it is checked first. One match refuses the whole answer, with exit code 13. It never hands back a redacted copy, because a redacted copy looks safe and is not.</p>
 
-<p>When the screen finds something, it refuses the <b>whole response</b>: a file read, a search, or a set of rows. It never hands back a redacted copy, because a redacted copy looks safe and is not.</p>
+<table>
+<tr><th>Category</th><th>Catches</th><th>Needs</th></tr>
+<tr><td><code>identifiers</code></td><td>social security numbers, valid card numbers, phone numbers, email addresses, labelled record numbers and labelled dates of birth</td><td>nothing installed. Six patterns run inside the program.</td></tr>
+<tr><td><code>clinical</code></td><td>names, dates and conditions in clinical text</td><td>a model you install, run by <code>burler</code>, a second program</td></tr>
+<tr><td><code>legal</code></td><td>contract and consumer-report text</td><td>a model</td></tr>
+<tr><td><code>scientific</code></td><td>research and scientific data</td><td>a model</td></tr>
+</table>
 
-<p><b>The screen does not catch names, addresses, conditions or free text on its own.</b> Those need a model, which is a separate download. <code>identifiers</code> is the only category that works with nothing installed. <code>clinical</code>, <code>legal</code> and <code>scientific</code> screen nothing until you install a model, and the tools say so in plain words. See <a href="fettle-screenings.html">screenings for the files</a> and <a href="pick-screenings.html">screenings for the rows</a>, each with its models. One set of models on disk serves both programs.</p>
+<p>Until a model is installed, the last three categories screen nothing, and the tools say so in plain words. <a href="fettle-screenings.html">Screenings for the files</a> and <a href="pick-screenings.html">screenings for the rows</a> cover the models, and one set of models on disk serves both programs.</p>
 
 <h2 id="start">Getting started</h2>
 
@@ -82,15 +153,14 @@
 <tr><th>You want</th><th>fettle</th><th>pick</th></tr>
 <tr><td>What it is, and why</td><td><a href="fettle.html">Overview</a></td><td><a href="pick.html">Overview</a></td></tr>
 <tr><td>Working in five minutes</td><td><a href="fettle-quickstart.html">Quick start</a></td><td><a href="pick-quickstart.html">Quick start</a></td></tr>
-<tr><td>The per-machine setup</td><td><a href="fettle-install.html">Install</a></td><td><a href="pick-install.html">Install</a></td></tr>
 <tr><td>The operations, with no file</td><td><a href="fettle-tools.html">Tools</a></td><td><a href="pick-tools.html">Tools</a></td></tr>
 <tr><td>Declaring the boundary, drawn</td><td><a href="fettle-guardrails.html">Guardrails</a></td><td><a href="pick-guardrails.html">Guardrails</a></td></tr>
 <tr><td>Refusing regulated data, and the models</td><td><a href="fettle-screenings.html">Screenings</a></td><td><a href="pick-screenings.html">Screenings</a></td></tr>
+<tr><td>The per-machine setup, in full</td><td><a href="fettle-install.html">Install</a></td><td><a href="pick-install.html">Install</a></td></tr>
 <tr><td>Every verb, refusal and exit code</td><td><a href="fettle-reference.html">Reference</a></td><td><a href="pick-reference.html">Reference</a></td></tr>
 </table>
 
-
-<div class="takeaway"><b>Both programs are written in C#, ship as one self-contained file per platform, and need nothing installed beside them.</b> <code>burler</code>, the model host the screen's second tier uses, is a separate download. Only people who switch that tier on need it, and it serves both programs.</div>
+<div class="takeaway"><b>Both programs are written in C#, ship as one self-contained file per platform, and need nothing installed beside them.</b> <code>burler</code>, the model host the screen&rsquo;s second tier uses, is a separate download. Only people who switch that tier on need it, and it serves both programs.</div>
 
 <nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
   <a class="next" href="fettle.html"><span class="pnwrap"><span class="ttl">Fettle, for the files</span><span class="dir">Next &rarr;</span></span></a>

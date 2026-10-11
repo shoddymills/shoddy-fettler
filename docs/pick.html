@@ -9,6 +9,12 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="favicon.ico" sizes="48x48">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+figure.level{margin:1.4rem 0; background:var(--card); border:1px solid var(--line);
+  border-radius:.6rem; padding:.6rem}
+figure.level img{display:block; width:100%; height:auto}
+figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2rem .1rem}
+</style>
 </head>
 <body>
 <div class="topbar"><div class="inner">
@@ -17,7 +23,7 @@
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><span class="here">Overview</span><a href="pick-quickstart.html">Quick start</a><a href="pick-install.html">Install</a><a href="pick-tools.html">Tools</a><a href="pick-guardrails.html">Guardrails</a><a href="pick-screenings.html">Screenings</a><a href="pick-reference.html">Reference</a></nav></div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><span class="here">Overview</span><a href="pick-quickstart.html">Quick start</a><a href="pick-tools.html">Tools</a><a href="pick-guardrails.html">Guardrails</a><a href="pick-screenings.html">Screenings</a><a href="pick-install.html">Install</a><a href="pick-reference.html">Reference</a></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
@@ -28,11 +34,25 @@
 
 <nav class="pagenav pagenav-top ruled" aria-label="Picker, in order"><a class="next" href="pick-quickstart.html"><span class="pnwrap"><span class="ttl">Quick Start</span><span class="dir">Next &rarr;</span></span></a></nav>
 
-<p><b>pick lets an AI assistant read a SQL Server database, and it lets the assistant do nothing more.</b> pick does this work at three levels, and most of this page describes the first one, the tools level. The last part gives one paragraph each to the other two levels, guardrails and screenings, and ends with a table of all three.</p>
+<p><b>pick lets an AI assistant read a SQL Server database, and it lets the assistant do nothing more.</b> pick does this work at three levels. Most of this page describes the first one, the tools level, and the last part gives one paragraph each to the other two, guardrails and screenings.</p>
 
 <p>First, here are the words this page uses. SQL Server is a database server from Microsoft, and a database is a store of data kept in tables. A query is a request for data written in the SQL language, and a <code>SELECT</code> statement is a query that only reads. An assistant reaches pick through MCP, the protocol (a set of rules for messages) that AI clients use to call outside tools.</p>
 
 <div class="takeaway"><b>The project is Picker. The command is <code>pick</code>.</b> It is the third program in this repository, beside <code>fettle</code> and <code>burler</code>. It has its own server for the assistant, its own command line and its own configuration file, and it shares no code with the other two.</div>
+
+<h2 id="levels">The three levels</h2>
+
+<figure class="level">
+<img src="media/pick-levels.svg" width="640" height="360" loading="lazy" alt="The three levels of pick. Tools is first and always on: the file names a server and its connection. Guardrails is second and turns on when the file has a guardrails section. Screenings is third and turns on when the file has a screenings section. On the left, .picker.json with one section per level.">
+<figcaption><b>The three levels.</b> The file has one section per level. The <code>tools</code> section is required, because it names the server. The other two are optional, and each turns its level on.</figcaption>
+</figure>
+
+<table>
+<tr><th>Level</th><th>On when</th><th>What it adds</th></tr>
+<tr><td><a href="pick-tools.html">tools</a></td><td>always, once <code>.picker.json</code> names a server</td><td>a connection, the query gate, the five verbs and the caps</td></tr>
+<tr><td><a href="pick-guardrails.html">guardrails</a></td><td>the file has a <code>guardrails</code> section</td><td>declared databases, verbs per database and scope, hidden columns</td></tr>
+<tr><td><a href="pick-screenings.html">screenings</a></td><td>the file has a <code>screenings</code> section</td><td>the screen on every answer, the models, and exit code 13</td></tr>
+</table>
 
 <h2 id="tools">The tools level: a connection and a gate</h2>
 
@@ -92,16 +112,9 @@
 
 <p>If the file has a <code>screenings</code> section, pick checks each answer before it leaves. When an answer would show regulated data, such as a social security number, pick refuses the whole answer with exit code 13. The refusal names a category and a count, and it quotes none of the data back. Some categories need models, which run in <code>burler</code>, a helper program that sits beside pick. <a href="pick-screenings.html">Screenings &rarr;</a></p>
 
-<h2 id="levels">The three levels, side by side</h2>
+<h2 id="start">Where to go next</h2>
 
-<table>
-<tr><th>Level</th><th>On when</th><th>What it adds</th></tr>
-<tr><td><a href="pick-tools.html">tools</a></td><td>always, once <code>.picker.json</code> names a server</td><td>a connection, the query gate, the five verbs and the caps</td></tr>
-<tr><td><a href="pick-guardrails.html">guardrails</a></td><td>the file has a <code>guardrails</code> section</td><td>declared databases, verbs per database and scope, hidden columns</td></tr>
-<tr><td><a href="pick-screenings.html">screenings</a></td><td>the file has a <code>screenings</code> section</td><td>the screen on every answer, the models, and exit code 13</td></tr>
-</table>
-
-<p>To start, go to the <a href="pick-quickstart.html">quick start</a>, which sets up the tools level in two steps.</p>
+<p>To start, go to the <a href="pick-quickstart.html">quick start</a>, which sets up the tools level in two steps. <a href="pick-tools.html">Tools</a>, <a href="pick-guardrails.html">guardrails</a> and <a href="pick-screenings.html">screenings</a> each have a page, and <a href="pick-reference.html">the reference</a> holds every refusal and exit code.</p>
 
 <nav class="pagenav pagenav-bottom" aria-label="Picker, in order">
   <a class="next" href="pick-quickstart.html"><span class="pnwrap"><span class="ttl">Quick Start</span><span class="dir">Next &rarr;</span></span></a>

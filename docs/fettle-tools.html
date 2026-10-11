@@ -23,7 +23,7 @@ figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2
     <span class="spacer"></span>
     <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
-  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick-tools.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-quickstart.html">Quick start</a><a href="fettle-install.html">Install</a><span class="here">Tools</span><a href="fettle-guardrails.html">Guardrails</a><a href="fettle-screenings.html">Screenings</a><a href="fettle-reference.html">Reference</a></nav></div>
+  <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick-tools.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-quickstart.html">Quick start</a><span class="here">Tools</span><a href="fettle-guardrails.html">Guardrails</a><a href="fettle-screenings.html">Screenings</a><a href="fettle-install.html">Install</a><a href="fettle-reference.html">Reference</a></nav></div>
 </div></div>
 <div class="wrap">
 <header class="mast">
@@ -32,7 +32,7 @@ figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2
 <p class="kicker">The first level, on in every folder with nothing written down. Every verb, every check, and the folders your assistant already uses.</p>
 </header>
 
-<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="fettle-install.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Installing It</span></span></a><a class="next" href="fettle-guardrails.html"><span class="pnwrap"><span class="ttl">Guardrails</span><span class="dir">Next &rarr;</span></span></a></nav>
+<nav class="pagenav pagenav-top ruled" aria-label="Fettler, in order"><a href="fettle-quickstart.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Quick Start</span></span></a><a class="next" href="fettle-guardrails.html"><span class="pnwrap"><span class="ttl">Guardrails</span><span class="dir">Next &rarr;</span></span></a></nav>
 
 <p><b>This page describes the tools level, which is always on and needs no file.</b> Fettler does three kinds of work, and each kind is called a level. The tools level is the first one, and it gives you every verb, the checks that run on every call, and the folders your client keeps for this project. The client is the program your assistant runs in, such as Claude Code or VS Code. The other two levels, <a href="fettle-guardrails.html">guardrails</a> and <a href="fettle-screenings.html">screenings</a>, stay off until a configuration file turns them on.</p>
 
@@ -64,6 +64,58 @@ figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2
 </ul>
 
 <p><b>The server looks for a file again on every call until it finds one.</b> The server is fettle running as <code>fettle serve</code>, the form your assistant talks to. If you write a <code>guardrails</code> section into a new <code>.fettler.json</code> while it runs, the next call obeys it with no restart. Once the server has found a file, it re-reads that same file on each call.</p>
+
+<h2 id="wrong">What went wrong, and what it looks like now</h2>
+
+<p><b>The home page lists what went wrong with the old tools. Here is the same list with the answers fettle gives instead.</b> Each example is the terminal form. The MCP answer carries the same facts as JSON, and the JSON form of <code>read</code> carries a hash for every file. A path in an answer names its tree, as <code>work:src/Glob.cs</code>, because more than one tree is almost always open.</p>
+
+<h3 id="wrong-search">One search, several patterns</h3>
+
+<p>Two patterns go in one call. Each hit comes back as the tree, the path, the line and the column, with the matched line under it. A hit inside a PDF names its page instead. A pattern of files that matched nothing says so, rather than looking like a search that found nothing.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle search "class Glob" "IGlob" --glob "src/**/*.cs"
+work:src/Fettler/Glob.cs:12:21
+   12 | public sealed class Glob
+work:src/Fettler/Glob.cs:31:9
+   31 |     IGlob matcher = Build(pattern);
+2 hits in 1 file
+
+$ fettle search "TODO" --glob "src/**/*.ts"
+0 files matched the glob; nothing was searched</code></pre></div>
+
+<h3 id="wrong-read">One read, a cap it states</h3>
+
+<p>The first line gives the file's kind, encoding and line ending, and which lines of how many came back. A read that stops says how many lines are left and how to get them. A minified file, which is one enormous line, stops at the 40,000-character cap instead, and the answer says that too.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle read src/Fettler/Glob.cs --to 3
+work:src/Fettler/Glob.cs  text  utf-8  lf  final-newline: yes  lines 1-3 of 212
+    1 | using System;
+    2 | 
+    3 | namespace Fettler.Core;
+... 209 more line(s); pass --from 4 to continue, or --to N for a range</code></pre></div>
+
+<h3 id="wrong-edit">An edit that refuses, because the file changed</h3>
+
+<p>A <code>read</code> returns a hash of the file. An <code>edit</code> takes it back as <code>expect</code>. If anything changed the file in between, the edit is refused before a byte is written, with exit code 6, and the fix is to read again. An anchor that matches in more than one place is refused the same way, naming the edit, so an edit never lands in the wrong place.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle edit src/Fettler/Glob.cs --expect 6f1c... --replace "IGlob" --with "IMatcher"
+refused: the file changed since it was read; read it again and rebuild the edit
+$ echo $LASTEXITCODE
+6</code></pre></div>
+
+<h3 id="wrong-write">A write that is refused</h3>
+
+<p>Two writes are refused whatever the tree grants. A write that would add a secret names the line and the kind of secret, never the value. A write to a file that says what fettle or the assistant may do names the file.</p>
+
+<div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle write config/app.json --text-file app.json
+refused: this write would add a credential to the file: line 14 (aws-access-key-id).
+$ echo $LASTEXITCODE
+12
+
+$ fettle write .fettler.json --text-file new.json
+refused: .fettler.json is a file that says what this tool and the assistant may do.
+$ echo $LASTEXITCODE
+11</code></pre></div>
 
 <h2 id="checks">What every call checks</h2>
 
@@ -261,7 +313,7 @@ declared by C:\github\app\.fettler.json</code></pre></div>
 </table>
 
 <nav class="pagenav pagenav-bottom" aria-label="Fettler, in order">
-  <a href="fettle-install.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Installing It</span></span></a>
+  <a href="fettle-quickstart.html" class="prev"><span class="pnwrap"><span class="dir">&larr; Previous</span><span class="ttl">Quick Start</span></span></a>
   <a class="next" href="fettle-guardrails.html"><span class="pnwrap"><span class="ttl">Guardrails</span><span class="dir">Next &rarr;</span></span></a>
 </nav>
 <footer>Named for the shoddy mills of the West Riding: Useless Things Made
