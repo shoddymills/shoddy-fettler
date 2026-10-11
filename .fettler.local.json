@@ -22,8 +22,8 @@
   "replacements": {
     "feature-branch":  "shop",
     "bug-branch":      "shop01", 
-    "release-version": "2.0.0",
-    "checkin-note":     "Tools, Guardrails, and Screening are distinctly different configured."
+    "release-version": "2.0.1",
+    "checkin-note":     "Vastly improved documetation."
   }
 }
 
