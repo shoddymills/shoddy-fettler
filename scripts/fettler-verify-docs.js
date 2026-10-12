@@ -317,8 +317,9 @@ for (const p of pages) {
   const LEVELS = new Set(["tools", "guardrails", "screenings", "retired"]);
   const doctor = read("Fettler/Clients/Doctor.cs");
   const numbers = new Set([...doctor.matchAll(/new Finding\("([^"]+)"/g)].map(m => m[1]));
-  const companion = /CompanionCheck = "([^"]+)"/.exec(doctor);
-  if (companion) numbers.add(companion[1]);
+  // A finding raised through a named constant, CompanionCheck or
+  // ShellCheck, is read from the constant, so it is verified too.
+  for (const m of doctor.matchAll(/\b[A-Za-z]+Check = "([^"]+)"/g)) numbers.add(m[1]);
   numbers.add("2.15");   // retired, and kept in the table so the number is never reused
 
   const carriers = pages.filter(p => p.startsWith("fettle") && read("docs/" + p).includes('id="findings"'));

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360" role="img" aria-label="The tools level: with no configuration file, the launch folder is the tree work, and fettle also opens this session's scratch folder, the client's tool-results and memory folders, and a companion server's root. Older sessions and transcripts stay outside.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360" role="img" aria-label="The tools level: with no configuration file, the launch folder is the tree work, and fettle also opens this session's scratch folder, the client's tool-results and memory folders, and a companion server's root. Older sessions and transcripts stay outside. The client's own file tools are denied, so fettle is the route to a file. The shell stays open at this level.">
   <rect width="640" height="360" fill="#12151b"/>
   <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#c9d1dc">
 
@@ -47,8 +47,8 @@
     <text x="304" y="307" fill="#d9534f">outside every tree</text>
     <text x="304" y="327" fill="#9aa3b2">older sessions, transcripts, your home folder</text>
 
-    <text x="20" y="300" fill="#9aa3b2">no deny list,</text>
-    <text x="20" y="318" fill="#9aa3b2">no tasks,</text>
-    <text x="20" y="336" fill="#9aa3b2">no execute</text>
+    <text x="20" y="300" fill="#9aa3b2">the built-in file tools denied,</text>
+    <text x="20" y="318" fill="#9aa3b2">no tasks, no execute,</text>
+    <text x="20" y="336" fill="#9aa3b2">the shell still open</text>
   </g>
 </svg>

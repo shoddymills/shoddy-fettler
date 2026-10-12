@@ -116,7 +116,9 @@ fettle --version</code></pre></div>
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle setup tools claude-code --local --dry-run   # what would change
 fettle setup tools claude-code --local             # change it</code></pre></div>
 
-<p>The first word after <code>setup</code> is the level. <code>setup tools</code> writes the registration and nothing else. It writes no <code>.fettler.json</code>, no deny list and no instructions. The old spelling, <code>fettle setup claude-code</code>, is refused, and the message shows the new one.</p>
+<p>The first word after <code>setup</code> is the level. <code>setup tools</code> writes three things: the registration, the deny list for the client's own file tools, and the tools paragraph of the instruction block in <code>CLAUDE.md</code>. It writes no <code>.fettler.json</code>. The old spelling, <code>fettle setup claude-code</code>, is refused, and the message shows the new one.</p>
+
+<p><b>Registering alone makes Fettler available. The deny list makes it the route.</b> An assistant whose own file tools stay open keeps using them out of habit, and the tools it registered go unused. So <code>setup tools</code> denies <code>Read</code>, <code>Write</code>, <code>Edit</code>, <code>NotebookEdit</code>, <code>Grep</code>, <code>Glob</code>, <code>BashOutput</code> and <code>TaskOutput</code>. The shells stay open at this level. <a href="fettle-guardrails.html#exclusions">Guardrails</a> denies those, because a declared task is what replaces a shell.</p>
 
 <table>
 <tr><th>Flag</th><th>What it does</th></tr>
@@ -126,6 +128,8 @@ fettle setup tools claude-code --local             # change it</code></pre></div
 <tr><td><code>--dry-run</code></td><td>Print the same report and write nothing. Run this first.</td></tr>
 <tr><td><code>--force</code></td><td>Replace a <code>fettler</code> entry that names a different command. Without it, setup refuses to change that entry.</td></tr>
 <tr><td><code>--command PATH</code></td><td>Register this program file in place of the name <code>fettle</code>.</td></tr>
+<tr><td><code>--deny</code></td><td>Write the deny list at <code>--global</code> too. At <code>--local</code> it is written without this flag. Changing how the assistant works in every project is never a side effect, so the global write is asked for by name.</td></tr>
+<tr><td><code>--hooks</code></td><td>Add the session hook that runs <code>doctor</code>, for Claude Code only. <a href="fettle-guardrails.html#hooks">The session hook</a> says what it prints.</td></tr>
 </table>
 
 <h3 id="clients">The clients, and the files behind them</h3>
@@ -147,9 +151,9 @@ fettle setup tools claude-code --local             # change it</code></pre></div
 <p>A global registration covers every project this account opens. <code>--all</code> does it for every client on the machine:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle setup tools --all --global --dry-run
-fettle setup tools --all --global</code></pre></div>
+fettle setup tools --all --global --deny</code></pre></div>
 
-<p>This changes nothing else. Each project is at the tools level until it adds its own guardrails.</p>
+<p>At <code>--global</code> the deny list is only offered. Without <code>--deny</code>, setup says what it would deny and writes nothing, because changing how the assistant works in every project should never be a side effect. With it, the denies and the tools paragraph land in the global files, such as <code>~/.claude/settings.json</code> and <code>~/.claude/CLAUDE.md</code>. Each project is still at the tools level until it adds its own guardrails.</p>
 
 <h2 id="mcp">The MCP front end</h2>
 

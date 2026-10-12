@@ -458,3 +458,5 @@ models/
 pick-smoke.json
 pick-reply.json
 published-pick/
+.claude/.DS_Store
+.DS_Store

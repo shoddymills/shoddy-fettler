@@ -1032,9 +1032,10 @@ public static class Command
 
     /// <summary>
     /// R7.4: <c>setup LEVEL CLIENT</c>. The level comes first, because
-    /// what setup writes depends on it: <c>tools</c> registers,
-    /// <c>guardrails</c> writes the deny list and the instruction block,
-    /// <c>screenings</c> checks burler and the models.
+    /// what setup writes depends on it: <c>tools</c> registers, denies the
+    /// built-in file tools and writes the tools paragraph;
+    /// <c>guardrails</c> adds the shell denies and the guardrails
+    /// paragraph; <c>screenings</c> checks burler and the models.
     /// </summary>
     static CliResult Setup(Bench bench, Arguments args, bool json)
     {
@@ -1708,11 +1709,14 @@ public static class Command
           roots                 the levels, the trees, and what each tree allows
           doctor [--client NAME] [--quiet] [--hook]
                  The wiring, then a section per level. Findings only for levels on.
-          setup tools CLIENT [--global | --local] [--dry-run] [--force] [--command PATH]
+          setup tools CLIENT [--global | --local] [--dry-run] [--force] [--hooks] [--deny]
+                 [--command PATH]
+                 Registers, denies the built-in file tools and the output readers, and
+                 writes the tools paragraph. --global offers the denies until --deny.
           serve                 run as an MCP server on stdin and stdout
 
         guardrails - on when .fettler.json has a "guardrails" section: declared trees,
-        permissions, scopes, tasks, and the client's deny list.
+        permissions, scopes, tasks, and the shell denies.
           tasks | run NAME [--timeout SECONDS]
           setup guardrails CLIENT [--global | --local] [--dry-run] [--hooks] [--deny]
           Permissions: list read create update rename delete execute. The tree holding

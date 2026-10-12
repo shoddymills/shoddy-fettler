@@ -70,13 +70,17 @@ public static class Scaffold
     /// <summary>
     /// Set up one level for one client (R7.4).
     ///
-    /// <para><b>Each level writes only its own files.</b> <c>tools</c>
-    /// registers the server and nothing else. <c>guardrails</c> writes the
-    /// deny list, the instruction block, the hook when asked, and a starter
-    /// <c>guardrails</c> section. <c>screenings</c> checks burler and the
-    /// models directory and writes a starter <c>screenings</c> section.
-    /// Registering never writes a deny, so a project that only wants the
-    /// tools gets only the tools.</para>
+    /// <para><b>Each level writes what makes it work.</b> <c>tools</c>
+    /// registers the server, denies the built-in file tools and output
+    /// readers, and writes the tools paragraph of the instruction block.
+    /// Registering alone makes Fettler available; only the deny makes it
+    /// the route, and a tools-level project without one keeps using the
+    /// built-ins out of habit. <c>guardrails</c> adds the shell denies,
+    /// the guardrails paragraph, the hook when asked, and a starter
+    /// <c>guardrails</c> section. The shells stay with guardrails because
+    /// a declared task is what replaces a shell. <c>screenings</c> checks
+    /// burler and the models directory and writes a starter
+    /// <c>screenings</c> section.</para>
     /// </summary>
     public static Result<Scaffolding> Apply(Machine machine, Options options, string version)
     {
@@ -139,13 +143,15 @@ public static class Scaffold
 
         foreach (Place place in places)
         {
-            // tools registers and does nothing else. guardrails writes
-            // the instruction block and the policy, and never registers.
-            Result<Change?> change = (place.Purpose, guardrails) switch
+            // Only tools registers. Both levels write the instruction
+            // block and the policy, each adding its own paragraph and its
+            // own denies, so guardrails never registers and tools never
+            // writes a guardrails paragraph.
+            Result<Change?> change = place.Purpose switch
             {
-                (Purpose.Servers, false) => Register(machine, place, command, options),
-                (Purpose.Instructions, true) => Instruct(machine, place, options),
-                (Purpose.Policy, true) => Policy(machine, place, options, notes),
+                Purpose.Servers when !guardrails => Register(machine, place, command, options),
+                Purpose.Instructions => Instruct(machine, place, options),
+                Purpose.Policy => Policy(machine, place, options, notes),
                 _ => Result<Change?>.Ok(null),
             };
 
@@ -274,6 +280,14 @@ public static class Scaffold
         string updated;
         if (open >= 0 && close > open)
         {
+            // The tools level asks only that its paragraph be there. A
+            // block guardrails wrote holds it and more, and re-running
+            // setup tools on that project must not strip the guardrails
+            // paragraph out of it.
+            if (options.Level == Levels.ToolsName
+                && existing[open..close].Contains(ToolsParagraph, StringComparison.Ordinal))
+                return Result<Change?>.Ok(null);
+
             string replaced = existing[..open] + body + existing[(close + BlockClose.Length)..];
             if (replaced == existing) return Result<Change?>.Ok(null);
             updated = replaced;
@@ -308,6 +322,14 @@ public static class Scaffold
     /// command at all. Setup names the existing allow entries instead and
     /// leaves the decision with the person whose configuration it
     /// is.</para>
+    ///
+    /// <para><b>Split by level, the way the levels are used.</b> The tools
+    /// level writes <see cref="Doctor.ToolsDenied"/>: the six and the two
+    /// output readers, so a project that only registered Fettler is
+    /// routed to it rather than left to habit. Guardrails writes
+    /// <see cref="Doctor.Denied"/>, which adds the three shells, because a
+    /// declared task is what replaces a shell. Each level only adds, so
+    /// running tools after guardrails removes nothing.</para>
     /// </summary>
     static Result<Change?> Policy(Machine machine, Place place, Options options, List<string> notes)
     {
@@ -345,7 +367,8 @@ public static class Scaffold
         var held = new HashSet<string>(StringComparer.Ordinal);
         foreach (JsonNode? entry in deny) if (entry is not null) held.Add(entry.ToString());
 
-        var adding = Doctor.Denied.Where(tool => !held.Contains(tool)).ToList();
+        string[] wanted = options.Level == Levels.GuardrailsName ? Doctor.Denied : Doctor.ToolsDenied;
+        var adding = wanted.Where(tool => !held.Contains(tool)).ToList();
 
         // Named, never deleted. They are the user's own configuration,
         // and a tool that quietly removes them has done exactly what this

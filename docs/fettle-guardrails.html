@@ -61,8 +61,8 @@ figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2
 </div>
 
 <figure class="level">
-<img src="media/level-guardrails.svg" width="640" height="360" loading="lazy" alt="The guardrails level. A guardrails section in .fettler.json declares the trees, what each allows, its scopes and its tasks. The client's deny list closes the built-in tools, so fettle is the only route to a file. A path outside every tree is refused.">
-<figcaption><b>The guardrails level.</b> The <code>guardrails</code> section declares the trees, what each allows, its scopes and its tasks. The client's deny list closes the built-in tools, so fettle is the only route to a file. A path outside every tree is refused.</figcaption>
+<img src="media/level-guardrails.svg" width="640" height="360" loading="lazy" alt="The guardrails level. A guardrails section in .fettler.json declares the trees, what each allows, its scopes and its tasks. The client's deny list gains the shells, so a declared task is the only way to a shell and fettle stays the only route to a file. A path outside every tree is refused.">
+<figcaption><b>The guardrails level.</b> The <code>guardrails</code> section declares the trees, what each allows, its scopes and its tasks. The client's deny list gains the shells, Bash, PowerShell and Monitor, on top of the file tools that <code>setup tools</code> denied. A declared task is the only way to a shell, and fettle stays the only route to a file. A path outside every tree is refused.</figcaption>
 </figure>
 
 <h2 id="workstation">The workstation, drawn</h2>
@@ -323,33 +323,33 @@ declared by C:\github\app\.fettler.json</code></pre></div>
 
   clients: claude-code &middot; claude-desktop &middot; vscode-copilot &middot; github-copilot</code></pre></div>
 
-<p><b>The level is the first word.</b> <code>fettle setup tools</code> writes the registration and nothing else, and <a href="fettle-install.html">installing it</a> covers it. <code>fettle setup guardrails</code> writes the files on this page and never registers. The old spelling, <code>fettle setup claude-code</code>, is refused, and the message shows the new spellings.</p>
+<p><b>The level is the first word.</b> <code>fettle setup tools</code> writes the registration, the deny list for the client's own file tools, and the tools paragraph of the instruction block, and <a href="fettle-install.html#register">installing it</a> covers that. <code>fettle setup guardrails</code> adds what this page describes and never registers. The old spelling, <code>fettle setup claude-code</code>, is refused, and the message shows the new spellings.</p>
 
 <table>
 <tr><th>It writes</th><th>Where, and when</th></tr>
-<tr><td>The deny list</td><td>In the client's settings. At <code>--local</code> it is written. At <code>--global</code> it is only offered, unless you add <code>--deny</code>.</td></tr>
-<tr><td>The instruction block</td><td>In the client's instruction file, such as <code>CLAUDE.md</code>. It holds the tools paragraph and the guardrails paragraph, which <a href="#block">the instruction block</a> shows.</td></tr>
+<tr><td>The shell denies</td><td><code>Bash</code>, <code>PowerShell</code> and <code>Monitor</code>, added to the deny list in the client's settings that <code>setup tools</code> wrote. Any tools-level deny that is missing is written too. At <code>--local</code> it is written. At <code>--global</code> it is only offered, unless you add <code>--deny</code>.</td></tr>
+<tr><td>The guardrails paragraph</td><td>In the client's instruction file, such as <code>CLAUDE.md</code>, after the tools paragraph that <code>setup tools</code> wrote. <a href="#block">The instruction block</a> shows it.</td></tr>
 <tr><td>The session hook</td><td>Only with <code>--hooks</code>, for Claude Code. It runs <code>doctor</code> at the start of each session.</td></tr>
 <tr><td>A starter <code>guardrails</code> section</td><td>Only at <code>--local</code>, and only when the project file has none. It declares the launch folder as <code>work</code>, and it never changes a section that exists.</td></tr>
 </table>
 
 <h3 id="exclusions">The deny list</h3>
 
-<p><b>The deny list names the client's built-in tools that could reach a file without Fettler.</b> It lives in the client's settings, such as <code>.claude/settings.json</code>. Setup writes it at <code>--local</code>, and it never writes <code>settings.local.json</code>, because that file is somebody's own and is not committed. Here is the list it writes for Claude Code:</p>
+<p><b>The deny list names the client's built-in tools that could reach a file without Fettler.</b> It lives in the client's settings, such as <code>.claude/settings.json</code>. The two levels write it between them. <code>setup tools</code> denies the file tools and the output readers, because registering alone leaves the assistant using its own tools out of habit. <code>setup guardrails</code> adds the shells, because a declared task is what replaces a shell. Setup writes it at <code>--local</code>, and it never writes <code>settings.local.json</code>, because that file is somebody's own and is not committed. Here is the whole list for Claude Code, in the order the two levels write it:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>{
   "permissions": {
     "deny": ["Read", "Write", "Edit", "NotebookEdit", "Grep", "Glob",
-             "Bash", "PowerShell", "Monitor",
-             "BashOutput", "TaskOutput"]
+             "BashOutput", "TaskOutput",
+             "Bash", "PowerShell", "Monitor"]
   }
 }</code></pre></div>
 
 <table>
-<tr><th>Group</th><th>Tools</th><th>Why they are denied</th></tr>
-<tr><td>The file tools</td><td><code>Read</code>, <code>Write</code>, <code>Edit</code>, <code>NotebookEdit</code>, <code>Grep</code>, <code>Glob</code></td><td>Fettler replaces each one. The list is short and closed, and it is the same on every platform.</td></tr>
-<tr><td>The shells</td><td><code>Bash</code>, <code>PowerShell</code>, <code>Monitor</code></td><td>A shell is a complete route round the trees. <code>Monitor</code> counts as a shell, because it runs the command it is given in the same environment as <code>Bash</code>.</td></tr>
-<tr><td>The output readers</td><td><code>BashOutput</code>, <code>TaskOutput</code></td><td>They start nothing and write nothing. But they hand back the output of work already done, and that output never passes the tree check, the credential check or the screen.</td></tr>
+<tr><th>Group</th><th>Tools</th><th>Written by</th><th>Why they are denied</th></tr>
+<tr><td>The file tools</td><td><code>Read</code>, <code>Write</code>, <code>Edit</code>, <code>NotebookEdit</code>, <code>Grep</code>, <code>Glob</code></td><td><code>setup tools</code></td><td>Fettler replaces each one. The list is short and closed, and it is the same on every platform.</td></tr>
+<tr><td>The output readers</td><td><code>BashOutput</code>, <code>TaskOutput</code></td><td><code>setup tools</code></td><td>They start nothing and write nothing. But they hand back the output of work already done, and that output never passes the tree check, the credential check or the screen.</td></tr>
+<tr><td>The shells</td><td><code>Bash</code>, <code>PowerShell</code>, <code>Monitor</code></td><td><code>setup guardrails</code></td><td>A shell is a complete route round the trees. <code>Monitor</code> counts as a shell, because it runs the command it is given in the same environment as <code>Bash</code>. A declared task is what replaces a shell, so the deny waits for the level that declares tasks.</td></tr>
 </table>
 
 <ul>
@@ -368,8 +368,8 @@ declared by C:\github\app\.fettler.json</code></pre></div>
   "permissions": {
     "allow": ["Bash(git status:*)", "Bash(git diff:*)"],
     "deny":  ["Read", "Write", "Edit", "NotebookEdit", "Grep", "Glob",
-              "Bash", "PowerShell", "Monitor",
-              "BashOutput", "TaskOutput"]
+              "BashOutput", "TaskOutput",
+              "Bash", "PowerShell", "Monitor"]
   }
 }</code></pre></div>
 
@@ -390,7 +390,7 @@ declared by C:\github\app\.fettler.json</code></pre></div>
 
 <h3 id="block">The instruction block</h3>
 
-<p><b>The instruction block tells the assistant how to work here, and the deny list makes it so.</b> Setup writes the block into the client's instruction file, such as <code>CLAUDE.md</code>, between markers it can find again. The block holds a tools paragraph, which says to call <code>roots</code> first and that there is no working folder. <code>setup guardrails</code> adds the guardrails paragraph, as written:</p>
+<p><b>The instruction block tells the assistant how to work here, and the deny list makes it so.</b> <code>setup tools</code> writes the block into the client's instruction file, such as <code>CLAUDE.md</code>, between markers it can find again. The block holds the tools paragraph, which says to call <code>roots</code> first and that there is no working folder. <code>setup guardrails</code> adds the guardrails paragraph after it, as written:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>**Guardrails are on.** The built-in Read, Write, Edit, NotebookEdit, Grep and
 Glob are denied. Use the Fettler tools for every file operation.
@@ -432,7 +432,7 @@ does not write them. A person edits them.</code></pre></div>
 <tr><th>Flag</th><th>What it does</th></tr>
 <tr><td><code>&lt;client&gt;</code></td><td>One of <code>claude-code</code>, <code>claude-desktop</code>, <code>vscode-copilot</code> or <code>github-copilot</code>.</td></tr>
 <tr><td><code>--all</code></td><td>Every client this machine has. A client that is not installed is skipped, not created.</td></tr>
-<tr><td><code>--local</code></td><td>This project's files, which you can review in source control. The deny list is written here, because asking for guardrails in a project is asking for Fettler to be the route in it.</td></tr>
+<tr><td><code>--local</code></td><td>This project's files, which you can review in source control. The shell denies are written here, because asking for guardrails in a project is asking for its tasks to be the only way to a shell.</td></tr>
 <tr><td><code>--global</code></td><td>The files that apply to every project on the machine. It declares no tree, and it only offers the deny list.</td></tr>
 <tr><td><code>--deny</code></td><td>Writes the deny list at <code>--global</code> too. It is a separate flag, because changing how the assistant works in every project should never be a side effect.</td></tr>
 <tr><td><code>--hooks</code></td><td>Adds the session hook that runs <code>doctor</code>, for Claude Code only. It is added once, however often you run setup.</td></tr>
@@ -480,7 +480,6 @@ screenings  off</code></pre></div>
 <tr><th>Finding</th><th>What it reports</th></tr>
 <tr><td>2.6 <code>!</code></td><td>An allow entry pre-approves a shell command that writes files.</td></tr>
 <tr><td>2.7 <code>!</code></td><td>An allow entry grants a built-in tool that Fettler replaces.</td></tr>
-<tr><td>2.8 <code>-</code></td><td>The deny list does not name a built-in tool. <code>fettle setup guardrails CLIENT --local</code> clears it.</td></tr>
 <tr><td>2.9 <code>-</code></td><td>The client's extra folders setting names a folder outside every tree.</td></tr>
 <tr><td>2.10 <code>-</code></td><td>An instruction file does not mention Fettler.</td></tr>
 <tr><td>2.13 <code>-</code></td><td><code>settings.local.json</code> is present, so its permissions are not committed and nobody else sees them.</td></tr>
@@ -489,14 +488,15 @@ screenings  off</code></pre></div>
 <tr><td>2.17 <code>-</code></td><td>Other MCP servers are registered, and the deny list does not cover their tools.</td></tr>
 <tr><td>2.18 <code>-</code></td><td>A policy file names a tool this fettle does not know.</td></tr>
 <tr><td>2.19 <code>!</code></td><td>A companion's folder is inside a declared tree, a screened tree, or a folder that holds a governed file. This gives exit&nbsp;2.</td></tr>
+<tr><td>2.20 <code>-</code></td><td>The deny list does not name a shell. <code>fettle setup guardrails CLIENT --local</code> clears it.</td></tr>
 <tr><td>B.17 <code>!</code></td><td>One rule appears in both the allow list and the deny list.</td></tr>
 </table>
 
-<p>Finding 2.11, two spellings of one project folder, belongs to the tools level and is reported there. Finding 2.15 is retired, and its number is not reused, because fettle now opens the scratch folder itself.</p>
+<p>Two findings belong to the tools level and are reported there: 2.8, a deny list that does not name a built-in file tool or output reader, which <code>fettle setup tools CLIENT --local</code> clears, and 2.11, two spellings of one project folder. Finding 2.15 is retired, and its number is not reused, because fettle now opens the scratch folder itself.</p>
 
-<h3 id="deny-files">How 2.8 reads the client's files</h3>
+<h3 id="deny-files">How 2.8 and 2.20 read the client's files</h3>
 
-<p><b>2.8 judges the deny list the way the client merges its files.</b> A deny in <code>.claude/settings.json</code> holds whatever <code>.claude/settings.local.json</code> says. So a tool counts as missing only when no project-level settings file of that client denies it. The finding names <code>.claude/settings.json</code>, which is the file <code>fettle setup guardrails CLIENT --local</code> writes. Running that command clears the finding.</p>
+<p><b>2.8 and 2.20 judge the deny list the way the client merges its files.</b> A deny in the global settings holds in every project, and a deny in <code>.claude/settings.json</code> holds whatever <code>.claude/settings.local.json</code> says. So a tool counts as missing only when no settings file of that client denies it. Each finding names <code>.claude/settings.json</code>, which is the file setup writes at <code>--local</code>, and the command that clears it: <code>setup tools</code> for 2.8, <code>setup guardrails</code> for 2.20.</p>
 
 <h3 id="companion">When a companion's folder is inside a tree</h3>
 

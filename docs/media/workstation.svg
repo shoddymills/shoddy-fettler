@@ -136,7 +136,7 @@ text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 <text x="52" y="568" class="cardTm mono" fill="var(--ink)">~/.claude/settings.json &#8212; machine-wide deny</text>
 <rect x="52" y="576" width="416" height="30" rx="5" class="snipbg"/>
 <text x="60" y="590" class="snip mono">"permissions": { "deny": [ &#8230;the same eleven ] }</text>
-<text x="60" y="602" class="snip mono">written only on request: fettle setup --global --deny</text>
+<text x="60" y="602" class="snip mono">on request only: setup tools / guardrails --global --deny</text>
 
 <text x="40" y="658" class="grpT">REPO LEVEL &#8212; the project&#8217;s own tree</text>
 <rect x="40" y="668" width="440" height="80" rx="8" class="card2"/>
@@ -151,7 +151,7 @@ text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Ar
 <rect x="52" y="786" width="416" height="62" rx="5" class="snipbg"/>
 <text x="60" y="800" class="snip mono">{"permissions":{"deny":[</text>
 <text x="60" y="813" class="snip mono">&#160;&#160;&#160;&#160;"Read","Write","Edit","NotebookEdit","Grep","Glob",</text>
-<text x="60" y="826" class="snip mono">&#160;&#160;&#160;&#160;"Bash","PowerShell","Monitor","BashOutput","TaskOutput"]}}</text>
+<text x="60" y="826" class="snip mono">&#160;&#160;&#160;&#160;"BashOutput","TaskOutput","Bash","PowerShell","Monitor"]}}</text>
 <text x="60" y="839" class="snip mono">+ opt-in hook: SessionStart &#8594; fettle doctor --hook</text>
 <text x="52" y="866" class="note">merged, never clobbered; backup written beside it on first setup</text>
 

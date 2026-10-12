@@ -70,14 +70,16 @@ fettle 2.1.0</code></pre></div>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle setup tools claude-code --local</code></pre></div>
 
-<p>You should see one change:</p>
+<p>You should see three changes:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>changed:
   C:\work\myproject\.mcp.json  register fettler under mcpServers
+  C:\work\myproject\.claude\settings.json  deny the built-in Read, Write, Edit, NotebookEdit, Grep, Glob, BashOutput, TaskOutput
+  C:\work\myproject\CLAUDE.md  add a Fettler instruction block
 note: fettle is on PATH at C:\Users\you\AppData\Local\Programs\fettle\fettle.exe; the
       registration uses the name 'fettle'</code></pre></div>
 
-<p>That is the only file it writes. It does not create a <code>.fettler.json</code>, and it does not change the assistant&rsquo;s settings. To see the change before it is made, add <code>--dry-run</code>, which prints the same report and writes nothing.</p>
+<p>Those are the only files it writes. The first tells the assistant how to start Fettler. The second turns off the assistant&rsquo;s own file tools, so it reaches for Fettler&rsquo;s instead of the ones it is used to. The third tells it how to work here. It does not create a <code>.fettler.json</code>. To see the changes before they are made, add <code>--dry-run</code>, which prints the same report and writes nothing.</p>
 
 <p class="note"><span class="lab">Note</span> If you use another assistant, put its name in place of <code>claude-code</code>: <code>claude-desktop</code>, <code>vscode-copilot</code> or <code>github-copilot</code>. <a href="fettle-install.html#register">Registering each client</a> lists the files each one uses.</p>
 
