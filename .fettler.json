@@ -1,0 +1,12 @@
+{
+  "guardrails": {
+    "trees": {
+      "work": {
+        "path": "."
+      },
+      "shoddy": {
+        "path": "../shoddy"
+      }
+    }
+  }
+}
