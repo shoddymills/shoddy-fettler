@@ -84,11 +84,29 @@ public static class RuleFiles
         ".claude/settings.local.json",
         ".vscode/mcp.json",
 
+        // The Fettler agent file for VS Code Copilot, which is that
+        // client's deny list: see CopilotAgentFile.
+        CopilotAgentTail,
+
         // The machine file. It turns screenings on in every project and
         // says where the client's folders are, so it is a switch between
         // levels like the others.
         Host.MachineFolder + "/" + Host.MachineFileName,
     ];
+
+    /// <summary>
+    /// The Fettler agent file for VS Code Copilot: the file whose
+    /// <c>tools:</c> list says which built-in tools that agent may use.
+    /// VS Code has no deny list, so this list is what routes Copilot to
+    /// Fettler, and an assistant that could edit it could put its own
+    /// <c>read</c> and <c>edit</c> back. It is refused on the same terms
+    /// as <c>.claude/settings.json</c>.
+    /// </summary>
+    public const string CopilotAgentFile = "fettler.agent.md";
+
+    /// <summary>Where a project keeps it. The user-level copy sits in the
+    /// VS Code profile, outside every tree, so it needs no rule.</summary>
+    public const string CopilotAgentTail = ".github/agents/" + CopilotAgentFile;
 
     /// <summary>Everything refused, for the message that says so.</summary>
     public static readonly string[] Ruled = [.. Names, .. Tails];

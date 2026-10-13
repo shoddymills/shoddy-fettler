@@ -22,7 +22,9 @@ namespace Fettler.Core;
 /// no <c>.fettler.json</c>, the launch folder is one tree called
 /// <c>work</c>, granted everything but execute. A file found above the
 /// launch folder is always honoured: ignoring one would widen the
-/// boundary without a word.</para>
+/// boundary without a word. The root of a disk, the home folder and any
+/// folder above it are never made the tree this way: see
+/// <see cref="Withheld"/>.</para>
 ///
 /// <para><b>A path in the file is relative to THE FILE, never to the
 /// current directory (R8.9).</b> A relative tree read against the
@@ -116,7 +118,13 @@ public static class RootsFile
     /// failure means a file WAS found and was wrong, and is reported
     /// rather than walked past.</para>
     /// </summary>
-    public static Result<Found> Discover(string launch, string? machineFile = null)
+    /// <param name="launch">The folder the command was launched in.</param>
+    /// <param name="machineFile">The machine file, or null for none.</param>
+    /// <param name="home">The user's home folder, which is what decides
+    /// whether the launch folder may be the implicit tree. Null, which is
+    /// what a test on <see cref="Host.None"/> passes, makes any folder the
+    /// tree.</param>
+    public static Result<Found> Discover(string launch, string? machineFile = null, string? home = null)
     {
         string full;
         try
@@ -131,24 +139,24 @@ public static class RootsFile
         for (string? dir = full; dir is not null; dir = Path.GetDirectoryName(dir))
         {
             string candidate = Path.Combine(dir, FileName);
-            if (File.Exists(candidate)) return Assemble(candidate, full, machineFile);
+            if (File.Exists(candidate)) return Assemble(candidate, full, machineFile, home);
 
             // A lone overlay is read as the project's file. Ignoring it
             // would leave its guardrails off without saying so.
             string lone = Path.Combine(dir, LocalFileName);
-            if (File.Exists(lone)) return Assemble(lone, full, machineFile);
+            if (File.Exists(lone)) return Assemble(lone, full, machineFile, home);
         }
 
-        return Assemble(null, full, machineFile);
+        return Assemble(null, full, machineFile, home);
     }
 
     /// <summary>The tools level for a folder, with the machine file but
     /// without walking for a project file. This is <c>--no-config</c>.</summary>
-    public static Result<Found> ToolsLevel(string launch, string? machineFile = null) =>
-        Assemble(null, Path.GetFullPath(launch), machineFile);
+    public static Result<Found> ToolsLevel(string launch, string? machineFile = null, string? home = null) =>
+        Assemble(null, Path.GetFullPath(launch), machineFile, home);
 
     /// <summary>Read a named configuration and the overlay beside it.</summary>
-    public static Result<Found> ReadWithOverlay(string file, string? launch = null, string? machineFile = null)
+    public static Result<Found> ReadWithOverlay(string file, string? launch = null, string? machineFile = null, string? home = null)
     {
         string full;
         try
@@ -163,7 +171,7 @@ public static class RootsFile
         if (!File.Exists(full))
             return Result<Found>.Fail(Outcome.NotFound, "the file does not exist", full);
 
-        return Assemble(full, Path.GetFullPath(launch ?? Path.GetDirectoryName(full)!), machineFile);
+        return Assemble(full, Path.GetFullPath(launch ?? Path.GetDirectoryName(full)!), machineFile, home);
     }
 
     /// <summary>Read one configuration file on its own: no overlay and no
@@ -174,7 +182,7 @@ public static class RootsFile
         string full = Path.GetFullPath(file);
         Result<Sections> one = Parse(full, Role.Project);
         if (!one.IsOk) return one.Carry<Found>();
-        return Build([one.Value], full, null, null, Path.GetDirectoryName(full)!);
+        return Build([one.Value], full, null, null, Path.GetDirectoryName(full)!, null);
     }
 
     /// <summary>
@@ -207,7 +215,7 @@ public static class RootsFile
         return read.IsOk ? Result<Sections?>.Ok(read.Value) : read.Carry<Sections?>();
     }
 
-    static Result<Found> Assemble(string? file, string launch, string? machineFile)
+    static Result<Found> Assemble(string? file, string launch, string? machineFile, string? home)
     {
         Result<Sections?> machine = ReadMachine(machineFile);
         if (!machine.IsOk) return machine.Carry<Found>();
@@ -235,12 +243,12 @@ public static class RootsFile
             }
         }
 
-        return Build(parts, file, overlay, machine.Value?.File, launch);
+        return Build(parts, file, overlay, machine.Value?.File, launch, home);
     }
 
     // ---- merging the files into one boundary ----
 
-    static Result<Found> Build(IReadOnlyList<Sections> parts, string? file, string? overlay, string? machine, string launch)
+    static Result<Found> Build(IReadOnlyList<Sections> parts, string? file, string? overlay, string? machine, string launch, string? home)
     {
         var trees = new List<TreeDecl>();
         var tasks = new List<TaskDecl>();
@@ -304,6 +312,13 @@ public static class RootsFile
         }
         else
         {
+            if (Withheld(launch, home) is { } what)
+                return Result<Found>.Fail(Outcome.Refused,
+                    (file is null ? $"no {FileName} was found" : "no \"guardrails\" section declares a tree")
+                    + $", and the launch folder {launch} is {what}, which fettle does not make a tree. Start fettle "
+                    + "in a project folder, or pass --root PATH for read-only access, or --config PATH naming a "
+                    + "file whose \"guardrails\" declares the trees", at);
+
             trees.Add(new TreeDecl(WorkName, launch, Permissions.Full));
         }
 
@@ -327,6 +342,36 @@ public static class RootsFile
         };
 
         return Fill(found, at);
+    }
+
+    /// <summary>
+    /// What the launch folder is when it may not be the implicit tree, or
+    /// null when it may.
+    ///
+    /// <para><b>The root of a disk, the home folder and any folder above
+    /// it are never the implicit tree.</b> A client that starts the server
+    /// outside any project starts it in one of these: Claude Desktop has no
+    /// project and starts it at the root. Making that folder the tree would
+    /// hand the assistant the whole disk, read and write, with no file
+    /// saying so. A declared tree is not checked here, because a person
+    /// wrote it down. No home means no check, which is what a test on
+    /// <see cref="Host.None"/> gets.</para>
+    /// </summary>
+    public static string? Withheld(string launch, string? home)
+    {
+        if (home is not { Length: > 0 }) return null;
+
+        string full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(launch));
+        string own = Path.TrimEndingDirectorySeparator(Path.GetFullPath(home));
+
+        if (Path.GetPathRoot(full) is { } root
+            && Path.TrimEndingDirectorySeparator(root).Equals(full, Roots.PathComparison))
+            return "the root of the disk";
+
+        if (full.Equals(own, Roots.PathComparison)) return "your home folder";
+        if (Roots.IsWithin(full, own)) return "above your home folder";
+
+        return null;
     }
 
     /// <summary>The later file's entries over the earlier ones: a name in

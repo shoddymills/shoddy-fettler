@@ -274,9 +274,16 @@ public static class Doctor
         {
             if (!File.Exists(place.Path)) continue;
 
+            // VS Code is here when any of its files is, and its denies come
+            // from the agent file alone. The entry is made first, so a VS
+            // Code with no agent file is judged, and 2.8 says so.
+            if (place.Client == Places.VsCodeCopilot && !denies.ContainsKey(place.Client))
+                denies[place.Client] = [];
+
             if (place.Purpose == Purpose.Policy) Policy(machine, place, roots, findings, denies);
             if (place.Purpose == Purpose.Instructions) Instructions(place, findings);
             if (place.Purpose == Purpose.Servers) Servers(machine, place, findings);
+            if (place.Purpose == Purpose.Agent) Agent(machine, place, findings, denies);
         }
 
         MissingDenies(machine, denies, findings);
@@ -314,29 +321,42 @@ public static class Doctor
     /// project file setup writes at <c>--local</c>, so the path in the
     /// report and the remedy point at the same place, and running the
     /// remedy clears the finding (R5.7).</para>
+    ///
+    /// <para><b>VS Code Copilot is judged by its agent file.</b> VS Code has
+    /// no deny list, so for that client the denied names are the built-in
+    /// tool sets its Fettler agent file leaves out, <see cref="Agent"/>
+    /// collects them, and the finding names the project agent file that
+    /// <c>setup tools vscode-copilot --local</c> writes.</para>
     /// </summary>
     static void MissingDenies(Machine machine, Dictionary<string, List<string>> denies, List<Finding> findings)
     {
         foreach ((string client, List<string> denied) in denies)
         {
+            bool copilot = client == Places.VsCodeCopilot;
+
             Place? writes = Places.All(machine)
-                .FirstOrDefault(p => p.Client == client && p.Reach == Reach.Repo && p.Purpose == Purpose.Policy);
+                .FirstOrDefault(p => p.Client == client && p.Reach == Reach.Repo
+                    && p.Purpose == (copilot ? Purpose.Agent : Purpose.Policy));
             if (writes is null) continue;
 
             List<string> Missing(IEnumerable<string> wanted) => [.. wanted.Where(r => !denied.Any(d =>
                 d.Equals(r, StringComparison.Ordinal) || d.StartsWith(r + "(", StringComparison.Ordinal)))];
 
-            List<string> tools = Missing(ToolsDenied);
+            List<string> tools = Missing(copilot ? CopilotReplaced : ToolsDenied);
             if (tools.Count > 0)
                 findings.Add(new Finding("2.8", false,
-                    $"deny does not list the built-in {string.Join(", ", tools)}. "
+                    (copilot
+                        ? $"no Fettler agent file leaves out the built-in {string.Join(", ", tools)}, so Copilot keeps them. "
+                        : $"deny does not list the built-in {string.Join(", ", tools)}. ")
                     + $"Run: fettle setup tools {client} --local",
                     writes.Path, Levels.ToolsName));
 
-            List<string> shells = Missing(GuardrailsDenied);
+            List<string> shells = Missing(copilot ? CopilotShell : GuardrailsDenied);
             if (shells.Count > 0)
                 findings.Add(new Finding(ShellCheck, false,
-                    $"deny does not list the shell {string.Join(", ", shells)}. "
+                    (copilot
+                        ? $"no Fettler agent file leaves out the built-in {string.Join(", ", shells)}, so Copilot keeps its terminal. "
+                        : $"deny does not list the shell {string.Join(", ", shells)}. ")
                     + $"Run: fettle setup guardrails {client} --local",
                     writes.Path));
         }
@@ -397,6 +417,22 @@ public static class Doctor
     /// file, so it is a stand-in for a tool that is already denied.</para>
     /// </summary>
     public static readonly string[] Indirect = ["BashOutput", "TaskOutput"];
+
+    /// <summary>
+    /// VS Code Copilot's built-in tool sets, by the names its agent files
+    /// use: <c>read</c> is the file reader, <c>edit</c> the editors and
+    /// <c>search</c> the searches, the three Fettler replaces. VS Code has
+    /// no deny list, so these are left OUT of the Fettler agent file's
+    /// <c>tools:</c> list, and 2.8 reports an agent file that keeps one.
+    /// Copilot has no separate output readers; its terminal set carries
+    /// its own output.
+    /// </summary>
+    public static readonly string[] CopilotReplaced = ["read", "edit", "search"];
+
+    /// <summary>The terminal, which is Copilot's shell. Left out of the
+    /// agent file by <c>setup guardrails</c>, and 2.20 reports an agent
+    /// file that keeps it.</summary>
+    public static readonly string[] CopilotShell = ["execute"];
 
     /// <summary>
     /// What <c>setup tools</c> denies, and 2.8 expects to find denied: the
@@ -542,10 +578,12 @@ public static class Doctor
 
         // 2.8 and 2.20 are judged after every file is read, global and
         // repo together, because that is how the client merges them: see
-        // MissingDenies.
+        // MissingDenies. VS Code has no deny list, so a permissions block
+        // in its settings is a key it ignores and counts for nothing here;
+        // Agent reads that client's file.
         if (!denies.TryGetValue(place.Client, out List<string>? all))
             denies[place.Client] = all = [];
-        all.AddRange(denied);
+        if (place.Client != Places.VsCodeCopilot) all.AddRange(denied);
 
         // 2.18: 2.8 can only check the tools this fettle has heard of,
         // and the client keeps growing new ones. Where the configuration
@@ -608,6 +646,35 @@ public static class Doctor
             findings.Add(new Finding("2.14", true,
                 "chat.tools.autoApprove is on, so every tool runs without asking. Turn it off",
                 place.Path));
+    }
+
+    /// <summary>
+    /// The Fettler agent file, read as VS Code Copilot's deny list.
+    ///
+    /// <para>VS Code names the built-ins as tool sets in the file's
+    /// <c>tools:</c> list, and a set the list leaves out is one the agent
+    /// cannot use. So every set of <see cref="CopilotReplaced"/> and
+    /// <see cref="CopilotShell"/> that is NOT listed counts as denied. The
+    /// file binds when a person picks that agent in the chat, which this
+    /// cannot observe; the file is what it can see. A file with no
+    /// <c>tools:</c> line gives the agent every tool and denies nothing.</para>
+    /// </summary>
+    static void Agent(Machine machine, Place place, List<Finding> findings, Dictionary<string, List<string>> denies)
+    {
+        Result<string> read = ReadText(machine, place.Path);
+        if (!read.IsOk)
+        {
+            findings.Add(new Finding("2.x", true, read.Failure!.Message, place.Path));
+            return;
+        }
+
+        if (!denies.TryGetValue(place.Client, out List<string>? all))
+            denies[place.Client] = all = [];
+
+        if (AgentFile.Tools(read.Value) is not { } listed) return;
+
+        foreach (string set in CopilotReplaced.Concat(CopilotShell))
+            if (!listed.Contains(set, StringComparer.OrdinalIgnoreCase)) all.Add(set);
     }
 
     /// <summary>Whether two rules name the same tool, comparing the tool
@@ -989,6 +1056,20 @@ public static class Doctor
     }
 
     // ---- reading, only from the closed list ----
+
+    /// <summary>The text of a listed file, for the one place that is not
+    /// JSON. The same refusal as <see cref="ReadJson"/>.</summary>
+    static Result<string> ReadText(Machine machine, string path)
+    {
+        if (!Places.Allows(machine, path))
+            return Result<string>.Fail(Outcome.Refused, "doctor does not read this file", path);
+
+        try { return Result<string>.Ok(Core.TextIo.WithoutMark(File.ReadAllText(path))); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return Result<string>.Fail(Outcome.Denied, "could not read this file: " + e.Message, path);
+        }
+    }
 
     /// <summary>
     /// The one reader. It refuses any path not on the compiled-in list,

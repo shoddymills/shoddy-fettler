@@ -1037,6 +1037,142 @@ public sealed class ClientTests
             f => f.Check == "2.16");
     }
 
+    // ---- VS Code Copilot: the agent file is the deny list ----
+
+    static string AgentText(Fixture box, Reach reach) =>
+        File.ReadAllText(box.PathOf(Places.VsCodeCopilot, reach, Purpose.Agent));
+
+    /// <summary>VS Code has no deny list, so setup writes none into its
+    /// settings. What it writes is the Fettler agent file, whose tools list
+    /// names the Fettler server and leaves out the built-in read, edit and
+    /// search. At the tools level the terminal stays in.</summary>
+    [Fact]
+    public void SetupToolsForVsCodeWritesTheAgentFileAndNoDenyList()
+    {
+        using var box = new Fixture();
+        box.Put(Places.VsCodeCopilot, Reach.Repo, Purpose.Policy, "{}");
+
+        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.VsCodeCopilot, Reach.Repo));
+        Assert.True(done.IsOk, done.Failure?.Message);
+
+        IReadOnlyList<string> tools = AgentFile.Tools(AgentText(box, Reach.Repo))!;
+        Assert.Contains(Places.ServerName, tools);
+        Assert.Contains("execute", tools);
+        foreach (string set in Doctor.CopilotReplaced) Assert.DoesNotContain(set, tools);
+
+        Assert.DoesNotContain("permissions",
+            File.ReadAllText(box.PathOf(Places.VsCodeCopilot, Reach.Repo, Purpose.Policy)));
+        Assert.Contains(done.Value.Notes, n => n.Contains("no deny list"));
+    }
+
+    /// <summary>The documented order for this client: guardrails takes the
+    /// terminal out, and tools run again afterwards does not put it back.</summary>
+    [Fact]
+    public void SetupGuardrailsForVsCodeDropsTheTerminalAndToolsAfterwardsLeavesItOut()
+    {
+        using var box = new Fixture();
+
+        Assert.True(Setup(box, new Scaffold.Options(Places.VsCodeCopilot, Reach.Repo)).IsOk);
+        Assert.True(Setup(box, new Scaffold.Options(Places.VsCodeCopilot, Reach.Repo, Level: G)).IsOk);
+
+        IReadOnlyList<string> guarded = AgentFile.Tools(AgentText(box, Reach.Repo))!;
+        Assert.DoesNotContain("execute", guarded);
+        Assert.Contains(Places.ServerName, guarded);
+        Assert.Contains("Guardrails are on", AgentText(box, Reach.Repo));
+
+        Result<Scaffolding> again = Setup(box, new Scaffold.Options(Places.VsCodeCopilot, Reach.Repo));
+        Assert.True(again.IsOk, again.Failure?.Message);
+        Assert.DoesNotContain(again.Value.Changes,
+            c => c.Path == box.PathOf(Places.VsCodeCopilot, Reach.Repo, Purpose.Agent));
+        Assert.DoesNotContain("execute", AgentFile.Tools(AgentText(box, Reach.Repo))!);
+    }
+
+    /// <summary>An agent file adds a choice and changes nothing until a
+    /// person picks it, so the global one is written without --deny, and
+    /// VS Code's own settings are not touched.</summary>
+    [Fact]
+    public void SetupToolsForVsCodeGlobalWritesTheAgentFileWithoutDeny()
+    {
+        using var box = new Fixture();
+
+        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.VsCodeCopilot, Reach.Global));
+
+        Assert.True(done.IsOk, done.Failure?.Message);
+        Assert.True(File.Exists(box.PathOf(Places.VsCodeCopilot, Reach.Global, Purpose.Agent)));
+        Assert.False(File.Exists(box.PathOf(Places.VsCodeCopilot, Reach.Global, Purpose.Policy)));
+    }
+
+    /// <summary>Written twice, nothing changes the second time.</summary>
+    [Fact]
+    public void TheAgentFileIsIdempotent()
+    {
+        using var box = new Fixture();
+
+        Assert.True(Setup(box, new Scaffold.Options(Places.VsCodeCopilot, Reach.Repo)).IsOk);
+        Result<Scaffolding> again = Setup(box, new Scaffold.Options(Places.VsCodeCopilot, Reach.Repo));
+
+        Assert.True(again.IsOk, again.Failure?.Message);
+        Assert.Empty(again.Value.Changes);
+    }
+
+    /// <summary>VS Code is installed and no Fettler agent file exists: 2.8,
+    /// at the tools level, naming the project agent file and the remedy.</summary>
+    [Fact]
+    public void VsCodeWithoutAnAgentFileIsTold28()
+    {
+        using var box = new Fixture();
+        box.Put(Places.VsCodeCopilot, Reach.Global, Purpose.Policy, "{}");
+
+        Finding f = Examine(box).Findings.First(x => x.Check == "2.8"
+            && x.Where == box.PathOf(Places.VsCodeCopilot, Reach.Repo, Purpose.Agent));
+
+        Assert.Equal(Levels.ToolsName, f.Level);
+        Assert.Contains("agent file", f.Message);
+        Assert.Contains("fettle setup tools vscode-copilot --local", f.Message);
+    }
+
+    /// <summary>A permissions block in VS Code's settings is a key VS Code
+    /// ignores, so it clears nothing.</summary>
+    [Fact]
+    public void ADenyListInVsCodeSettingsCountsForNothing()
+    {
+        using var box = new Fixture();
+        box.Put(Places.VsCodeCopilot, Reach.Global, Purpose.Policy,
+            "{\"permissions\":{\"deny\":" + JsonSerializer.Serialize(Doctor.Denied) + "}}");
+
+        Assert.Contains(Examine(box).Findings, f => f.Check == "2.8"
+            && f.Where == box.PathOf(Places.VsCodeCopilot, Reach.Repo, Purpose.Agent));
+    }
+
+    /// <summary>An agent file that keeps read is told 2.8; one that keeps
+    /// the terminal is told 2.20 with guardrails on; one that leaves both
+    /// out clears both.</summary>
+    [Fact]
+    public void TheAgentFileIsJudgedByWhatItsToolsListKeeps()
+    {
+        using var box = new Fixture();
+
+        box.Put(Places.VsCodeCopilot, Reach.Global, Purpose.Agent, "---\ntools: ['fettler', 'read', 'execute']\n---\n");
+        Diagnosis keeps = Examine(box);
+        Assert.Contains(keeps.Findings, f => f.Check == "2.8" && f.Message.Contains("read"));
+        Assert.Contains(keeps.Findings, f => f.Check == Doctor.ShellCheck && f.Message.Contains("execute"));
+
+        box.Put(Places.VsCodeCopilot, Reach.Global, Purpose.Agent, AgentFile.Compose(G));
+        Diagnosis clean = Examine(box);
+        Assert.DoesNotContain(clean.Findings, f => f.Check is "2.8" or Doctor.ShellCheck);
+    }
+
+    /// <summary>A flow list and a block list are the two shapes a tools
+    /// list takes, and a file with no list gives the agent everything.</summary>
+    [Fact]
+    public void TheToolsListIsReadInBothShapes()
+    {
+        Assert.Equal(["fettler", "web"], AgentFile.Tools("---\ndescription: x\ntools: ['fettler', \"web\"]\n---\nbody\n")!);
+        Assert.Equal(["fettler", "web"], AgentFile.Tools("---\ntools:\n  - fettler\n  - 'web'\n---\n")!);
+        Assert.Null(AgentFile.Tools("---\ndescription: x\n---\n"));
+        Assert.Null(AgentFile.Tools("no front matter\n"));
+    }
+
     // ---- R7.4: setup is per level ----
 
     /// <summary>Acceptance criterion 7, as corrected: setup tools proposes

@@ -22,6 +22,11 @@ public enum Purpose
 
     /// <summary>Where an assistant's standing instructions live.</summary>
     Instructions,
+
+    /// <summary>Where a client's custom agent lives: a Markdown file whose
+    /// <c>tools:</c> list says which tools that agent may use. VS Code
+    /// Copilot has no deny list, so this file is its policy.</summary>
+    Agent,
 }
 
 /// <summary>One file that may be read, and what it is for.</summary>
@@ -108,11 +113,20 @@ public static class Places
             // verdicts exist to make.
             new(ClaudeDesktop, Reach.Global, Purpose.Servers, DesktopConfig(machine)),
 
-            // VS Code with Copilot Chat.
+            // VS Code with Copilot Chat. settings.json is read, for
+            // chat.tools.autoApprove, and never written: VS Code has no
+            // deny list, so a permissions block there is a key it ignores.
+            // What routes Copilot is the Fettler agent file, whose tools:
+            // list leaves the built-in read, edit and search out. The
+            // user-level copy sits in the profile's prompts folder, per VS
+            // Code's documentation of chat.agentFilesLocations; the project
+            // copy sits in .github/agents. Neither path is verified here.
             new(VsCodeCopilot, Reach.Global, Purpose.Servers, Path.Combine(CodeUser(machine), "mcp.json")),
             new(VsCodeCopilot, Reach.Global, Purpose.Policy, Path.Combine(CodeUser(machine), "settings.json")),
+            new(VsCodeCopilot, Reach.Global, Purpose.Agent, Path.Combine(CodeUser(machine), "prompts", Core.RuleFiles.CopilotAgentFile)),
             new(VsCodeCopilot, Reach.Repo, Purpose.Servers, Path.Combine(machine.Tree, ".vscode", "mcp.json")),
             new(VsCodeCopilot, Reach.Repo, Purpose.Policy, Path.Combine(machine.Tree, ".vscode", "settings.json")),
+            new(VsCodeCopilot, Reach.Repo, Purpose.Agent, Path.Combine(machine.Tree, ".github", "agents", Core.RuleFiles.CopilotAgentFile)),
 
             // The GitHub Copilot coding agent is configured per
             // repository only.

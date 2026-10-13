@@ -59,6 +59,14 @@ public static class Command
 
         Result<Roots> roots = args.DeclaredRoots(host);
 
+        // setup and doctor read and write the compiled-in list of client
+        // files and never resolve a path through a tree, so the one
+        // refusal that is about the TREE - a launch folder fettle will not
+        // make one, such as the home folder - does not stop them. A person
+        // configures a machine from wherever their terminal is open.
+        if (!roots.IsOk && args.Verb is "setup" or "doctor" && roots.Failure!.Outcome == Outcome.Refused)
+            roots = args.DeclaredRoots(host, anywhere: true);
+
         if (!roots.IsOk) return Failed(roots.Failure!, json);
 
         using var bench = new Bench(roots.Value);

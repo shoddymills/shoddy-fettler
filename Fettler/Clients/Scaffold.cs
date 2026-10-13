@@ -146,12 +146,15 @@ public static class Scaffold
             // Only tools registers. Both levels write the instruction
             // block and the policy, each adding its own paragraph and its
             // own denies, so guardrails never registers and tools never
-            // writes a guardrails paragraph.
+            // writes a guardrails paragraph. VS Code has no deny list, so
+            // its settings are never written; its policy is the agent
+            // file, which both levels write.
             Result<Change?> change = place.Purpose switch
             {
                 Purpose.Servers when !guardrails => Register(machine, place, command, options),
                 Purpose.Instructions => Instruct(machine, place, options),
-                Purpose.Policy => Policy(machine, place, options, notes),
+                Purpose.Policy when place.Client != Places.VsCodeCopilot => Policy(machine, place, options, notes),
+                Purpose.Agent => Agent(machine, place, options, notes),
                 _ => Result<Change?>.Ok(null),
             };
 
@@ -433,6 +436,57 @@ public static class Scaffold
         };
 
         return Save(machine, place.Path, root, options.DryRun, what);
+    }
+
+    // ---- the agent file: VS Code's policy ----
+
+    /// <summary>
+    /// Write the Fettler agent file for VS Code Copilot, which is that
+    /// client's deny list: see <see cref="AgentFile"/>.
+    ///
+    /// <para><b>Written at both reaches without <c>--deny</c>.</b> A deny
+    /// changes how the assistant works everywhere, so the global one is
+    /// asked for by name. An agent file adds a choice and changes nothing
+    /// until a person picks it, so writing it is not that kind of
+    /// change.</para>
+    ///
+    /// <para><b>Each level only narrows.</b> The tools level leaves the
+    /// terminal in; guardrails takes it out. Running tools after
+    /// guardrails leaves alone a file that already excludes the file
+    /// tools, the way the instruction block is left alone, so the broader
+    /// level never widens the narrower file.</para>
+    /// </summary>
+    static Result<Change?> Agent(Machine machine, Place place, Options options, List<string> notes)
+    {
+        string wanted = AgentFile.Compose(options.Level);
+
+        string? existing = null;
+        if (File.Exists(place.Path))
+        {
+            try { existing = TextIo.WithoutMark(File.ReadAllText(place.Path)).Replace("\r\n", "\n"); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                return Result<Change?>.Fail(Outcome.Denied, "could not read: " + e.Message, place.Path);
+            }
+        }
+
+        if (existing == wanted) return Result<Change?>.Ok(null);
+
+        if (existing is not null && options.Level == Levels.ToolsName
+            && AgentFile.Tools(existing) is { } listed
+            && !listed.Any(t => Doctor.CopilotReplaced.Contains(t, StringComparer.OrdinalIgnoreCase)))
+            return Result<Change?>.Ok(null);
+
+        notes.Add("VS Code has no deny list. The Fettler agent file is what routes Copilot, and it binds when "
+            + "that agent is chosen in the chat; the default agent keeps every built-in tool");
+
+        string left = options.Level == Levels.GuardrailsName
+            ? "read, edit, search and execute"
+            : "read, edit and search";
+
+        return SaveText(machine, place.Path, wanted, options.DryRun,
+            (existing is null ? "write" : "rewrite")
+            + $" the Fettler agent file, listing the Fettler tools and leaving out the built-in {left}");
     }
 
     // ---- the session hook ----

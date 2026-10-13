@@ -281,6 +281,82 @@ public sealed class ConfigTests
         Assert.Empty(found.Value.Tasks);
     }
 
+    /// <summary>R2.8: the home folder and any folder above it are never the
+    /// implicit tree. A client with no project, Claude Desktop, starts the
+    /// server in one of them, and the whole home folder as a writable tree
+    /// is not what no configuration should mean. The refusal names the way
+    /// out.</summary>
+    [Fact]
+    public void TheLaunchFolderIsNeverTheHomeFolderOrAboveIt()
+    {
+        using var tree = new Tree();
+        string home = tree.Dir("home");
+
+        Result<RootsFile.Found> atHome = RootsFile.Discover(home, home: home);
+        Result<RootsFile.Found> above = RootsFile.Discover(tree.Root, home: home);
+
+        Assert.False(atHome.IsOk);
+        Assert.Equal(Outcome.Refused, atHome.Failure!.Outcome);
+        Assert.Contains("your home folder", atHome.Failure.Message);
+        Assert.Contains("--root", atHome.Failure.Message);
+        Assert.Contains("--config", atHome.Failure.Message);
+
+        Assert.False(above.IsOk);
+        Assert.Equal(Outcome.Refused, above.Failure!.Outcome);
+        Assert.Contains("above your home folder", above.Failure.Message);
+    }
+
+    /// <summary>R2.8: nor is the root of the disk, where an application
+    /// launched from a dock starts the servers it registers.</summary>
+    [Fact]
+    public void TheLaunchFolderIsNeverTheRootOfTheDisk()
+    {
+        using var tree = new Tree();
+        string root = Path.GetPathRoot(tree.Root)!;
+
+        Result<RootsFile.Found> found = RootsFile.Discover(root, home: tree.Dir("home"));
+
+        Assert.False(found.IsOk);
+        Assert.Equal(Outcome.Refused, found.Failure!.Outcome);
+        Assert.Contains("the root of the disk", found.Failure.Message);
+    }
+
+    /// <summary>A project folder under home is the ordinary case and stays
+    /// the tree, and no home at all, which is what Host.None passes, turns
+    /// the check off.</summary>
+    [Fact]
+    public void AProjectUnderHomeIsStillTheTreeAndNoHomeChecksNothing()
+    {
+        using var tree = new Tree();
+        string home = tree.Dir("home");
+        string project = tree.Dir("home/code/project");
+
+        Result<RootsFile.Found> under = RootsFile.Discover(project, home: home);
+        Result<RootsFile.Found> unchecked_ = RootsFile.Discover(home);
+
+        Assert.True(under.IsOk, under.Failure?.Message);
+        Assert.Equal(project, under.Value.Trees[0].Path);
+        Assert.True(unchecked_.IsOk, unchecked_.Failure?.Message);
+        Assert.Equal(home, unchecked_.Value.Trees[0].Path);
+    }
+
+    /// <summary>A file with no guardrails section declares no tree, so the
+    /// launch folder would be the tree. At home that is refused the same
+    /// way, naming the missing section rather than a missing file.</summary>
+    [Fact]
+    public void AToolsOnlyFileAtHomeIsRefusedNamingTheGuardrailsSection()
+    {
+        using var tree = new Tree();
+        string home = tree.Dir("home");
+        tree.Config("home", """{ "tools": { "generated": ["out"] } }""");
+
+        Result<RootsFile.Found> found = RootsFile.Discover(home, home: home);
+
+        Assert.False(found.IsOk);
+        Assert.Equal(Outcome.Refused, found.Failure!.Outcome);
+        Assert.Contains("\"guardrails\"", found.Failure.Message);
+    }
+
     /// <summary>R2.7: a file with only a tools section leaves guardrails off
     /// and sets the generated-folder names.</summary>
     [Fact]
