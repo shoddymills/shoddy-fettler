@@ -262,7 +262,10 @@ public sealed class Arguments
     /// <para><b>Finding no configuration is the tools level.</b> The
     /// launch folder is one tree called <c>work</c>, granted everything
     /// but execute. It is the folder the caller is in, never a folder
-    /// above it, so it cannot be wider than where the work is.</para>
+    /// above it, so it cannot be wider than where the work is. The root
+    /// of a disk, the home folder and any folder above it are refused
+    /// (<see cref="RootsFile.Withheld"/>), unless <paramref name="anywhere"/>
+    /// says the verb touches no tree.</para>
     ///
     /// <para><b>Every boundary gets the client's folders</b>: this
     /// session's scratch folder, the client's <c>tool-results</c> and
@@ -272,9 +275,12 @@ public sealed class Arguments
     public Result<Roots> DeclaredRoots() => DeclaredRoots(Host.Real());
 
     /// <summary><see cref="DeclaredRoots()"/> on a given machine.</summary>
-    public Result<Roots> DeclaredRoots(Host host)
+    /// <param name="host">The machine.</param>
+    /// <param name="anywhere">True for a verb that touches no tree, such as
+    /// setup and doctor, so the launch folder is the tree wherever it is.</param>
+    public Result<Roots> DeclaredRoots(Host host, bool anywhere = false)
     {
-        Result<Boundary> boundary = DeclaredBoundary(host, Directory.GetCurrentDirectory());
+        Result<Boundary> boundary = DeclaredBoundary(host, Directory.GetCurrentDirectory(), anywhere);
         return boundary.IsOk ? Result<Roots>.Ok(boundary.Value.Roots) : boundary.Carry<Roots>();
     }
 
@@ -289,9 +295,9 @@ public sealed class Arguments
 
     /// <summary><see cref="DeclaredBoundary()"/> on a given machine, for a
     /// process launched in <paramref name="launch"/>.</summary>
-    public Result<Boundary> DeclaredBoundary(Host host, string launch)
+    public Result<Boundary> DeclaredBoundary(Host host, string launch, bool anywhere = false)
     {
-        Func<Result<Roots>> open = Opener(host, launch);
+        Func<Result<Roots>> open = Opener(host, launch, anywhere);
         Result<Roots> roots = open();
         return roots.IsOk
             ? Result<Boundary>.Ok(new Boundary(roots.Value, roots.Value.ConfigFile, open))
@@ -309,9 +315,14 @@ public sealed class Arguments
     /// discovery runs again from the launch folder, and the first file it
     /// finds is then the file re-read from then on.</para>
     /// </summary>
-    Func<Result<Roots>> Opener(Host host, string launch)
+    Func<Result<Roots>> Opener(Host host, string launch, bool anywhere)
     {
         string? machine = host.MachineFile;
+
+        // The home folder is what decides whether the launch folder may
+        // be the implicit tree. Withholding it turns that check off, for
+        // a verb that never resolves a path through a tree.
+        string? home = anywhere ? null : host.Home;
 
         IReadOnlyList<string> declared = Values("root");
         if (declared.Count > 0)
@@ -345,17 +356,17 @@ public sealed class Arguments
         }
 
         if (Value("config") is { } named)
-            return () => Opened(host, launch, RootsFile.ReadWithOverlay(named, launch, machine));
+            return () => Opened(host, launch, RootsFile.ReadWithOverlay(named, launch, machine, home));
 
         if (Has("no-config"))
-            return () => Opened(host, launch, RootsFile.ToolsLevel(launch, machine));
+            return () => Opened(host, launch, RootsFile.ToolsLevel(launch, machine, home));
 
         string? locked = null;
         return () =>
         {
             Result<RootsFile.Found> found = locked is null
-                ? RootsFile.Discover(launch, machine)
-                : RootsFile.ReadWithOverlay(locked, launch, machine);
+                ? RootsFile.Discover(launch, machine, home)
+                : RootsFile.ReadWithOverlay(locked, launch, machine, home);
 
             if (found.IsOk && found.Value.File is { } file) locked = file;
             return Opened(host, launch, found);

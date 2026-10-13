@@ -109,7 +109,7 @@ public static class Harness
 
             if (perSession is not null && Exists(perSession))
                 found.Add(new HarnessTree(ToolResultsName, perSession, Permissions.ReadOnly,
-                    $"{whence}, in this session's folder; {sessionHow}"));
+                    $"{whence}, in this session's folder"));
             else if (Exists(direct))
                 found.Add(new HarnessTree(ToolResultsName, direct, Permissions.ReadOnly, whence));
 

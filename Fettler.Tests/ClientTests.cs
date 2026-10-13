@@ -230,24 +230,32 @@ public sealed class ClientTests
         Finding f = Examine(box).Findings.First(x => x.Check == "2.8");
 
         Assert.False(f.Serious);
+        Assert.Equal(Levels.ToolsName, f.Level);
         Assert.Contains("deny does not list", f.Message);
+        Assert.Contains("fettle setup tools claude-code --local", f.Message);
     }
 
     /// <summary>The six replaced tools alone are not the whole list: a
     /// shell left open is a route round the boundary, and
-    /// <c>node x.js</c> takes it without being a writing command.</summary>
+    /// <c>node x.js</c> takes it without being a writing command. The
+    /// shells are guardrails' own finding, 2.20, because a declared task
+    /// is what replaces a shell.</summary>
     [Fact]
     public void AnOpenShellIsReportedEvenWhenEveryReplacedToolIsDenied()
     {
         using var box = new Fixture();
         box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, """
-            {"permissions":{"deny":["Read","Write","Edit","NotebookEdit","Grep","Glob"]}}
+            {"permissions":{"deny":["Read","Write","Edit","NotebookEdit","Grep","Glob","BashOutput","TaskOutput"]}}
             """);
 
-        Finding f = Examine(box).Findings.First(x => x.Check == "2.8");
+        Diagnosis d = Examine(box);
+        Finding f = d.Findings.First(x => x.Check == Doctor.ShellCheck);
 
+        Assert.Equal(Levels.GuardrailsName, f.Level);
         Assert.Contains("Bash", f.Message);
         Assert.Contains("PowerShell", f.Message);
+        Assert.Contains("fettle setup guardrails claude-code --local", f.Message);
+        Assert.DoesNotContain(d.Findings, x => x.Check == "2.8");
     }
 
     /// <summary>Built FROM <see cref="Doctor.Denied"/> rather than from a
@@ -260,7 +268,7 @@ public sealed class ClientTests
         box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy,
             "{\"permissions\":{\"deny\":" + JsonSerializer.Serialize(Doctor.Denied) + "}}");
 
-        Assert.DoesNotContain(Examine(box).Findings, f => f.Check is "2.7" or "2.8" or "2.18");
+        Assert.DoesNotContain(Examine(box).Findings, f => f.Check is "2.7" or "2.8" or Doctor.ShellCheck or "2.18");
     }
 
     /// <summary>
@@ -277,7 +285,7 @@ public sealed class ClientTests
             {"permissions":{"deny":["Read","Write","Edit","NotebookEdit","Grep","Glob","Bash","PowerShell"]}}
             """);
 
-        Assert.Contains("Monitor", Examine(box).Findings.First(x => x.Check == "2.8").Message);
+        Assert.Contains("Monitor", Examine(box).Findings.First(x => x.Check == Doctor.ShellCheck).Message);
     }
 
     /// <summary>
@@ -297,6 +305,7 @@ public sealed class ClientTests
 
         Finding f = Examine(box).Findings.First(x => x.Check == "2.8");
 
+        Assert.Equal(Levels.ToolsName, f.Level);
         Assert.Contains("BashOutput", f.Message);
         Assert.Contains("TaskOutput", f.Message);
     }
@@ -346,7 +355,6 @@ public sealed class ClientTests
         Finding f = Examine(box).Findings.First(x => x.Check == "B.17");
 
         Assert.True(f.Serious);
-        Assert.Contains("the client's decision", f.Message);
         Assert.Contains("Remove the allow", f.Message);
     }
 
@@ -697,6 +705,52 @@ public sealed class ClientTests
         foreach (string tool in Doctor.Denied) Assert.Contains(tool, denied);
     }
 
+    /// <summary>The deny list a settings file holds, read back the way
+    /// the client would.</summary>
+    static string[] DeniedIn(Fixture box, Reach reach)
+    {
+        JsonElement deny = JsonDocument.Parse(
+            File.ReadAllText(box.PathOf(Places.ClaudeCode, reach, Purpose.Policy)))
+            .RootElement.GetProperty("permissions").GetProperty("deny");
+        return [.. deny.EnumerateArray().Select(d => d.GetString()!)];
+    }
+
+    /// <summary>setup tools writes the denies that make Fettler the route:
+    /// the six it replaces and the two output readers. The shells stay
+    /// open at this level, because a declared task is what replaces a
+    /// shell and the tools level declares none.</summary>
+    [Fact]
+    public void SetupToolsWritesTheToolsDeniesAndLeavesTheShellOpen()
+    {
+        using var box = new Fixture();
+
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo)).IsOk);
+
+        string[] denied = DeniedIn(box, Reach.Repo);
+        foreach (string tool in Doctor.ToolsDenied) Assert.Contains(tool, denied);
+        foreach (string tool in Doctor.Shell) Assert.DoesNotContain(tool, denied);
+    }
+
+    /// <summary>The documented order: tools, then guardrails. The second
+    /// run adds the shells and changes nothing tools wrote.</summary>
+    [Fact]
+    public void SetupGuardrailsAfterSetupToolsAddsOnlyTheShells()
+    {
+        using var box = new Fixture();
+
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo)).IsOk);
+        Result<Scaffolding> guarded = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Level: G));
+        Assert.True(guarded.IsOk, guarded.Failure?.Message);
+
+        Change policy = Assert.Single(guarded.Value.Changes,
+            c => c.Path == box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Policy));
+        foreach (string tool in Doctor.Shell) Assert.Contains(tool, policy.What);
+        foreach (string tool in Doctor.ToolsDenied) Assert.DoesNotContain(tool, policy.What);
+
+        string[] denied = DeniedIn(box, Reach.Repo);
+        foreach (string tool in Doctor.Denied) Assert.Contains(tool, denied);
+    }
+
     /// <summary>--global only OFFERS: changing how the assistant may work
     /// in every project is not a side effect of configuring one.</summary>
     [Fact]
@@ -713,6 +767,29 @@ public sealed class ClientTests
             new Scaffold.Options(Places.ClaudeCode, Reach.Global, Deny: true, Level: G));
         Assert.True(asked.IsOk, asked.Failure?.Message);
         Assert.Contains("Read", File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Global, Purpose.Policy)));
+    }
+
+    /// <summary>The same at the tools level, which is the run that was
+    /// meant to deny and did not: setup tools --global offers, and --deny
+    /// writes the tools-level denies and the tools paragraph.</summary>
+    [Fact]
+    public void SetupToolsGlobalOffersTheDenyListAndDenyWritesIt()
+    {
+        using var box = new Fixture();
+
+        Result<Scaffolding> offered = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Global));
+        Assert.True(offered.IsOk, offered.Failure?.Message);
+        Assert.Contains(offered.Value.Notes, n => n.Contains("not written") && n.Contains("--deny"));
+        Assert.False(File.Exists(box.PathOf(Places.ClaudeCode, Reach.Global, Purpose.Policy)));
+
+        Result<Scaffolding> asked = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Global, Deny: true));
+        Assert.True(asked.IsOk, asked.Failure?.Message);
+
+        string[] denied = DeniedIn(box, Reach.Global);
+        foreach (string tool in Doctor.ToolsDenied) Assert.Contains(tool, denied);
+        foreach (string tool in Doctor.Shell) Assert.DoesNotContain(tool, denied);
+        Assert.Contains("Call `roots` first",
+            File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Global, Purpose.Instructions)));
     }
 
     /// <summary>An existing allow entry is the user's own configuration.
@@ -959,20 +1036,162 @@ public sealed class ClientTests
             f => f.Check == "2.16");
     }
 
+    // ---- VS Code Copilot: the agent file is the deny list ----
+
+    static string AgentText(Fixture box, Reach reach) =>
+        File.ReadAllText(box.PathOf(Places.VsCodeCopilot, reach, Purpose.Agent));
+
+    /// <summary>VS Code has no deny list, so setup writes none into its
+    /// settings. What it writes is the Fettler agent file, whose tools list
+    /// names the Fettler server and leaves out the built-in read, edit and
+    /// search. At the tools level the terminal stays in.</summary>
+    [Fact]
+    public void SetupToolsForVsCodeWritesTheAgentFileAndNoDenyList()
+    {
+        using var box = new Fixture();
+        box.Put(Places.VsCodeCopilot, Reach.Repo, Purpose.Policy, "{}");
+
+        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.VsCodeCopilot, Reach.Repo));
+        Assert.True(done.IsOk, done.Failure?.Message);
+
+        IReadOnlyList<string> tools = AgentFile.Tools(AgentText(box, Reach.Repo))!;
+        Assert.Contains(Places.ServerName, tools);
+        Assert.Contains("execute", tools);
+        foreach (string set in Doctor.CopilotReplaced) Assert.DoesNotContain(set, tools);
+
+        Assert.DoesNotContain("permissions",
+            File.ReadAllText(box.PathOf(Places.VsCodeCopilot, Reach.Repo, Purpose.Policy)));
+        Assert.Contains(done.Value.Notes, n => n.Contains("no deny list"));
+    }
+
+    /// <summary>The documented order for this client: guardrails takes the
+    /// terminal out, and tools run again afterwards does not put it back.</summary>
+    [Fact]
+    public void SetupGuardrailsForVsCodeDropsTheTerminalAndToolsAfterwardsLeavesItOut()
+    {
+        using var box = new Fixture();
+
+        Assert.True(Setup(box, new Scaffold.Options(Places.VsCodeCopilot, Reach.Repo)).IsOk);
+        Assert.True(Setup(box, new Scaffold.Options(Places.VsCodeCopilot, Reach.Repo, Level: G)).IsOk);
+
+        IReadOnlyList<string> guarded = AgentFile.Tools(AgentText(box, Reach.Repo))!;
+        Assert.DoesNotContain("execute", guarded);
+        Assert.Contains(Places.ServerName, guarded);
+        Assert.Contains("Guardrails are on", AgentText(box, Reach.Repo));
+
+        Result<Scaffolding> again = Setup(box, new Scaffold.Options(Places.VsCodeCopilot, Reach.Repo));
+        Assert.True(again.IsOk, again.Failure?.Message);
+        Assert.DoesNotContain(again.Value.Changes,
+            c => c.Path == box.PathOf(Places.VsCodeCopilot, Reach.Repo, Purpose.Agent));
+        Assert.DoesNotContain("execute", AgentFile.Tools(AgentText(box, Reach.Repo))!);
+    }
+
+    /// <summary>An agent file adds a choice and changes nothing until a
+    /// person picks it, so the global one is written without --deny, and
+    /// VS Code's own settings are not touched.</summary>
+    [Fact]
+    public void SetupToolsForVsCodeGlobalWritesTheAgentFileWithoutDeny()
+    {
+        using var box = new Fixture();
+
+        Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.VsCodeCopilot, Reach.Global));
+
+        Assert.True(done.IsOk, done.Failure?.Message);
+        Assert.True(File.Exists(box.PathOf(Places.VsCodeCopilot, Reach.Global, Purpose.Agent)));
+        Assert.False(File.Exists(box.PathOf(Places.VsCodeCopilot, Reach.Global, Purpose.Policy)));
+    }
+
+    /// <summary>Written twice, nothing changes the second time.</summary>
+    [Fact]
+    public void TheAgentFileIsIdempotent()
+    {
+        using var box = new Fixture();
+
+        Assert.True(Setup(box, new Scaffold.Options(Places.VsCodeCopilot, Reach.Repo)).IsOk);
+        Result<Scaffolding> again = Setup(box, new Scaffold.Options(Places.VsCodeCopilot, Reach.Repo));
+
+        Assert.True(again.IsOk, again.Failure?.Message);
+        Assert.Empty(again.Value.Changes);
+    }
+
+    /// <summary>VS Code is installed and no Fettler agent file exists: 2.8,
+    /// at the tools level, naming the project agent file and the remedy.</summary>
+    [Fact]
+    public void VsCodeWithoutAnAgentFileIsTold28()
+    {
+        using var box = new Fixture();
+        box.Put(Places.VsCodeCopilot, Reach.Global, Purpose.Policy, "{}");
+
+        Finding f = Examine(box).Findings.First(x => x.Check == "2.8"
+            && x.Where == box.PathOf(Places.VsCodeCopilot, Reach.Repo, Purpose.Agent));
+
+        Assert.Equal(Levels.ToolsName, f.Level);
+        Assert.Contains("agent file", f.Message);
+        Assert.Contains("fettle setup tools vscode-copilot --local", f.Message);
+    }
+
+    /// <summary>A permissions block in VS Code's settings is a key VS Code
+    /// ignores, so it clears nothing.</summary>
+    [Fact]
+    public void ADenyListInVsCodeSettingsCountsForNothing()
+    {
+        using var box = new Fixture();
+        box.Put(Places.VsCodeCopilot, Reach.Global, Purpose.Policy,
+            "{\"permissions\":{\"deny\":" + JsonSerializer.Serialize(Doctor.Denied) + "}}");
+
+        Assert.Contains(Examine(box).Findings, f => f.Check == "2.8"
+            && f.Where == box.PathOf(Places.VsCodeCopilot, Reach.Repo, Purpose.Agent));
+    }
+
+    /// <summary>An agent file that keeps read is told 2.8; one that keeps
+    /// the terminal is told 2.20 with guardrails on; one that leaves both
+    /// out clears both.</summary>
+    [Fact]
+    public void TheAgentFileIsJudgedByWhatItsToolsListKeeps()
+    {
+        using var box = new Fixture();
+
+        box.Put(Places.VsCodeCopilot, Reach.Global, Purpose.Agent, "---\ntools: ['fettler', 'read', 'execute']\n---\n");
+        Diagnosis keeps = Examine(box);
+        Assert.Contains(keeps.Findings, f => f.Check == "2.8" && f.Message.Contains("read"));
+        Assert.Contains(keeps.Findings, f => f.Check == Doctor.ShellCheck && f.Message.Contains("execute"));
+
+        box.Put(Places.VsCodeCopilot, Reach.Global, Purpose.Agent, AgentFile.Compose(G));
+        Diagnosis clean = Examine(box);
+        Assert.DoesNotContain(clean.Findings, f => f.Check is "2.8" or Doctor.ShellCheck);
+    }
+
+    /// <summary>A flow list and a block list are the two shapes a tools
+    /// list takes, and a file with no list gives the agent everything.</summary>
+    [Fact]
+    public void TheToolsListIsReadInBothShapes()
+    {
+        Assert.Equal(["fettler", "web"], AgentFile.Tools("---\ndescription: x\ntools: ['fettler', \"web\"]\n---\nbody\n")!);
+        Assert.Equal(["fettler", "web"], AgentFile.Tools("---\ntools:\n  - fettler\n  - 'web'\n---\n")!);
+        Assert.Null(AgentFile.Tools("---\ndescription: x\n---\n"));
+        Assert.Null(AgentFile.Tools("no front matter\n"));
+    }
+
     // ---- R7.4: setup is per level ----
 
-    /// <summary>Acceptance criterion 7: setup tools proposes one change,
-    /// the registration, and writes no project file.</summary>
+    /// <summary>Acceptance criterion 7, as corrected: setup tools proposes
+    /// the registration, the tools-level denies and the tools paragraph,
+    /// and writes no project file. It used to propose the registration
+    /// alone, which reported success and left the built-ins open, so the
+    /// tools it registered went unused.</summary>
     [Fact]
-    public void SetupToolsProposesTheRegistrationAndNothingElse()
+    public void SetupToolsProposesTheRegistrationTheDeniesAndTheBlockAndNoProjectFile()
     {
         using var box = new Fixture();
 
         Result<Scaffolding> done = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, DryRun: true));
 
         Assert.True(done.IsOk, done.Failure?.Message);
-        Change only = Assert.Single(done.Value.Changes);
-        Assert.Equal(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Servers), only.Path);
+        string[] paths = [.. done.Value.Changes.Select(c => c.Path)];
+        Assert.Equal(3, paths.Length);
+        Assert.Contains(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Servers), paths);
+        Assert.Contains(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Policy), paths);
+        Assert.Contains(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Instructions), paths);
         Assert.False(File.Exists(Path.Combine(box.Machine.Tree, RootsFile.FileName)));
     }
 
@@ -1006,6 +1225,39 @@ public sealed class ClientTests
         string text = File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Instructions));
         Assert.Contains("Call `roots` first", text);
         Assert.Contains("Guardrails are on", text);
+    }
+
+    /// <summary>R9.6, the other half: the block setup tools writes holds
+    /// the tools paragraph and not the guardrails one, which would claim
+    /// guardrails that are not on.</summary>
+    [Fact]
+    public void TheToolsBlockHoldsTheToolsParagraphAlone()
+    {
+        using var box = new Fixture();
+
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo)).IsOk);
+
+        string text = File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Instructions));
+        Assert.Contains("Call `roots` first", text);
+        Assert.DoesNotContain("Guardrails are on", text);
+    }
+
+    /// <summary>Re-running setup tools on a guarded project leaves the
+    /// block alone. The tools level asks only that its paragraph be there,
+    /// so it never strips the guardrails paragraph a higher level wrote.</summary>
+    [Fact]
+    public void SetupToolsOnAGuardedProjectKeepsTheGuardrailsParagraph()
+    {
+        using var box = new Fixture();
+
+        Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Level: G)).IsOk);
+        Result<Scaffolding> again = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo));
+        Assert.True(again.IsOk, again.Failure?.Message);
+
+        Assert.DoesNotContain(again.Value.Changes,
+            c => c.Path == box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Instructions));
+        Assert.Contains("Guardrails are on",
+            File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Instructions)));
     }
 
     /// <summary>R7.4: a project file with no guardrails section gets one,
@@ -1048,11 +1300,13 @@ public sealed class ClientTests
 
     // ---- R5: guardrails findings only for a project with guardrails on ----
 
-    /// <summary>R11.5: a tools-level project with no deny list reports no
-    /// guardrails finding, and the same fixture with guardrails on reports
-    /// 2.8.</summary>
+    /// <summary>R11.5, as corrected: a tools-level project with no deny
+    /// list reports 2.8, because the tools level writes a deny list and
+    /// the tools go unused without it, and reports no guardrails finding.
+    /// The same fixture with guardrails on reports 2.20 for the open
+    /// shell as well.</summary>
     [Fact]
-    public void AToolsLevelProjectReportsNoGuardrailsFinding()
+    public void AToolsLevelProjectReportsTwoEightAndNoGuardrailsFinding()
     {
         using var box = new Fixture();
         box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, """{"permissions":{}}""");
@@ -1061,10 +1315,12 @@ public sealed class ClientTests
         Assert.True(tools.IsOk, tools.Failure?.Message);
 
         Diagnosis plain = Doctor.Examine(box.Machine, tools.Value, "test");
+        Assert.Contains(plain.Findings, f => f.Check == "2.8" && f.Level == Levels.ToolsName);
         Assert.DoesNotContain(plain.Findings, f => f.Level == Levels.GuardrailsName);
 
         Diagnosis guarded = Examine(box);
         Assert.Contains(guarded.Findings, f => f.Check == "2.8");
+        Assert.Contains(guarded.Findings, f => f.Check == Doctor.ShellCheck && f.Level == Levels.GuardrailsName);
     }
 
     /// <summary>R11.5a, first case: denies only in settings.json bind
@@ -1077,21 +1333,45 @@ public sealed class ClientTests
         box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, $$$"""{"permissions":{"deny":{{{denies}}}}}""");
         File.WriteAllText(Path.Combine(box.Machine.Tree, ".claude", "settings.local.json"), """{"permissions":{}}""");
 
-        Assert.DoesNotContain(Examine(box).Findings, f => f.Check == "2.8");
+        Assert.DoesNotContain(Examine(box).Findings, f => f.Check is "2.8" or Doctor.ShellCheck);
     }
 
-    /// <summary>R11.5a, second case: denies in neither file is one 2.8,
-    /// naming the file setup guardrails writes.</summary>
+    /// <summary>R11.5a, second case: denies in neither file is one 2.8
+    /// and one 2.20, each naming the file setup writes and its own
+    /// level's remedy.</summary>
     [Fact]
-    public void DeniesInNeitherFileIsOneTwoEightNamingSettingsJson()
+    public void DeniesInNeitherFileIsOneTwoEightAndOneTwoTwentyNamingSettingsJson()
     {
         using var box = new Fixture();
         box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, """{"permissions":{}}""");
         File.WriteAllText(Path.Combine(box.Machine.Tree, ".claude", "settings.local.json"), """{"permissions":{}}""");
 
-        Finding only = Assert.Single(Examine(box).Findings, f => f.Check == "2.8");
-        Assert.Equal(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Policy), only.Where);
-        Assert.Contains("fettle setup guardrails claude-code --local", only.Message);
+        Diagnosis d = Examine(box);
+
+        Finding tools = Assert.Single(d.Findings, f => f.Check == "2.8");
+        Assert.Equal(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Policy), tools.Where);
+        Assert.Contains("fettle setup tools claude-code --local", tools.Message);
+
+        Finding shells = Assert.Single(d.Findings, f => f.Check == Doctor.ShellCheck);
+        Assert.Equal(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Policy), shells.Where);
+        Assert.Contains("fettle setup guardrails claude-code --local", shells.Message);
+    }
+
+    /// <summary>A deny in the global settings binds every project, the way
+    /// the client merges its files, so a project with no denies of its own
+    /// is not told to write what the machine already has.</summary>
+    [Fact]
+    public void DeniesInTheGlobalFileClearTwoEightForEveryProject()
+    {
+        using var box = new Fixture();
+        box.Put(Places.ClaudeCode, Reach.Global, Purpose.Policy,
+            "{\"permissions\":{\"deny\":" + JsonSerializer.Serialize(Doctor.ToolsDenied) + "}}");
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Policy, """{"permissions":{}}""");
+
+        Diagnosis d = Examine(box);
+
+        Assert.DoesNotContain(d.Findings, f => f.Check == "2.8");
+        Assert.Contains(d.Findings, f => f.Check == Doctor.ShellCheck);
     }
 
     /// <summary>R11.5a, third case, and acceptance criterion 14: following
@@ -1105,7 +1385,7 @@ public sealed class ClientTests
 
         Assert.True(Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo, Level: G)).IsOk);
 
-        Assert.DoesNotContain(Examine(box).Findings, f => f.Check == "2.8");
+        Assert.DoesNotContain(Examine(box).Findings, f => f.Check is "2.8" or Doctor.ShellCheck);
     }
 
     /// <summary>R10.2: 2.15 is retired and never reported.</summary>
@@ -1198,6 +1478,24 @@ public sealed class ClientTests
 
         Assert.DoesNotContain(d.Findings, f => f.Check == Doctor.CompanionCheck);
         Assert.Contains(d.Facts, f => f.Level == Levels.ToolsName && f.Text.Contains("sparky"));
+    }
+
+    // ---- a fact is a path, not an explanation ----
+
+    /// <summary>A doctor fact names where a folder is and nothing else.
+    /// How it was found belongs to <c>roots</c>. "found as the newest
+    /// session folder, because no environment variable names one" read
+    /// as a warning in doctor's output, and it is not one.</summary>
+    [Fact]
+    public void AFactSaysWhereAFolderIsAndNotHowItWasFound()
+    {
+        using var box = new Fixture();
+
+        foreach (Fact fact in Examine(box).Facts)
+        {
+            Assert.DoesNotContain("found as", fact.Text);
+            Assert.DoesNotContain("because", fact.Text);
+        }
     }
 }
 

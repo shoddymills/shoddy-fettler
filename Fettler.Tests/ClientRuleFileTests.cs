@@ -34,6 +34,8 @@ public sealed class ClientRuleFileTests
     [InlineData(".claude/settings.json")]
     [InlineData(".claude/settings.local.json")]
     [InlineData(".vscode/mcp.json")]
+    [InlineData(".github/agents/fettler.agent.md")]
+    [InlineData("nested/.github/agents/fettler.agent.md")]
     [InlineData("c:/work/tree/.claude/settings.json")]
     public void FilesThatDecideWhatMayRunAreGoverned(string path)
     {
@@ -66,6 +68,8 @@ public sealed class ClientRuleFileTests
     [InlineData(".fettler.json.bak")]
     [InlineData(".picker.json.bak")]
     [InlineData("src/mcp.json")]
+    [InlineData("fettler.agent.md")]
+    [InlineData(".github/agents/other.agent.md")]
     public void OrdinaryFilesStayOrdinary(string path)
     {
         Assert.False(RuleFiles.Governs(path), $"{path} must remain writable");

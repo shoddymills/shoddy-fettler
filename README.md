@@ -41,8 +41,9 @@ one call, and a change lands whole or not at all.
 | Run the build | `Bash`, `PowerShell`, `Monitor` | A command line composed from arguments, so a quote or a semicolon in a value changes what runs. A command that works on one machine and fails on the next. | `run`: a task the project declares, by name, with no arguments and a timeout. Nothing is composed. There is no shell. |
 | Read back a long output | `BashOutput`, `TaskOutput` | Bytes that reach the model without passing the tree boundary, the credential check or the screen. | The client saves a long answer in its tool-results folder. `read` opens it there, read-only, through the same caps and checks as any other file. |
 
-The second column is the eleven built-in tools that guardrails deny: six
-file tools, three shells and two output readers. Each has a verb here that
+The second column is the eleven built-in tools that setup denies: six file
+tools and two output readers at the tools level, and three shells once
+guardrails are on. Each has a verb here that
 answers in a form the next call can use. And there is no current
 directory. Every path names its tree, so a call cannot land in the wrong
 folder.

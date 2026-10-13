@@ -82,9 +82,12 @@ public static class Doctor
     /// describes.
     ///
     /// <para><b>Every check runs; a finding is kept only for a level that
-    /// is on (R5.5).</b> A tools-level project with no deny list is
-    /// correctly configured, and is not told otherwise. The registration
-    /// rows and the tools facts are always reported.</para>
+    /// is on (R5.5).</b> The tools level is always on and writes a deny
+    /// list of its own, so a project missing those denies is told so
+    /// whatever else is on. A project missing only the shell denies is
+    /// told so only with guardrails on, because a declared task is what
+    /// replaces a shell. The registration rows and the tools facts are
+    /// always reported.</para>
     /// </summary>
     public static Diagnosis Examine(Machine machine, Roots? roots, string version)
     {
@@ -114,6 +117,11 @@ public static class Doctor
 
     /// <summary>The number of the companion-root finding of R12.3.</summary>
     public const string CompanionCheck = "2.19";
+
+    /// <summary>The number of the guardrails finding for an open shell.
+    /// 2.8 used to cover the shells too. It is the tools level's finding
+    /// now, and the shells have their own.</summary>
+    public const string ShellCheck = "2.20";
 
     // ---- 5.2: what answered, and whether anything else would ----
 
@@ -175,7 +183,7 @@ public static class Doctor
 
         if (servers is null)
             return new ClientReport(client, reach, Verdict.NotApplicable,
-                "this client's servers are registered at the other reach", null);
+                $"registered at the {(reach == Reach.Global ? "repo" : "global")} reach only", null);
 
         if (!File.Exists(servers.Path))
             return new ClientReport(client, reach, Verdict.NotApplicable,
@@ -258,28 +266,34 @@ public static class Doctor
     /// </summary>
     static void Overrides(Machine machine, Roots? roots, List<Finding> findings)
     {
-        // 2.8 is judged per client across that client's repo-level
-        // policy files, so the denies are collected here first.
-        var repoDenies = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        // 2.8 and 2.20 are judged per client across every policy file of
+        // that client, global and repo, so the denies are collected first.
+        var denies = new Dictionary<string, List<string>>(StringComparer.Ordinal);
 
         foreach (Place place in Places.All(machine))
         {
             if (!File.Exists(place.Path)) continue;
 
-            if (place.Purpose == Purpose.Policy) Policy(machine, place, roots, findings, repoDenies);
+            // VS Code is here when any of its files is, and its denies come
+            // from the agent file alone. The entry is made first, so a VS
+            // Code with no agent file is judged, and 2.8 says so.
+            if (place.Client == Places.VsCodeCopilot && !denies.ContainsKey(place.Client))
+                denies[place.Client] = [];
+
+            if (place.Purpose == Purpose.Policy) Policy(machine, place, roots, findings, denies);
             if (place.Purpose == Purpose.Instructions) Instructions(place, findings);
             if (place.Purpose == Purpose.Servers) Servers(machine, place, findings);
+            if (place.Purpose == Purpose.Agent) Agent(machine, place, findings, denies);
         }
 
-        MissingDenies(machine, repoDenies, findings);
+        MissingDenies(machine, denies, findings);
 
         // 2.13: a personal settings file never appears in review, so a
         // permission granted there is invisible to everybody else.
         foreach (Place place in Places.All(machine))
             if (place.Path.EndsWith("settings.local.json", StringComparison.Ordinal) && File.Exists(place.Path))
                 findings.Add(new Finding("2.13", false,
-                    "settings.local.json is present. Permissions granted there are not committed, "
-                    + "so nobody else on the project sees them", place.Path));
+                    "settings.local.json is present; its permissions are not committed", place.Path));
 
         // 2.15 is retired and its number is not reused. fettle now opens
         // this session's scratch folder itself, at every level, so the
@@ -287,33 +301,63 @@ public static class Doctor
     }
 
     /// <summary>
-    /// 2.8: registering Fettler makes it available; only a deny makes it
-    /// the route.
+    /// 2.8 and 2.20: registering Fettler makes it available; only a deny
+    /// makes it the route.
+    ///
+    /// <para><b>Split the way setup writes them.</b> 2.8 is the tools
+    /// level's finding: the six built-in file tools and the two output
+    /// readers, which <c>setup tools</c> denies, so a project at any level
+    /// is told when the tools it registered will go unused. 2.20 is the
+    /// guardrails finding: the three shells, which <c>setup guardrails</c>
+    /// denies, because a declared task is what replaces a shell and a
+    /// project with no tasks has nothing to replace it with.</para>
     ///
     /// <para><b>Judged the way the client merges its files (R5.6).</b> A
-    /// deny in <c>.claude/settings.json</c> binds whatever
+    /// deny in the global settings binds every project, and a deny in
+    /// <c>.claude/settings.json</c> binds whatever
     /// <c>.claude/settings.local.json</c> says, so a tool is missing only
-    /// when no repo-level file of that client denies it. The finding names
-    /// the file <c>setup guardrails</c> writes, so the path in the report
-    /// and the remedy point at the same place, and running the remedy
-    /// clears the finding (R5.7).</para>
+    /// when no file of that client denies it. The finding names the
+    /// project file setup writes at <c>--local</c>, so the path in the
+    /// report and the remedy point at the same place, and running the
+    /// remedy clears the finding (R5.7).</para>
+    ///
+    /// <para><b>VS Code Copilot is judged by its agent file.</b> VS Code has
+    /// no deny list, so for that client the denied names are the built-in
+    /// tool sets its Fettler agent file leaves out, <see cref="Agent"/>
+    /// collects them, and the finding names the project agent file that
+    /// <c>setup tools vscode-copilot --local</c> writes.</para>
     /// </summary>
-    static void MissingDenies(Machine machine, Dictionary<string, List<string>> repoDenies, List<Finding> findings)
+    static void MissingDenies(Machine machine, Dictionary<string, List<string>> denies, List<Finding> findings)
     {
-        foreach ((string client, List<string> denied) in repoDenies)
+        foreach ((string client, List<string> denied) in denies)
         {
-            var missing = Denied.Where(r => !denied.Any(d =>
-                d.Equals(r, StringComparison.Ordinal) || d.StartsWith(r + "(", StringComparison.Ordinal))).ToList();
+            bool copilot = client == Places.VsCodeCopilot;
 
-            if (missing.Count == 0) continue;
+            Place? writes = Places.All(machine)
+                .FirstOrDefault(p => p.Client == client && p.Reach == Reach.Repo
+                    && p.Purpose == (copilot ? Purpose.Agent : Purpose.Policy));
+            if (writes is null) continue;
 
-            string writes = Places.All(machine)
-                .First(p => p.Client == client && p.Reach == Reach.Repo && p.Purpose == Purpose.Policy).Path;
+            List<string> Missing(IEnumerable<string> wanted) => [.. wanted.Where(r => !denied.Any(d =>
+                d.Equals(r, StringComparison.Ordinal) || d.StartsWith(r + "(", StringComparison.Ordinal)))];
 
-            findings.Add(new Finding("2.8", false,
-                $"deny does not list the built-in {string.Join(", ", missing)}. "
-                + $"Run: fettle setup guardrails {client} --local",
-                writes));
+            List<string> tools = Missing(copilot ? CopilotReplaced : ToolsDenied);
+            if (tools.Count > 0)
+                findings.Add(new Finding("2.8", false,
+                    (copilot
+                        ? $"Copilot keeps its built-in {string.Join(", ", tools)}; no Fettler agent file excludes them. "
+                        : $"deny does not list the built-in {string.Join(", ", tools)}. ")
+                    + $"Run: fettle setup tools {client} --local",
+                    writes.Path, Levels.ToolsName));
+
+            List<string> shells = Missing(copilot ? CopilotShell : GuardrailsDenied);
+            if (shells.Count > 0)
+                findings.Add(new Finding(ShellCheck, false,
+                    (copilot
+                        ? $"Copilot keeps its terminal; no Fettler agent file excludes {string.Join(", ", shells)}. "
+                        : $"deny does not list the shell {string.Join(", ", shells)}. ")
+                    + $"Run: fettle setup guardrails {client} --local",
+                    writes.Path));
         }
     }
 
@@ -373,10 +417,44 @@ public static class Doctor
     /// </summary>
     public static readonly string[] Indirect = ["BashOutput", "TaskOutput"];
 
-    /// <summary>Everything <c>setup</c> denies and 2.8 expects to find
-    /// denied: the tools Fettler replaces, the shells it does not, and
-    /// the ones that carry another tool's output back.</summary>
-    public static readonly string[] Denied = [.. Replaced, .. Shell, .. Indirect];
+    /// <summary>
+    /// VS Code Copilot's built-in tool sets, by the names its agent files
+    /// use: <c>read</c> is the file reader, <c>edit</c> the editors and
+    /// <c>search</c> the searches, the three Fettler replaces. VS Code has
+    /// no deny list, so these are left OUT of the Fettler agent file's
+    /// <c>tools:</c> list, and 2.8 reports an agent file that keeps one.
+    /// Copilot has no separate output readers; its terminal set carries
+    /// its own output.
+    /// </summary>
+    public static readonly string[] CopilotReplaced = ["read", "edit", "search"];
+
+    /// <summary>The terminal, which is Copilot's shell. Left out of the
+    /// agent file by <c>setup guardrails</c>, and 2.20 reports an agent
+    /// file that keeps it.</summary>
+    public static readonly string[] CopilotShell = ["execute"];
+
+    /// <summary>
+    /// What <c>setup tools</c> denies, and 2.8 expects to find denied: the
+    /// tools Fettler replaces and the ones that carry another tool's
+    /// output back.
+    ///
+    /// <para>Registering Fettler makes it available; only a deny makes it
+    /// the route. A tools-level project that leaves these open keeps
+    /// using the built-ins out of habit, and the tools it registered go
+    /// unused. That is why the deny belongs to the tools level and not to
+    /// guardrails.</para>
+    /// </summary>
+    public static readonly string[] ToolsDenied = [.. Replaced, .. Indirect];
+
+    /// <summary>What <c>setup guardrails</c> adds, and 2.20 expects to find
+    /// denied: the shells. They stay with guardrails because a declared
+    /// task is what replaces a shell, and a project with no tasks has
+    /// nothing to replace it with.</summary>
+    public static readonly string[] GuardrailsDenied = [.. Shell];
+
+    /// <summary>Everything <c>setup</c> denies across both levels, in the
+    /// order the two levels write them.</summary>
+    public static readonly string[] Denied = [.. ToolsDenied, .. GuardrailsDenied];
 
     /// <summary>
     /// Tools that start work of their own, which then runs tools of its
@@ -434,7 +512,7 @@ public static class Doctor
     public const string InventoryOf = "2026-08-20";
 
     static void Policy(Machine machine, Place place, Roots? roots, List<Finding> findings,
-                       Dictionary<string, List<string>> repoDenies)
+                       Dictionary<string, List<string>> denies)
     {
         Result<JsonDocument> read = ReadJson(machine, place.Path);
         if (!read.IsOk)
@@ -497,13 +575,14 @@ public static class Doctor
                 + "Remove those entries",
                 place.Path));
 
-        // 2.8 is judged after every file is read: see MissingDenies.
-        if (place.Reach == Reach.Repo)
-        {
-            if (!repoDenies.TryGetValue(place.Client, out List<string>? all))
-                repoDenies[place.Client] = all = [];
-            all.AddRange(denied);
-        }
+        // 2.8 and 2.20 are judged after every file is read, global and
+        // repo together, because that is how the client merges them: see
+        // MissingDenies. VS Code has no deny list, so a permissions block
+        // in its settings is a key it ignores and counts for nothing here;
+        // Agent reads that client's file.
+        if (!denies.TryGetValue(place.Client, out List<string>? all))
+            denies[place.Client] = all = [];
+        if (place.Client != Places.VsCodeCopilot) all.AddRange(denied);
 
         // 2.18: 2.8 can only check the tools this fettle has heard of,
         // and the client keeps growing new ones. Where the configuration
@@ -523,9 +602,8 @@ public static class Doctor
 
         if (unknown.Count > 0)
             findings.Add(new Finding("2.18", false,
-                $"this file names {string.Join(", ", unknown)}, which this fettle does not know "
-                + $"(tool inventory dated {InventoryOf}). Check 2.8 did not judge it. Decide yourself "
-                + "whether it reads files, writes files or runs a shell, and deny it if it does",
+                $"{string.Join(", ", unknown)} {(unknown.Count == 1 ? "is" : "are")} not in this fettle's tool inventory "
+                + $"({InventoryOf}). Deny any that reads or writes files or runs a shell",
                 place.Path));
 
         // B.17. The question that decides whether any of this works is
@@ -556,8 +634,7 @@ public static class Doctor
 
         if (contested.Count > 0)
             findings.Add(new Finding("B.17", true,
-                $"{string.Join(", ", contested)} appear in both allow and deny. Which one wins is "
-                + "the client's decision. Remove the allow entry",
+                $"{string.Join(", ", contested)} appear in both allow and deny. Remove the allow entry",
                 place.Path));
 
         // 2.14: auto-approval reinstates every route the boundary removed.
@@ -566,6 +643,35 @@ public static class Doctor
             findings.Add(new Finding("2.14", true,
                 "chat.tools.autoApprove is on, so every tool runs without asking. Turn it off",
                 place.Path));
+    }
+
+    /// <summary>
+    /// The Fettler agent file, read as VS Code Copilot's deny list.
+    ///
+    /// <para>VS Code names the built-ins as tool sets in the file's
+    /// <c>tools:</c> list, and a set the list leaves out is one the agent
+    /// cannot use. So every set of <see cref="CopilotReplaced"/> and
+    /// <see cref="CopilotShell"/> that is NOT listed counts as denied. The
+    /// file binds when a person picks that agent in the chat, which this
+    /// cannot observe; the file is what it can see. A file with no
+    /// <c>tools:</c> line gives the agent every tool and denies nothing.</para>
+    /// </summary>
+    static void Agent(Machine machine, Place place, List<Finding> findings, Dictionary<string, List<string>> denies)
+    {
+        Result<string> read = ReadText(machine, place.Path);
+        if (!read.IsOk)
+        {
+            findings.Add(new Finding("2.x", true, read.Failure!.Message, place.Path));
+            return;
+        }
+
+        if (!denies.TryGetValue(place.Client, out List<string>? all))
+            denies[place.Client] = all = [];
+
+        if (AgentFile.Tools(read.Value) is not { } listed) return;
+
+        foreach (string set in CopilotReplaced.Concat(CopilotShell))
+            if (!listed.Contains(set, StringComparer.OrdinalIgnoreCase)) all.Add(set);
     }
 
     /// <summary>Whether two rules name the same tool, comparing the tool
@@ -638,8 +744,7 @@ public static class Doctor
 
                 findings.Add(new Finding("2.16", false,
                     $"task '{task.Name}' puts a declared value inside a string that "
-                    + $"{program} parses ('{word}'). A quote or a semicolon in the value changes "
-                    + "what runs. Declare the steps as separate tasks, or pass the value to a "
+                    + $"{program} parses ('{word}'). Declare the steps as separate tasks, or pass the value to a "
                     + "script as a parameter",
                     RootsFile.FileName));
                 break;
@@ -731,11 +836,10 @@ public static class Doctor
 
         bool one = others.Count == 1;
         findings.Add(new Finding("2.17", false,
-            $"{others.Count} other MCP server{(one ? " is" : "s are")} registered here: "
+            $"{others.Count} other MCP server{(one ? "" : "s")} registered: "
             + $"{string.Join(", ", others.Take(8))}"
             + (others.Count > 8 ? $", and {others.Count - 8} more" : "")
-            + $". The deny list does not cover {(one ? "its" : "their")} tools. "
-            + "Deny mcp__<name>__* for any that should not reach files",
+            + ". Deny mcp__<name>__* for any that should not reach files",
             place.Path));
     }
 
@@ -791,8 +895,8 @@ public static class Doctor
                 n.Equals(name, Roots.PathComparison) && roots.HowFound(n) is not null);
 
             facts.Add(new Fact(Levels.ToolsName, found is not null
-                ? $"{name}: {roots.PathOf(found)}, found as {roots.HowFound(found)}"
-                : $"{name}: not found for this project. The tree appears once the client makes the folder"));
+                ? $"{name}: {roots.PathOf(found)}"
+                : $"{name}: not found"));
         }
 
         foreach (string file in roots.Levels.Tools.Concat(roots.Levels.Screenings).Distinct(StringComparer.Ordinal))
@@ -827,7 +931,7 @@ public static class Doctor
             if (!levels.GuardrailsOn || roots is null)
             {
                 facts.Add(new Fact(Levels.ToolsName,
-                    $"{c.Name} reads and writes every file under {root}, from {c.Registration}"));
+                    $"{c.Name}: --root {root}, no fettle rules apply"));
                 continue;
             }
 
@@ -879,8 +983,7 @@ public static class Doctor
         var rootless = companions.Where(c => c.Root is null).Select(c => c.Name).ToList();
         if (rootless.Count > 0)
             facts.Add(new Fact(Levels.ToolsName,
-                $"other servers that pass no --root: {string.Join(", ", rootless)}. fettle opens no tree for them. "
-                + "To share files with one, pass --root PATH in its registration, and fettle opens PATH under its name"));
+                $"servers without --root: {string.Join(", ", rootless)}. fettle opens no tree for them"));
     }
 
     /// <summary>
@@ -934,7 +1037,7 @@ public static class Doctor
 
         facts.Add(new Fact(Levels.ScreeningsName, Directory.Exists(models)
             ? $"models: {models}"
-            : $"models: {models} does not exist, so a screened category that needs a model refuses every read"));
+            : $"models: {models} does not exist; screens needing a model refuse every read"));
 
         foreach (Screened one in Screens.All)
         {
@@ -947,6 +1050,20 @@ public static class Doctor
     }
 
     // ---- reading, only from the closed list ----
+
+    /// <summary>The text of a listed file, for the one place that is not
+    /// JSON. The same refusal as <see cref="ReadJson"/>.</summary>
+    static Result<string> ReadText(Machine machine, string path)
+    {
+        if (!Places.Allows(machine, path))
+            return Result<string>.Fail(Outcome.Refused, "doctor does not read this file", path);
+
+        try { return Result<string>.Ok(Core.TextIo.WithoutMark(File.ReadAllText(path))); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return Result<string>.Fail(Outcome.Denied, "could not read this file: " + e.Message, path);
+        }
+    }
 
     /// <summary>
     /// The one reader. It refuses any path not on the compiled-in list,

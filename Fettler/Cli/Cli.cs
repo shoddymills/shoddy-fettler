@@ -59,6 +59,14 @@ public static class Command
 
         Result<Roots> roots = args.DeclaredRoots(host);
 
+        // setup and doctor read and write the compiled-in list of client
+        // files and never resolve a path through a tree, so the one
+        // refusal that is about the TREE - a launch folder fettle will not
+        // make one, such as the home folder - does not stop them. A person
+        // configures a machine from wherever their terminal is open.
+        if (!roots.IsOk && args.Verb is "setup" or "doctor" && roots.Failure!.Outcome == Outcome.Refused)
+            roots = args.DeclaredRoots(host, anywhere: true);
+
         if (!roots.IsOk) return Failed(roots.Failure!, json);
 
         using var bench = new Bench(roots.Value);
@@ -965,9 +973,23 @@ public static class Command
 
         var text = new StringBuilder();
         text.Append("fettle ").Append(diagnosis.Install.Version).Append("  ").AppendLine(diagnosis.Install.Binary);
-        text.Append("on PATH: ").AppendLine(diagnosis.Install.OnPath
-            ? diagnosis.Install.PathBinary
-            : "no. A registration that names a bare 'fettle' cannot start it");
+        if (diagnosis.Install.OnPath)
+            text.Append("on PATH: ").AppendLine(diagnosis.Install.PathBinary);
+        else
+        {
+            // Said in the user's terms, with the exact command to type. A
+            // registration that names a bare 'fettle' cannot start it, and
+            // setup --command writes the full path instead.
+            text.AppendLine("your assistant cannot find fettle.");
+            List<string> installed = [.. shown
+                .Where(c => c.Verdict != Verdict.NotApplicable)
+                .Select(c => c.Client)
+                .Distinct(StringComparer.Ordinal)];
+            if (installed.Count == 0) installed.Add("CLIENT");
+            foreach (string client in installed)
+                text.Append("  Run: fettle setup tools ").Append(client)
+                    .Append(" --command ").AppendLine(diagnosis.Install.Binary);
+        }
 
         // R7.2: one section per level, each opening with whether it is on.
         // A level that is off is one line.
@@ -995,7 +1017,7 @@ public static class Command
                 // clean as one that has not, so the date it was drawn is
                 // part of the answer.
                 text.Append("  tool inventory dated ").Append(Doctor.InventoryOf)
-                    .AppendLine(". Check 2.8 does not know tools added to the client since then");
+                    .AppendLine("; newer client tools are not checked");
             }
 
             foreach (Fact fact in diagnosis.Facts.Where(f => f.Level == level))
@@ -1032,9 +1054,10 @@ public static class Command
 
     /// <summary>
     /// R7.4: <c>setup LEVEL CLIENT</c>. The level comes first, because
-    /// what setup writes depends on it: <c>tools</c> registers,
-    /// <c>guardrails</c> writes the deny list and the instruction block,
-    /// <c>screenings</c> checks burler and the models.
+    /// what setup writes depends on it: <c>tools</c> registers, denies the
+    /// built-in file tools and writes the tools paragraph;
+    /// <c>guardrails</c> adds the shell denies and the guardrails
+    /// paragraph; <c>screenings</c> checks burler and the models.
     /// </summary>
     static CliResult Setup(Bench bench, Arguments args, bool json)
     {
@@ -1708,11 +1731,14 @@ public static class Command
           roots                 the levels, the trees, and what each tree allows
           doctor [--client NAME] [--quiet] [--hook]
                  The wiring, then a section per level. Findings only for levels on.
-          setup tools CLIENT [--global | --local] [--dry-run] [--force] [--command PATH]
+          setup tools CLIENT [--global | --local] [--dry-run] [--force] [--hooks] [--deny]
+                 [--command PATH]
+                 Registers, denies the built-in file tools and the output readers, and
+                 writes the tools paragraph. --global offers the denies until --deny.
           serve                 run as an MCP server on stdin and stdout
 
         guardrails - on when .fettler.json has a "guardrails" section: declared trees,
-        permissions, scopes, tasks, and the client's deny list.
+        permissions, scopes, tasks, and the shell denies.
           tasks | run NAME [--timeout SECONDS]
           setup guardrails CLIENT [--global | --local] [--dry-run] [--hooks] [--deny]
           Permissions: list read create update rename delete execute. The tree holding

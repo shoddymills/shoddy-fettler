@@ -69,7 +69,7 @@ figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2
 <tr><td>Read back a long output</td><td><code>BashOutput</code>, <code>TaskOutput</code></td><td>Bytes that reach the model without passing the tree boundary, the credential check or the screen.</td><td>The client saves a long answer in its tool-results folder. <code>read</code> opens it there, read-only, through the same caps and checks as any other file.</td></tr>
 </table>
 
-<p>The second column is the eleven built-in tools that guardrails deny: six file tools, three shells and two output readers. Each has a verb here that answers in a form the next call can use. And there is no current directory. Every path names its tree, so a call cannot land in the wrong folder.</p>
+<p>The second column is the eleven built-in tools that setup denies: six file tools and two output readers at the tools level, and three shells once guardrails are on. Each has a verb here that answers in a form the next call can use. And there is no current directory. Every path names its tree, so a call cannot land in the wrong folder.</p>
 
 <h3 id="arithmetic">One job, with the arithmetic</h3>
 
