@@ -821,7 +821,7 @@ $ echo $LASTEXITCODE
 
 <table>
 <tr><th>What it says</th><th>What it means</th><th>How to clear it</th></tr>
-<tr><td><code>on PATH: no</code></td><td>Nothing on <code>PATH</code> resolves <code>fettle</code>, so every registration naming a bare <code>fettle</code> will fail to launch.</td><td><a href="fettle-install.html#path">Put it on <code>PATH</code></a> and open a new terminal. Or register an absolute path with <code>fettle setup tools CLIENT --local --command "C:\tools\fettle\fettle.exe"</code>.</td></tr>
+<tr><td><code>your assistant cannot find fettle</code></td><td>Nothing on <code>PATH</code> resolves <code>fettle</code>, so a registration naming a bare <code>fettle</code> will fail to launch. The line is followed by one <code>Run:</code> command per installed client, with the full path of this fettle filled in.</td><td>Run the command shown. Or <a href="fettle-install.html#path">put fettle on <code>PATH</code></a> and open a new terminal.</td></tr>
 <tr><td><code>absent</code></td><td>No server called <code>fettler</code> is registered in that file.</td><td><code>fettle setup tools CLIENT --local</code> (or <code>--global</code>). Run it with <code>--dry-run</code> first.</td></tr>
 <tr><td><code>broken</code> (2.12)</td><td>A registration is there, but its command does not resolve. It is checked the way the client would check it, through <code>PATH</code> and <code>PATHEXT</code>.</td><td>Fix <code>PATH</code>, or run <code>setup tools</code> again with <code>--command</code> naming the binary. Add <code>--force</code> to overwrite the existing entry.</td></tr>
 <tr><td><code>healthy</code></td><td>Registered, and the command launches.</td><td>Nothing.</td></tr>
@@ -847,7 +847,7 @@ $ echo $LASTEXITCODE
 
 <tr><td>tools</td><td><b>2.11</b> <code>!</code></td><td>Two project entries naming one directory in different spellings: <code>c:/work/tree</code> and <code>C:/work/tree</code>. Permissions and approvals attach to whichever spelling was resolved that day, and do not apply to the other.</td><td><b>Merge them by hand</b> in <code>~/.claude.json</code>, keeping the settings you want and deleting the duplicate key. Nothing can guess which of the two you meant.</td></tr>
 
-<tr><td>guardrails</td><td><b>2.13</b> <code>-</code></td><td>A <code>settings.local.json</code> is present. It is personal and uncommitted, so anything granted there never appears in a review.</td><td><b>Read it, and move anything that should apply to the project</b> into the committed <code>settings.json</code>.</td></tr>
+<tr><td>guardrails</td><td><b>2.13</b> <code>-</code></td><td>A <code>settings.local.json</code> is present. It is not committed, so anything granted there never appears in a review.</td><td><b>Read it, and move anything that should apply to the project</b> into the committed <code>settings.json</code>.</td></tr>
 
 <tr><td>guardrails</td><td><b>2.14</b> <code>!</code></td><td><code>chat.tools.autoApprove</code> is on. It approves any tool without asking, and puts back every route the boundary removes.</td><td><b>Turn it off</b> in the client's settings. Nothing else holds while it is on.</td></tr>
 

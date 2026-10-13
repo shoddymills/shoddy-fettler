@@ -195,6 +195,8 @@ $ echo $LASTEXITCODE
 
 <p><b>A companion is another MCP server that works in one folder you name.</b> MCP is the protocol an assistant uses to call a tool server, and fettle is one such server. A companion's registration passes <code>--root PATH</code>, and that server reads and writes the files under that folder. sparky, the Shoddy calculator, is the usual case.</p>
 
+<p><b>A server that passes no <code>--root</code> gets no tree.</b> <code>doctor</code> lists these as <code>servers without --root</code>. To share files with one, add <code>--root PATH</code> to its registration. fettle then opens that folder as a tree named for the server.</p>
+
 <p><b>fettle opens a companion's folder as a tree named for the server, with read and write.</b> The assistant can already reach that folder through the companion, so the tree grants nothing new. It lets fettle write a file there that the companion loads in the same turn.</p>
 
 <ul>

@@ -355,7 +355,6 @@ public sealed class ClientTests
         Finding f = Examine(box).Findings.First(x => x.Check == "B.17");
 
         Assert.True(f.Serious);
-        Assert.Contains("the client's decision", f.Message);
         Assert.Contains("Remove the allow", f.Message);
     }
 
@@ -1479,6 +1478,24 @@ public sealed class ClientTests
 
         Assert.DoesNotContain(d.Findings, f => f.Check == Doctor.CompanionCheck);
         Assert.Contains(d.Facts, f => f.Level == Levels.ToolsName && f.Text.Contains("sparky"));
+    }
+
+    // ---- a fact is a path, not an explanation ----
+
+    /// <summary>A doctor fact names where a folder is and nothing else.
+    /// How it was found belongs to <c>roots</c>. "found as the newest
+    /// session folder, because no environment variable names one" read
+    /// as a warning in doctor's output, and it is not one.</summary>
+    [Fact]
+    public void AFactSaysWhereAFolderIsAndNotHowItWasFound()
+    {
+        using var box = new Fixture();
+
+        foreach (Fact fact in Examine(box).Facts)
+        {
+            Assert.DoesNotContain("found as", fact.Text);
+            Assert.DoesNotContain("because", fact.Text);
+        }
     }
 }
 

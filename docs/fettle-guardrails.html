@@ -463,13 +463,13 @@ tools  on, always
                           C:\Users\you\.claude.json
   claude-code     repo    absent    'fettler' is not registered in this file
                           C:\github\app\.mcp.json
-  scratch: C:\Users\you\AppData\Local\Temp\claude\c--github-app\...\scratchpad, found as ...
+  scratch: C:\Users\you\AppData\Local\Temp\claude\c--github-app\...\scratchpad
 
 guardrails  on, from C:\github\app\.fettler.json
-  tool inventory dated 2026-08-20. Check 2.8 does not know tools added to the client since then
+  tool inventory dated 2026-08-20; newer client tools are not checked
   - 2.8  deny does not list the built-in Read, Write, Edit, NotebookEdit, Grep, Glob, Bash, PowerShell, Monitor, BashOutput, TaskOutput. Run: fettle setup guardrails claude-code --local
       C:\github\app\.claude\settings.json
-  - 2.17  1 other MCP server is registered here: sparky. ...
+  - 2.17  1 other MCP server registered: sparky. Deny mcp__&lt;name&gt;__* for any that should not reach files
       C:\Users\you\.claude.json
 
 screenings  off</code></pre></div>
@@ -482,10 +482,10 @@ screenings  off</code></pre></div>
 <tr><td>2.7 <code>!</code></td><td>An allow entry grants a built-in tool that Fettler replaces.</td></tr>
 <tr><td>2.9 <code>-</code></td><td>The client's extra folders setting names a folder outside every tree.</td></tr>
 <tr><td>2.10 <code>-</code></td><td>An instruction file does not mention Fettler.</td></tr>
-<tr><td>2.13 <code>-</code></td><td><code>settings.local.json</code> is present, so its permissions are not committed and nobody else sees them.</td></tr>
+<tr><td>2.13 <code>-</code></td><td><code>settings.local.json</code> is present. Its permissions are not committed.</td></tr>
 <tr><td>2.14 <code>!</code></td><td>VS Code's setting that approves every tool call without asking is on.</td></tr>
 <tr><td>2.16 <code>-</code></td><td>A task fills a declared value into a string that a shell reads.</td></tr>
-<tr><td>2.17 <code>-</code></td><td>Other MCP servers are registered, and the deny list does not cover their tools.</td></tr>
+<tr><td>2.17 <code>-</code></td><td>Other MCP servers are registered. The deny list does not cover their tools.</td></tr>
 <tr><td>2.18 <code>-</code></td><td>A policy file names a tool this fettle does not know.</td></tr>
 <tr><td>2.19 <code>!</code></td><td>A companion's folder is inside a declared tree, a screened tree, or a folder that holds a governed file. This gives exit&nbsp;2.</td></tr>
 <tr><td>2.20 <code>-</code></td><td>The deny list does not name a shell. <code>fettle setup guardrails CLIENT --local</code> clears it.</td></tr>

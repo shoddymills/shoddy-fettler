@@ -973,9 +973,23 @@ public static class Command
 
         var text = new StringBuilder();
         text.Append("fettle ").Append(diagnosis.Install.Version).Append("  ").AppendLine(diagnosis.Install.Binary);
-        text.Append("on PATH: ").AppendLine(diagnosis.Install.OnPath
-            ? diagnosis.Install.PathBinary
-            : "no. A registration that names a bare 'fettle' cannot start it");
+        if (diagnosis.Install.OnPath)
+            text.Append("on PATH: ").AppendLine(diagnosis.Install.PathBinary);
+        else
+        {
+            // Said in the user's terms, with the exact command to type. A
+            // registration that names a bare 'fettle' cannot start it, and
+            // setup --command writes the full path instead.
+            text.AppendLine("your assistant cannot find fettle.");
+            List<string> installed = [.. shown
+                .Where(c => c.Verdict != Verdict.NotApplicable)
+                .Select(c => c.Client)
+                .Distinct(StringComparer.Ordinal)];
+            if (installed.Count == 0) installed.Add("CLIENT");
+            foreach (string client in installed)
+                text.Append("  Run: fettle setup tools ").Append(client)
+                    .Append(" --command ").AppendLine(diagnosis.Install.Binary);
+        }
 
         // R7.2: one section per level, each opening with whether it is on.
         // A level that is off is one line.
@@ -1003,7 +1017,7 @@ public static class Command
                 // clean as one that has not, so the date it was drawn is
                 // part of the answer.
                 text.Append("  tool inventory dated ").Append(Doctor.InventoryOf)
-                    .AppendLine(". Check 2.8 does not know tools added to the client since then");
+                    .AppendLine("; newer client tools are not checked");
             }
 
             foreach (Fact fact in diagnosis.Facts.Where(f => f.Level == level))

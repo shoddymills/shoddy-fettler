@@ -183,7 +183,7 @@ public static class Doctor
 
         if (servers is null)
             return new ClientReport(client, reach, Verdict.NotApplicable,
-                "this client's servers are registered at the other reach", null);
+                $"registered at the {(reach == Reach.Global ? "repo" : "global")} reach only", null);
 
         if (!File.Exists(servers.Path))
             return new ClientReport(client, reach, Verdict.NotApplicable,
@@ -293,8 +293,7 @@ public static class Doctor
         foreach (Place place in Places.All(machine))
             if (place.Path.EndsWith("settings.local.json", StringComparison.Ordinal) && File.Exists(place.Path))
                 findings.Add(new Finding("2.13", false,
-                    "settings.local.json is present. Permissions granted there are not committed, "
-                    + "so nobody else on the project sees them", place.Path));
+                    "settings.local.json is present; its permissions are not committed", place.Path));
 
         // 2.15 is retired and its number is not reused. fettle now opens
         // this session's scratch folder itself, at every level, so the
@@ -346,7 +345,7 @@ public static class Doctor
             if (tools.Count > 0)
                 findings.Add(new Finding("2.8", false,
                     (copilot
-                        ? $"no Fettler agent file leaves out the built-in {string.Join(", ", tools)}, so Copilot keeps them. "
+                        ? $"Copilot keeps its built-in {string.Join(", ", tools)}; no Fettler agent file excludes them. "
                         : $"deny does not list the built-in {string.Join(", ", tools)}. ")
                     + $"Run: fettle setup tools {client} --local",
                     writes.Path, Levels.ToolsName));
@@ -355,7 +354,7 @@ public static class Doctor
             if (shells.Count > 0)
                 findings.Add(new Finding(ShellCheck, false,
                     (copilot
-                        ? $"no Fettler agent file leaves out the built-in {string.Join(", ", shells)}, so Copilot keeps its terminal. "
+                        ? $"Copilot keeps its terminal; no Fettler agent file excludes {string.Join(", ", shells)}. "
                         : $"deny does not list the shell {string.Join(", ", shells)}. ")
                     + $"Run: fettle setup guardrails {client} --local",
                     writes.Path));
@@ -603,9 +602,8 @@ public static class Doctor
 
         if (unknown.Count > 0)
             findings.Add(new Finding("2.18", false,
-                $"this file names {string.Join(", ", unknown)}, which this fettle does not know "
-                + $"(tool inventory dated {InventoryOf}). Check 2.8 did not judge it. Decide yourself "
-                + "whether it reads files, writes files or runs a shell, and deny it if it does",
+                $"{string.Join(", ", unknown)} {(unknown.Count == 1 ? "is" : "are")} not in this fettle's tool inventory "
+                + $"({InventoryOf}). Deny any that reads or writes files or runs a shell",
                 place.Path));
 
         // B.17. The question that decides whether any of this works is
@@ -636,8 +634,7 @@ public static class Doctor
 
         if (contested.Count > 0)
             findings.Add(new Finding("B.17", true,
-                $"{string.Join(", ", contested)} appear in both allow and deny. Which one wins is "
-                + "the client's decision. Remove the allow entry",
+                $"{string.Join(", ", contested)} appear in both allow and deny. Remove the allow entry",
                 place.Path));
 
         // 2.14: auto-approval reinstates every route the boundary removed.
@@ -747,8 +744,7 @@ public static class Doctor
 
                 findings.Add(new Finding("2.16", false,
                     $"task '{task.Name}' puts a declared value inside a string that "
-                    + $"{program} parses ('{word}'). A quote or a semicolon in the value changes "
-                    + "what runs. Declare the steps as separate tasks, or pass the value to a "
+                    + $"{program} parses ('{word}'). Declare the steps as separate tasks, or pass the value to a "
                     + "script as a parameter",
                     RootsFile.FileName));
                 break;
@@ -840,11 +836,10 @@ public static class Doctor
 
         bool one = others.Count == 1;
         findings.Add(new Finding("2.17", false,
-            $"{others.Count} other MCP server{(one ? " is" : "s are")} registered here: "
+            $"{others.Count} other MCP server{(one ? "" : "s")} registered: "
             + $"{string.Join(", ", others.Take(8))}"
             + (others.Count > 8 ? $", and {others.Count - 8} more" : "")
-            + $". The deny list does not cover {(one ? "its" : "their")} tools. "
-            + "Deny mcp__<name>__* for any that should not reach files",
+            + ". Deny mcp__<name>__* for any that should not reach files",
             place.Path));
     }
 
@@ -900,8 +895,8 @@ public static class Doctor
                 n.Equals(name, Roots.PathComparison) && roots.HowFound(n) is not null);
 
             facts.Add(new Fact(Levels.ToolsName, found is not null
-                ? $"{name}: {roots.PathOf(found)}, found as {roots.HowFound(found)}"
-                : $"{name}: not found for this project. The tree appears once the client makes the folder"));
+                ? $"{name}: {roots.PathOf(found)}"
+                : $"{name}: not found"));
         }
 
         foreach (string file in roots.Levels.Tools.Concat(roots.Levels.Screenings).Distinct(StringComparer.Ordinal))
@@ -936,7 +931,7 @@ public static class Doctor
             if (!levels.GuardrailsOn || roots is null)
             {
                 facts.Add(new Fact(Levels.ToolsName,
-                    $"{c.Name} reads and writes every file under {root}, from {c.Registration}"));
+                    $"{c.Name}: --root {root}, no fettle rules apply"));
                 continue;
             }
 
@@ -988,8 +983,7 @@ public static class Doctor
         var rootless = companions.Where(c => c.Root is null).Select(c => c.Name).ToList();
         if (rootless.Count > 0)
             facts.Add(new Fact(Levels.ToolsName,
-                $"other servers that pass no --root: {string.Join(", ", rootless)}. fettle opens no tree for them. "
-                + "To share files with one, pass --root PATH in its registration, and fettle opens PATH under its name"));
+                $"servers without --root: {string.Join(", ", rootless)}. fettle opens no tree for them"));
     }
 
     /// <summary>
@@ -1043,7 +1037,7 @@ public static class Doctor
 
         facts.Add(new Fact(Levels.ScreeningsName, Directory.Exists(models)
             ? $"models: {models}"
-            : $"models: {models} does not exist, so a screened category that needs a model refuses every read"));
+            : $"models: {models} does not exist; screens needing a model refuse every read"));
 
         foreach (Screened one in Screens.All)
         {
