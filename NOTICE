@@ -124,6 +124,11 @@ Microsoft.SqlServer.Server, Microsoft.Bcl.Cryptography, and a handful of
 System.* packages - is all Microsoft-authored, all MIT, and rides into
 pick's archive with it.
 
+One of those System.* packages, System.Security.Cryptography.Pkcs, is named
+directly in Picker.csproj as well, to hold it at a version above two
+published advisories. It is Microsoft-authored and MIT, and it was already
+in pick's archive through this package.
+
 The native Windows SNI library the package carries is NOT used and NOT
 shipped: pick pins the managed network path on every operating system,
 so one network stack runs on all three, and its archive carries the

@@ -21,6 +21,7 @@ public sealed class FrontEndTests
     [
         "Microsoft.SqlServer.TransactSql.ScriptDom",
         "Microsoft.Data.SqlClient",
+        "System.Security.Cryptography.Pkcs",
     ];
 
     [Fact]
