@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Fettler.Cli;
 using Fettler.Core;
 using Xunit;
 
@@ -168,44 +169,137 @@ public sealed class TaskTests
         Assert.Contains("the-first-thing-it-said", ran.Failure.Message);
     }
 
+    static string Flood(int lines)
+    {
+        var flood = new StringBuilder();
+        for (int i = 0; i < lines; i++) flood.Append("needle on line ").Append(i).Append('\n');
+        return flood.ToString();
+    }
+
+    /// <summary>A child that prints one file to stdout and then the same
+    /// file to stderr, through the platform shell because nothing else
+    /// writes a known amount to both streams.</summary>
+    static string[] BothStreams(string file) => OperatingSystem.IsWindows()
+        ? ["cmd", "/c", $"type {file} & type {file} 1>&2"]
+        : ["sh", "-c", $"cat {file}; cat {file} >&2"];
+
     /// <summary>
-    /// The ceiling of <see cref="Tasks.MaxCapturedChars"/>, proven with a
-    /// small one. Without it the CHILD decides how much memory this
-    /// process commits, and a loop printing a line that grows each time
-    /// produces output growing quadratically - which is what turned a
-    /// bounded task into an unbounded wait.
+    /// The bound every answer has, the 40,000 characters of
+    /// <see cref="Bench.DefaultCharCap"/>, proven with a small one.
+    ///
+    /// <para>The END is kept, because that is where a build or a test run
+    /// says what went wrong. What was dropped from the front is counted
+    /// exactly, because a cut answer that read as a whole one would be a
+    /// worse failure than the one the cut prevents.</para>
     /// </summary>
     [Fact]
-    public async Task AChildThatFloodsIsCappedAndTheDroppedAmountIsSaidOutLoud()
+    public async Task AChildThatFloodsKeepsItsTailAndCountsWhatWasLeftOut()
     {
         string? fettle = Fettle();
         if (fettle is null) return;
 
         using var box = new Sandbox(Runnable);
-
-        var flood = new StringBuilder();
-        for (int i = 0; i < 400; i++) flood.Append("needle on line ").Append(i).Append('\n');
-        box.Write("flood.txt", flood.ToString());
+        box.Write("flood.txt", Flood(400));
 
         box.Declare(new TaskDecl("flood",
             [fettle, "search", "--root", box.Root, "--literal", "--json",
              "--glob", "flood.txt", "needle"],
             null));
 
-        Result<TaskRun> ran = await box.Bench.RunAsync(
+        Result<TaskRun> whole = await box.Bench.RunAsync(
+            "flood", TimeSpan.FromSeconds(60), CancellationToken.None);
+        Result<TaskRun> capped = await box.Bench.RunAsync(
             "flood", TimeSpan.FromSeconds(60), CancellationToken.None, capture: 500);
 
-        Assert.True(ran.IsOk, ran.Failure?.Message);
+        Assert.True(whole.IsOk, whole.Failure?.Message);
+        Assert.True(capped.IsOk, capped.Failure?.Message);
 
-        // The cap, plus the sentence that says the cap was reached.
-        Assert.True(ran.Value.Stdout.Length < 700,
-            $"a capped capture must not carry the flood ({ran.Value.Stdout.Length} chars)");
-        Assert.Contains("not captured", ran.Value.Stdout);
+        // Under the limit the output is the output, and says so.
+        Assert.False(whole.Value.Truncated);
+        Assert.Equal(0L, whole.Value.StdoutOmitted);
+
+        string all = whole.Value.Stdout;
+        TaskRun run = capped.Value;
+
+        Assert.True(run.Truncated);
+        Assert.Equal(500, run.Stdout.Length);
+        Assert.EndsWith(run.Stdout, all);
+        Assert.Equal(all.Length - 500L, run.StdoutOmitted);
 
         // And the child still finished: the surplus is drained and
         // discarded, never left to fill the pipe and block it.
-        Assert.False(ran.Value.TimedOut, "the child must not be blocked by the ceiling");
-        Assert.Equal(0, ran.Value.ExitCode);
+        Assert.False(run.TimedOut, "the child must not be blocked by the ceiling");
+        Assert.Equal(0, run.ExitCode);
+    }
+
+    /// <summary>One limit for the call, as <c>read</c> has one limit
+    /// across all its paths: two streams that both flood get half
+    /// each.</summary>
+    [Fact]
+    public async Task StdoutAndStderrShareOneLimit()
+    {
+        using var box = new Sandbox(Runnable);
+        string flood = Flood(400);
+        box.Write("flood.txt", flood);
+        box.Declare(new TaskDecl("both", BothStreams("flood.txt"), null));
+
+        Result<TaskRun> ran = await box.Bench.RunAsync(
+            "both", TimeSpan.FromSeconds(60), CancellationToken.None, capture: 1000);
+
+        Assert.True(ran.IsOk, ran.Failure?.Message);
+        TaskRun run = ran.Value;
+
+        Assert.True(run.Truncated);
+        Assert.Equal(500, run.Stdout.Length);
+        Assert.Equal(500, run.Stderr.Length);
+        Assert.EndsWith(run.Stdout, flood);
+        Assert.EndsWith(run.Stderr, flood);
+        Assert.Equal(flood.Length - 500L, run.StdoutOmitted);
+        Assert.Equal(flood.Length - 500L, run.StderrOmitted);
+    }
+
+    /// <summary>Half each is the floor, not the share: a stream that
+    /// needs less than half hands the rest to the other.</summary>
+    [Fact]
+    public void AStreamThatNeedsLessGivesTheRestToTheOther()
+    {
+        (Captured output, Captured error) = Tasks.Share(
+            new Captured("short", 0), new Captured(new string('e', 2000), 0), 1000);
+
+        Assert.Equal("short", output.Text);
+        Assert.Equal(0L, output.Omitted);
+        Assert.Equal(995, error.Text.Length);
+        Assert.Equal(1005L, error.Omitted);
+    }
+
+    /// <summary>
+    /// The machine-readable answer and the terminal's report the same
+    /// facts, because the cut is made once, before either is written.
+    /// </summary>
+    [Fact]
+    public async Task BothOutputModesReportTheSameCut()
+    {
+        using var box = new Sandbox(Runnable);
+        string flood = Flood(3000);
+        box.Write("flood.txt", flood);
+        box.Declare(new TaskDecl("both", BothStreams("flood.txt"), null));
+
+        int half = Bench.DefaultCharCap / 2;
+        long omitted = flood.Length - (long)half;
+        Assert.True(omitted > 0, "the flood must be larger than half the limit");
+
+        CliResult json = await Command.RunAsync(["run", "both", "--json"], new StringReader(string.Empty), box.Bench);
+        JsonElement answer = JsonDocument.Parse(json.Stdout).RootElement;
+
+        Assert.True(answer.GetProperty("truncated").GetBoolean(), json.Stdout);
+        Assert.Equal(omitted, answer.GetProperty("stdout_omitted").GetInt64());
+        Assert.Equal(omitted, answer.GetProperty("stderr_omitted").GetInt64());
+        Assert.Equal(half, answer.GetProperty("stdout").GetString()!.Length);
+
+        CliResult text = await Command.RunAsync(["run", "both"], new StringReader(string.Empty), box.Bench);
+
+        Assert.Contains($"{omitted:N0} characters of stdout and {omitted:N0} of stderr", text.Stdout);
+        Assert.Contains($"{Bench.DefaultCharCap:N0}", text.Stdout);
     }
 
     /// <summary>

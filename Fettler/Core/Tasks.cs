@@ -22,6 +22,9 @@ public sealed record TaskDecl(
 /// see: serve re-reads the configuration before every request, so the
 /// value can change between the listing and the run, and echoing what
 /// ran is the whole of the answer to which one was used.</param>
+/// <param name="StdoutOmitted">How many characters were left out from the
+/// START of stdout to keep the answer inside its limit.</param>
+/// <param name="StderrOmitted">The same, for stderr.</param>
 public sealed record TaskRun(
     string Name,
     int ExitCode,
@@ -30,7 +33,19 @@ public sealed record TaskRun(
     TimeSpan Duration,
     bool TimedOut,
     bool Cancelled,
-    IReadOnlyList<string>? Command = null);
+    IReadOnlyList<string>? Command = null,
+    long StdoutOmitted = 0,
+    long StderrOmitted = 0)
+{
+    /// <summary>Whether either stream was cut. Said, never left to be
+    /// inferred: a cut answer that read as a whole one would be a worse
+    /// failure than the one the cut prevents.</summary>
+    public bool Truncated => StdoutOmitted > 0 || StderrOmitted > 0;
+}
+
+/// <summary>What one stream gave: its end, and how many characters of its
+/// start were left out.</summary>
+public readonly record struct Captured(string Text, long Omitted);
 
 /// <summary>
 /// The declared-task facility of R7, so builds, tests and gates can be
@@ -287,36 +302,6 @@ public static class Tasks
     }
 
     /// <summary>
-    /// Run a declared task, capturing both streams and the exit code
-    /// (R7.4) and killable by timeout or by cancellation (R7.5, R3.10).
-    ///
-    /// <para>Nothing here ever writes to the process's own stdout, which
-    /// is what keeps R3.2's "stdout carries the protocol and nothing
-    /// else" true while a child is running.</para>
-    /// </summary>
-    /// <summary>
-    /// How much of a child's output is kept before the rest is dropped -
-    /// and SAID to be dropped.
-    ///
-    /// <para><b>Without a ceiling the child decides how much memory this
-    /// process commits</b>, which is the one thing a boundary may not let
-    /// the other side choose. A script stuck in a loop that prints a line
-    /// which grows each time produces output that grows QUADRATICALLY,
-    /// and <c>ReadToEndAsync</c> will faithfully materialise all of it
-    /// into one string, copy it into a writer, and copy it again on the
-    /// way out. The timeout fires long before that finishes, so the run
-    /// appears to hang for as long as the allocator takes - which is how
-    /// a two-minute bound produced a thirty-minute wait.</para>
-    ///
-    /// <para>The same posture as <see cref="Archives.MaxTotalBytes"/> and
-    /// <see cref="Ooxml.MaxLines"/>: refused and reported, never endured.
-    /// The stream is still DRAINED past the cap - a child blocked on a
-    /// full pipe is a different hang, and swapping one for the other
-    /// would not be a fix.</para>
-    /// </summary>
-    public const int MaxCapturedChars = 8 * 1024 * 1024;
-
-    /// <summary>
     /// How long a stream may still be draining once the process is gone.
     ///
     /// <para><b>A pipe reaches end-of-file when the last handle to its
@@ -341,9 +326,26 @@ public static class Tasks
 
     const int TailWidth = 200;
 
+    /// <summary>
+    /// Run a declared task, capturing both streams and the exit code
+    /// (R7.4) and killable by timeout or by cancellation (R7.5, R3.10).
+    ///
+    /// <para>Nothing here ever writes to the process's own stdout, which
+    /// is what keeps R3.2's "stdout carries the protocol and nothing
+    /// else" true while a child is running.</para>
+    ///
+    /// <para><b>The answer is bounded like every other answer</b>: at most
+    /// <paramref name="capture"/> characters across both streams, the
+    /// 40,000 of <see cref="Bench.DefaultCharCap"/> unless a test proves
+    /// the bound with a smaller one. A <c>read</c> that stops can be
+    /// continued, because the file is still there. A task's output is
+    /// gone when the call returns, and running the task again is not a
+    /// way to see more of it, so the cut keeps the END - where a build or
+    /// a test run says what went wrong - and counts what it left out.</para>
+    /// </summary>
     public static async Task<Result<TaskRun>> RunAsync(
         Roots roots, string name, TimeSpan timeout, CancellationToken cancel,
-        int capture = MaxCapturedChars)
+        int capture = Bench.DefaultCharCap)
     {
         Result<TaskDecl> found = Find(roots, name);
         if (!found.IsOk) return found.Carry<TaskRun>();
@@ -389,8 +391,6 @@ public static class Tasks
         for (int i = 1; i < task.Command.Count; i++) info.ArgumentList.Add(task.Command[i]);
 
         using var process = new Process { StartInfo = info };
-        var stdout = new StringWriter();
-        var stderr = new StringWriter();
         var stopwatch = Stopwatch.StartNew();
 
         try
@@ -407,11 +407,11 @@ public static class Tasks
         // on input nobody is going to send.
         process.StandardInput.Close();
 
-        // Bounded, not ReadToEndAsync: see MaxCapturedChars. Both streams
-        // are read concurrently and neither is ever left unread, because a
-        // child whose pipe fills blocks forever writing to it.
-        Task<string> readOut = Drain(process.StandardOutput, capture);
-        Task<string> readErr = Drain(process.StandardError, capture);
+        // Bounded, not ReadToEndAsync: see Drain. Both streams are read
+        // concurrently and neither is ever left unread, because a child
+        // whose pipe fills blocks forever writing to it.
+        Task<Captured> readOut = Drain(process.StandardOutput, capture);
+        Task<Captured> readErr = Drain(process.StandardError, capture);
 
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancel);
         if (timeout > TimeSpan.Zero) deadline.CancelAfter(timeout);
@@ -428,14 +428,16 @@ public static class Tasks
             Kill(process);
         }
 
-        stdout.Write(await Settled(readOut, DrainGrace).ConfigureAwait(false));
-        stderr.Write(await Settled(readErr, DrainGrace).ConfigureAwait(false));
+        (Captured output, Captured error) = Share(
+            await Settled(readOut, DrainGrace).ConfigureAwait(false),
+            await Settled(readErr, DrainGrace).ConfigureAwait(false),
+            capture);
         stopwatch.Stop();
 
         int exit = timedOut || cancelled ? -1 : SafeExitCode(process);
 
-        var run = new TaskRun(task.Name, exit, stdout.ToString(), stderr.ToString(),
-            stopwatch.Elapsed, timedOut, cancelled, task.Command);
+        var run = new TaskRun(task.Name, exit, output.Text, error.Text,
+            stopwatch.Elapsed, timedOut, cancelled, task.Command, output.Omitted, error.Omitted);
 
         // WHAT IT HAD SAID GOES WITH THE REFUSAL. A timeout used to answer
         // with the message alone and drop `run` on the floor, so the one
@@ -475,17 +477,26 @@ public static class Tasks
     }
 
     /// <summary>
-    /// Read a stream to its end, keeping at most <paramref name="cap"/>
-    /// characters of it.
+    /// Read a stream to its end, keeping its last <paramref name="cap"/>
+    /// characters.
+    ///
+    /// <para><b>Without a ceiling the child decides how much memory this
+    /// process commits</b>, which is the one thing a boundary may not let
+    /// the other side choose. A script stuck in a loop that prints a line
+    /// which grows each time produces output that grows QUADRATICALLY,
+    /// and <c>ReadToEndAsync</c> will faithfully materialise all of it.
+    /// The timeout fires long before that finishes, so the run appears to
+    /// hang for as long as the allocator takes - which is how a
+    /// two-minute bound produced a thirty-minute wait.</para>
     ///
     /// <para><b>Reading continues past the cap and the surplus is
     /// counted.</b> Stopping the read would fill the pipe and block the
     /// child on its next write, trading a memory problem for a deadlock.
-    /// The count is reported rather than the truncation being silent: a
-    /// capped answer that looked complete would be a worse failure than
-    /// the one being fixed.</para>
+    /// The same posture as <see cref="Archives.MaxTotalBytes"/> and
+    /// <see cref="Ooxml.MaxLines"/>: bounded and reported, never
+    /// endured.</para>
     /// </summary>
-    static async Task<string> Drain(StreamReader reader, int cap)
+    static async Task<Captured> Drain(StreamReader reader, int cap)
     {
         var kept = new StringBuilder();
         char[] buffer = new char[16 * 1024];
@@ -506,17 +517,44 @@ public static class Tasks
 
             if (read == 0) break;
 
-            int room = Math.Max(0, cap - kept.Length);
-            int take = Math.Min(read, room);
-            if (take > 0) kept.Append(buffer, 0, take);
-            dropped += read - take;
+            kept.Append(buffer, 0, read);
+
+            int over = kept.Length - cap;
+            if (over > 0 && over < kept.Length && char.IsLowSurrogate(kept[over])) over++;
+            if (over > 0)
+            {
+                kept.Remove(0, over);
+                dropped += over;
+            }
         }
 
-        if (dropped > 0)
-            kept.Append($"\n[{dropped:N0} more characters were not captured; ")
-                .Append($"the limit is {cap:N0}]\n");
+        return new Captured(kept.ToString(), dropped);
+    }
 
-        return kept.ToString();
+    /// <summary>
+    /// Fit both streams into one limit, as <c>read</c> spends one limit
+    /// across all its paths rather than one per path.
+    ///
+    /// <para>Each stream is owed half. A stream that needs less hands the
+    /// rest to the other, so a quiet stderr costs a flooding stdout
+    /// nothing. Whatever is cut comes off the front.</para>
+    /// </summary>
+    public static (Captured Output, Captured Error) Share(Captured output, Captured error, int cap)
+    {
+        int half = cap / 2;
+        int forOutput = Math.Min(output.Text.Length, Math.Max(half, cap - error.Text.Length));
+        int forError = Math.Min(error.Text.Length, cap - forOutput);
+        return (Keep(output, forOutput), Keep(error, forError));
+    }
+
+    /// <summary>The last <paramref name="count"/> characters of a stream,
+    /// never starting on the second half of a surrogate pair.</summary>
+    static Captured Keep(Captured stream, int count)
+    {
+        int start = stream.Text.Length - count;
+        if (start <= 0) return stream;
+        if (start < stream.Text.Length && char.IsLowSurrogate(stream.Text[start])) start++;
+        return new Captured(stream.Text[start..], stream.Omitted + start);
     }
 
     /// <summary>A task killed mid-flight leaves its whole process tree
@@ -531,16 +569,16 @@ public static class Tasks
     /// <summary>What a stream had, given a grace period to finish - see
     /// <see cref="DrainGrace"/> for why waiting on it indefinitely is not
     /// an option.</summary>
-    static async Task<string> Settled(Task<string> reading, TimeSpan grace)
+    static async Task<Captured> Settled(Task<Captured> reading, TimeSpan grace)
     {
         try
         {
             if (await Task.WhenAny(reading, Task.Delay(grace)).ConfigureAwait(false) != reading)
-                return string.Empty;
+                return new Captured(string.Empty, 0);
 
             return await reading.ConfigureAwait(false);
         }
-        catch (Exception e) when (e is IOException or OperationCanceledException) { return string.Empty; }
+        catch (Exception e) when (e is IOException or OperationCanceledException) { return new Captured(string.Empty, 0); }
     }
 
     static int SafeExitCode(Process process)

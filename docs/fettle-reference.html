@@ -123,7 +123,7 @@
 <tr><td><code>extract</code></td><td>an archive unpacked into a declared tree, or refused whole, with nothing written</td></tr>
 <tr><td><code>exec</code></td><td>the executable bit, set or cleared</td></tr>
 <tr><td><code>roots</code></td><td>the levels that are on, then the open trees: their paths, <b>what may be done in each</b>, which one an unqualified path lands in, and the <a href="#branch">branch</a> of a declared tree that is a checkout. The trees fettle opened itself are listed last, under <code>found by fettle</code>, each with how it was found</td></tr>
-<tr><td><code>tasks</code> / <code>run</code></td><td>the declared tasks; one of them, with its streams and exit code. Guardrails only</td></tr>
+<tr><td><code>tasks</code> / <code>run</code></td><td>the declared tasks; one of them, with its streams and exit code. The streams keep their last 40,000 characters between them. Guardrails only</td></tr>
 <tr><td><code>batch</code></td><td>several operations sent as one. The script comes the same three ways as <code>edit</code>'s</td></tr>
 <tr><td><code>doctor</code></td><td>one section per level. Whether this tool is wired into each client, and, for each level that is on, <a href="#findings">what goes round it</a></td></tr>
 <tr><td><code>setup</code></td><td>the files for one level, written. The level is the first word. The one verb an assistant is not offered</td></tr>
@@ -182,7 +182,7 @@ declared by C:\github\app\.fettler.json</code></pre></div>
 <table>
 <tr><th>Command</th><th>What it writes</th></tr>
 <tr><td><code>fettle setup tools CLIENT [--local or --global] [--hooks] [--deny]</code></td><td>the registration; the deny list for the built-in file tools and output readers, <code>Read</code>, <code>Write</code>, <code>Edit</code>, <code>NotebookEdit</code>, <code>Grep</code>, <code>Glob</code>, <code>BashOutput</code> and <code>TaskOutput</code> (written at <code>--local</code>, only offered at <code>--global</code> unless <code>--deny</code> is given); the tools paragraph of the instruction block; and the hook with <code>--hooks</code>. It writes no <code>.fettler.json</code></td></tr>
-<tr><td><code>fettle setup guardrails CLIENT [--local or --global] [--hooks] [--deny]</code></td><td>the shell denies, <code>Bash</code>, <code>PowerShell</code> and <code>Monitor</code>, added to the list <code>setup tools</code> wrote, with any tools-level deny that is missing (written at <code>--local</code>, only offered at <code>--global</code> unless <code>--deny</code> is given); the guardrails paragraph of the instruction block; the hook with <code>--hooks</code>; and a starter <code>guardrails</code> section, <code>{"trees":{"work":{"path":"."}}}</code>, when the project file has none. It never changes a <code>guardrails</code> section that exists, and it never registers</td></tr>
+<tr><td><code>fettle setup guardrails CLIENT [--local or --global] [--hooks] [--deny]</code></td><td>the shell denies, <code>Bash</code>, <code>PowerShell</code> and <code>Monitor</code>, added to the list <code>setup tools</code> wrote, with any missing tools-level deny. The denies are written at <code>--local</code>. At <code>--global</code> they are only offered, unless <code>--deny</code> is given. It also writes the guardrails paragraph of the instruction block, and the hook with <code>--hooks</code>. When the project file has no <code>guardrails</code> section, it writes a starter one: <code>{"trees":{"work":{"path":"."}}}</code>. It never changes a <code>guardrails</code> section that exists, and it never registers</td></tr>
 <tr><td><code>fettle setup screenings CLIENT [--local]</code></td><td>a starter <code>screenings</code> section screening the default tree, when the file has none. It also checks that burler is beside <code>fettle</code>, and checks the models directory</td></tr>
 </table>
 
@@ -331,7 +331,7 @@ extracted 3 members (79609517 bytes) from work:fettle-1.0.0-win-x64.zip into wor
 <tr><td><b>Regular expressions</b></td><td>.NET's dialect, which is neither PCRE nor ripgrep's, under a bound: non-backtracking where the pattern allows, an explicit timeout where it does not.</td></tr>
 <tr><td><b>Encoding</b></td><td>a byte-order mark decides and is preserved. Absent one, content that decodes as UTF-8 is UTF-8. Anything else is binary and refused. No statistical guess, because a wrong guess corrupts a file on the way out.</td></tr>
 <tr><td><b>Ordering</b></td><td>results are ordered before any limit, so a truncated result is the same truncation twice, and says it was truncated.</td></tr>
-<tr><td><b>Bounds</b></td><td>every answer is bounded twice. The first bound is a count: 2000 lines for <code>read</code>, 1000 files for <code>find</code>, 200 hits for <code>search</code>. The second is <b>40,000 characters of text</b>, because one line or one hit can be a thousand characters and a count is a poor proxy for a size. Naming an explicit range lifts the first and never the second. Either way the answer says it was cut, and <code>read</code> says which of the two did it.</td></tr>
+<tr><td><b>Bounds</b></td><td>every answer is bounded twice. The first bound is a count: 2000 lines for <code>read</code>, 1000 files for <code>find</code>, 200 hits for <code>search</code>. The second is <b>40,000 characters of text</b>, because one line or one hit can be a thousand characters and a count is a poor proxy for a size. Naming an explicit range lifts the first and never the second. <code>run</code> has only the second, shared by stdout and stderr. Either way the answer says it was cut, and <code>read</code> says which of the two did it.</td></tr>
 <tr><td><b>What runs at once</b></td><td>reads run concurrently. Changes are serialized against each other. <code>run</code> holds neither lock.</td></tr>
 </table>
 
@@ -553,6 +553,16 @@ refused: run takes only a task name; 'release' is extra. A task takes no argumen
 Declare a second task for a variant</code></pre></div></div>
 
 <p><code>cwd</code>, the folder the task runs in, is optional. It defaults to the top of the default tree, and is checked for containment like any other path.</p>
+
+<h3 id="task-output">How much output comes back</h3>
+
+<p><b>A task's output is bounded like every other answer: 40,000 characters a call.</b> stdout and stderr share that limit. Each is owed half, and a stream that needs less gives the rest to the other.</p>
+
+<ul>
+<li><b>The end is kept.</b> A build or a test run says what went wrong at the end, so the cut comes off the front.</li>
+<li><b>The cut is said, never silent.</b> The answer carries <code>truncated</code>, and then <code>stdout_omitted</code> and <code>stderr_omitted</code>, the characters left out of each. The terminal prints the same counts on one line.</li>
+<li><b>There is no second page.</b> A <code>read</code> that stops can go on, because the file is still there. A task's output is gone when the call returns, and running it again may not do the same thing. For all of it, have the task write a log, then <code>read</code> it with <code>tail</code>.</li>
+</ul>
 
 <h3 id="replacements">Values the file supplies</h3>
 

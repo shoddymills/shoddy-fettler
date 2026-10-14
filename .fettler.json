@@ -1,0 +1,36 @@
+{
+  "guardrails": {
+    "trees": {
+      "work": {
+        "path": ".",
+        "can": ["list", "read", "create", "update", "rename", "delete", "execute"]
+      },
+      "shoddy": {
+        "path": "../shoddy"
+      }
+    },
+    "tasks": {
+      "build":              { "run": "bash scripts/fettler-build.sh build",   "cwd": "." },
+      "test":               { "run": "bash scripts/fettler-build.sh test",    "cwd": "." },
+      "check":              { "run": "bash scripts/fettler-build.sh check",   "cwd": "." },
+      "release":            { "run": "bash scripts/fettler-build.sh release", "cwd": "." },
+      "publish":            { "run": "bash scripts/fettler-build.sh publish {release-version}", "cwd": "." },
+
+      "verify-docs":        { "run": "node scripts/fettler-verify-docs.js",        "cwd": "." },
+      "verify-errors":      { "run": "node scripts/fettler-verify-errors.js",      "cwd": "." },
+      "verify-twins":       { "run": "node scripts/fettler-verify-twins.js",       "cwd": "." },
+      "verify-permissions": { "run": "node scripts/fettler-verify-permissions.js --check", "cwd": "." },
+      "survey-readability": { "run": "node scripts/fettler-survey-readability.js", "cwd": "." },
+      "sitemap":            { "run": "bash scripts/fettler-make-sitemap.sh", "cwd": "." },
+      "install":            { "run": "bash scripts/fettler-install.sh", "cwd": "." },
+
+      "feature":            { "run": "bash scripts/fettler-branch.sh feature {feature-branch}", "cwd": "." },
+      "bug":                { "run": "bash scripts/fettler-branch.sh bug {bug-branch}", "cwd": "." },
+      "sync":               { "run": "bash scripts/fettler-branch.sh sync", "cwd": "." },
+      "land":               { "run": "bash scripts/fettler-branch.sh land -Yes", "cwd": "." },
+      "checkin":            { "run": "bash scripts/fettler-checkin.sh -Message {commit-note}", "cwd": "." },
+      "pr":                 { "run": "bash scripts/fettler-pr.sh", "cwd": "." },
+      "ship":               { "run": "bash scripts/fettler-ship.sh {release-version} -Yes", "cwd": "." }
+    }
+  }
+}

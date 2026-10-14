@@ -18,6 +18,7 @@ a convenience for anyone reading the source. It does not ship.
 | [Microsoft.ML.Tokenizers](https://github.com/dotnet/machinelearning) | 1.0.0 | MIT | `burler` | the WordPiece tokenizer a BERT-family model needs |
 | [Microsoft.SqlServer.TransactSql.ScriptDom](https://github.com/microsoft/SqlScriptDOM) | 180.59.2 | MIT | `pick` | parses the one SELECT the query gate accepts |
 | [Microsoft.Data.SqlClient](https://github.com/dotnet/SqlClient) | 7.0.2 | MIT | `pick` | the connection to SQL Server |
+| [System.Security.Cryptography.Pkcs](https://github.com/dotnet/runtime) | 10.0.13 | MIT | `pick` | pinned above GHSA-846f-f764-76mx and GHSA-2fmv-rv2c-59x7; SqlClient brings it in transitively and Picker's code never uses it |
 
 PdfPig has no transitive dependencies at all. The two `burler` packages
 bring only their own native runtime assets. ScriptDom brings nothing.
@@ -34,9 +35,11 @@ alone.
 ## The allowlists, and why they are short
 
 `pick` carries its own allowlist in `Picker.csproj`, in the same form and
-under the same tests as `fettle`'s. Today it admits exactly the two packages
-in the table above, and its csproj comment records the managed-SNI pin and
-the fallback that would ever relax it.
+under the same tests as `fettle`'s. Today it admits the three `pick` packages
+in the table above, one of them a pin holding a transitive package above two
+advisories rather than a dependency Picker's code uses. Its csproj comment
+records the managed-SNI pin, the fallback that would ever relax it, and when
+the Pkcs pin comes out.
 
 `fettle` publishes **self-contained and single-file per operating system**,
 so a package with native assets does not merely complicate the build. It

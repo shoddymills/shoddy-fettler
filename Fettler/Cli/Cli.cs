@@ -1512,6 +1512,12 @@ public static class Command
                 w.WriteNumber("exit_code", r.ExitCode);
                 w.WriteString("stdout", r.Stdout);
                 w.WriteString("stderr", r.Stderr);
+                w.WriteBoolean("truncated", r.Truncated);
+                if (r.Truncated)
+                {
+                    w.WriteNumber("stdout_omitted", r.StdoutOmitted);
+                    w.WriteNumber("stderr_omitted", r.StderrOmitted);
+                }
                 w.WriteNumber("seconds", Math.Round(r.Duration.TotalSeconds, 3));
                 w.WriteBoolean("timed_out", r.TimedOut);
             }));
@@ -1522,6 +1528,14 @@ public static class Command
 
         if (r.Stdout.Length > 0) human.Append("[stdout] ").AppendLine(r.Stdout.TrimEnd());
         if (r.Stderr.Length > 0) human.Append("[stderr] ").AppendLine(r.Stderr.TrimEnd());
+
+        // 9b.8, as read says it: a cut answer must never read as a whole
+        // one, and must say the way to the rest.
+        if (r.Truncated)
+            human.Append("... ").Append($"{r.StdoutOmitted:N0} characters of stdout and ")
+                .Append($"{r.StderrOmitted:N0} of stderr were left out from the start; ")
+                .Append($"the limit is {Bench.DefaultCharCap:N0} a call. ")
+                .AppendLine("For all of it, have the task write a log and read it with --tail");
 
         // The task's own exit code is not this command's: `run` succeeded
         // in running it. A caller wanting the child's code reads it from
@@ -1740,6 +1754,8 @@ public static class Command
         guardrails - on when .fettler.json has a "guardrails" section: declared trees,
         permissions, scopes, tasks, and the shell denies.
           tasks | run NAME [--timeout SECONDS]
+                 run keeps the last 40,000 characters of output and says what
+                 it left out.
           setup guardrails CLIENT [--global | --local] [--dry-run] [--hooks] [--deny]
           Permissions: list read create update rename delete execute. The tree holding
           the file gets all but execute. Every other tree gets list read.

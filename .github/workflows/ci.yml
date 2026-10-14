@@ -113,7 +113,7 @@ jobs:
       # csproj and not to this list fails the push that added it.
       - name: Only allowlisted packages ride along in what pick ships
         run: |
-          allowed='Microsoft.SqlServer.TransactSql.ScriptDom Microsoft.Data.SqlClient'
+          allowed='Microsoft.SqlServer.TransactSql.ScriptDom Microsoft.Data.SqlClient System.Security.Cryptography.Pkcs'
           found=$(grep -hoE '<PackageReference Include="[^"]+"' \
                     Picker/Picker.csproj pick/pick.csproj \
                   | sed -E 's/.*Include="([^"]+)".*/\1/' | sort -u)

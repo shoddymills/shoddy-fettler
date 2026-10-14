@@ -277,6 +277,8 @@ public sealed class McpServer : IDisposable
         + "and which tree an unqualified path lands in. "
         + "roots names the branch of a tree that is a checkout, and the fact is local, not what a remote holds. "
         + "read returns a hash; pass it as expect on an edit, and the edit is refused if the file changed. "
+        + "Every answer stops at 40,000 characters and says what it left out; "
+        + "read the end of a long log with read and tail. "
         + "The scratch, tool-results and memory trees are the client's own folders, which fettle finds itself. "
         + $"{RootsFile.FileName} and {RootsFile.LocalFileName} say what this tool may do. "
         + "The tool does not write them; a person edits them, and an edit applies on the next call.";
