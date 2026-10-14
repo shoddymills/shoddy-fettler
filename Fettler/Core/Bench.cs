@@ -893,12 +893,13 @@ public sealed class Bench : IDisposable
     /// exists to remove. A task therefore sees the tree as it is, and
     /// Fettler does not undertake to hold it still.
     /// </summary>
-    /// <param name="capture">How much of the child's output to keep. The
-    /// default is the only value a front end passes; it is a parameter so
-    /// the ceiling can be proven with a small child rather than by
-    /// producing eight megabytes in a test.</param>
+    /// <param name="capture">How much of the child's output to keep,
+    /// across both streams. The default, <see cref="DefaultCharCap"/>, is
+    /// the only value a front end passes; it is a parameter so the bound
+    /// can be proven with a small child rather than by producing forty
+    /// thousand characters in a test.</param>
     public Task<Result<TaskRun>> RunAsync(string name, TimeSpan timeout, CancellationToken cancel = default,
-                                          int capture = Tasks.MaxCapturedChars) =>
+                                          int capture = DefaultCharCap) =>
         Tasks.RunAsync(Roots, name, timeout, cancel, capture);
 
     // ---- plumbing ----

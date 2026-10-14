@@ -9,6 +9,9 @@ what each allows, and which tree an unqualified path lands in.
 `Set-Location` do nothing for Fettler. `read` returns a hash. Pass it as
 `expect` on an edit, and the edit is refused if the file changed.
 
+**Every answer stops at 40,000 characters** and says what it left out. Read
+the end of a long log with `read` and `tail`.
+
 If something looks wrong, run `fettle doctor`.
 
 **Guardrails are on.** The built-in Read, Write, Edit, NotebookEdit, Grep and

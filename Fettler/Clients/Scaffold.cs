@@ -242,6 +242,9 @@ public static class Scaffold
         `Set-Location` do nothing for Fettler. `read` returns a hash. Pass it as
         `expect` on an edit, and the edit is refused if the file changed.
 
+        **Every answer stops at 40,000 characters** and says what it left out. Read
+        the end of a long log with `read` and `tail`.
+
         If something looks wrong, run `fettle doctor`.
         """;
 

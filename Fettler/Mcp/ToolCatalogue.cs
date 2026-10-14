@@ -146,7 +146,7 @@ public static class ToolCatalogue
             {"type":"object","properties":{}}
             """),
 
-        new("run", "Run a declared task and return its output and exit code. A task takes no arguments: name and timeout are the only inputs, and anything else is refused. Values written {like-this} in a task come from the configuration file, never from the caller. The result names the argument list that was launched. Needs the tree to grant execute, which is never a default. Tasks belong to the guardrails level, so with guardrails off nothing runs.", """
+        new("run", "Run a declared task and return its output and exit code. A task takes no arguments: name and timeout are the only inputs, and anything else is refused. Values written {like-this} in a task come from the configuration file, never from the caller. The result names the argument list that was launched. Keeps the last 40,000 characters of output across stdout and stderr; `truncated` says so, and `stdout_omitted` and `stderr_omitted` say how much was left out. For all of it, have the task write a log and read it with `tail`. Needs the tree to grant execute, which is never a default. Tasks belong to the guardrails level, so with guardrails off nothing runs.", """
             {"type":"object","required":["name"],"additionalProperties":false,"properties":{
               "name":{"type":"string"},"timeout":{"type":"integer","description":"seconds; 0 means no timeout"}
             }}
