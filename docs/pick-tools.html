@@ -169,9 +169,9 @@ $ pick select "SELECT TOP 5 * FROM Sales.dbo.Customers"</code></pre></div>
 <tr><th>Cap</th><th>Limit</th><th>When it is reached</th></tr>
 <tr><td>rows from <code>select</code></td><td>100. <code>--limit N</code> changes it</td><td>the answer says it was cut and how to narrow the query</td></tr>
 <tr><td>characters in one cell</td><td>2,000</td><td>the cell is cut, and says how long it was</td></tr>
-<tr><td>characters in one answer</td><td>40,000</td><td>no more rows are added, and the answer says it was cut</td></tr>
+<tr><td>bytes in one answer</td><td>40,000, and 10,000 for a refusal</td><td>no more rows are added, and the answer says it was cut. A list gives <code>next</code> to carry on from</td></tr>
 <tr><td>time for one query</td><td>30 seconds</td><td>the query is stopped, with exit code 10, <code>timed-out</code></td></tr>
-<tr><td>objects from <code>objects</code></td><td>500</td><td>the list ends with <code>(truncated)</code></td></tr>
+<tr><td>objects from <code>objects</code></td><td>500</td><td>the list ends with <code>(truncated)</code> and gives <code>next</code></td></tr>
 </table>
 
 <h2 id="verbs">The five verbs</h2>

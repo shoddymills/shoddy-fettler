@@ -14,10 +14,10 @@
       }
     },
     "replacements": {
-      "feature-branch":  "commissary",
-      "bug-branch":      "commissary01",
-      "release-version": "2.1.0",
-      "commit-note":     "corrections to tools configuraiton and denys."
+      "feature-branch":  "pool",
+      "bug-branch":      "pool01",
+      "release-version": "2.2.0",
+      "commit-note":     "correcting threshold for result paging to account for additional json in the resonse."
     }
   }
 }

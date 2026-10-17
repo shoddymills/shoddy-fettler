@@ -390,7 +390,7 @@ declared by C:\github\app\.fettler.json</code></pre></div>
 
 <h3 id="block">The instruction block</h3>
 
-<p><b>The instruction block tells the assistant how to work here, and the deny list makes it so.</b> <code>setup tools</code> writes the block into the client's instruction file, such as <code>CLAUDE.md</code>, between markers it can find again. The block holds the tools paragraph, which says to call <code>roots</code> first, that there is no working folder, and that every answer stops at 40,000 characters. <code>setup guardrails</code> adds the guardrails paragraph after it, as written:</p>
+<p><b>The instruction block tells the assistant how to work here, and the deny list makes it so.</b> <code>setup tools</code> writes the block into the client's instruction file, such as <code>CLAUDE.md</code>, between markers it can find again. The block holds the tools paragraph, which says to call <code>roots</code> first, that there is no working folder, and that every answer stops at 40,000 bytes. <code>setup guardrails</code> adds the guardrails paragraph after it, as written:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>**Guardrails are on.** The built-in Read, Write, Edit, NotebookEdit, Grep and
 Glob are denied. Use the Fettler tools for every file operation.

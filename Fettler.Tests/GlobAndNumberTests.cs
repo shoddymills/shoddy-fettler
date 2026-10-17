@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Fettler.Cli;
+using Fettler.Core;
 using Xunit;
 
 namespace Fettler.Tests;
@@ -175,9 +176,9 @@ public sealed class GlobAndNumberTests
 
         Assert.True(numbered.GetProperty("budgeted").GetBoolean());
         Assert.True(numbered.GetProperty("to").GetInt32() < plain.GetProperty("to").GetInt32());
-        Assert.True(numbered.GetProperty("text").GetString()!.Length <= 40_000);
+        Assert.True(Encoding.UTF8.GetByteCount(numbered.GetProperty("text").GetString()!) < Budget.Ceiling);
 
         CliResult human = await Run(box, "read", "big.txt", "--to", "3000", "--numbered");
-        Assert.Contains("-character limit for one call", human.Stdout);
+        Assert.Contains("-byte limit for one call", human.Stdout);
     }
 }

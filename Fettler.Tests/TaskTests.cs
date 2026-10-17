@@ -184,8 +184,8 @@ public sealed class TaskTests
         : ["sh", "-c", $"cat {file}; cat {file} >&2"];
 
     /// <summary>
-    /// The bound every answer has, the 40,000 characters of
-    /// <see cref="Bench.DefaultCharCap"/>, proven with a small one.
+    /// The bound the core keeps, <see cref="Budget.Ceiling"/> characters
+    /// across both streams, proven with a small one.
     ///
     /// <para>The END is kept, because that is where a build or a test run
     /// says what went wrong. What was dropped from the front is counted
@@ -284,22 +284,24 @@ public sealed class TaskTests
         box.Write("flood.txt", flood);
         box.Declare(new TaskDecl("both", BothStreams("flood.txt"), null));
 
-        int half = Bench.DefaultCharCap / 2;
-        long omitted = flood.Length - (long)half;
-        Assert.True(omitted > 0, "the flood must be larger than half the limit");
+        Assert.True(flood.Length > Budget.Ceiling, "the flood must be larger than the ceiling");
 
         CliResult json = await Command.RunAsync(["run", "both", "--json"], new StringReader(string.Empty), box.Bench);
         JsonElement answer = JsonDocument.Parse(json.Stdout).RootElement;
 
+        long omitted = answer.GetProperty("stdout_omitted").GetInt64();
+        string kept = answer.GetProperty("stdout").GetString()!;
+
         Assert.True(answer.GetProperty("truncated").GetBoolean(), json.Stdout);
-        Assert.Equal(omitted, answer.GetProperty("stdout_omitted").GetInt64());
+        Assert.Equal(flood.Length - (long)kept.Length, omitted);
         Assert.Equal(omitted, answer.GetProperty("stderr_omitted").GetInt64());
-        Assert.Equal(half, answer.GetProperty("stdout").GetString()!.Length);
+        Assert.EndsWith(kept, flood);
+        Assert.True(Encoding.UTF8.GetByteCount(json.Stdout) <= Budget.Ceiling);
 
         CliResult text = await Command.RunAsync(["run", "both"], new StringReader(string.Empty), box.Bench);
 
         Assert.Contains($"{omitted:N0} characters of stdout and {omitted:N0} of stderr", text.Stdout);
-        Assert.Contains($"{Bench.DefaultCharCap:N0}", text.Stdout);
+        Assert.Contains($"{Budget.Ceiling:N0} bytes", text.Stdout);
     }
 
     /// <summary>

@@ -150,9 +150,9 @@ reads. Rewrite it with three sections, one per level. Your entries, rewritten:
 <table>
 <tr><th>Verb</th><th>Takes</th><th>Answers</th></tr>
 <tr><td><code>catalogs</code></td><td>nothing</td><td>the three level lines, then the servers, databases, verbs, screens and scopes, with each open server marked as one. It opens no connection.</td></tr>
-<tr><td><code>objects</code></td><td>an optional pattern, either <code>schema.object</code> or a bare name, with <code>*</code> inside a part</td><td>the tables and views whose scope grants <code>list</code>, stopping at 500 and saying so</td></tr>
+<tr><td><code>objects</code></td><td>an optional pattern, either <code>schema.object</code> or a bare name, with <code>*</code> inside a part</td><td>the tables and views whose scope grants <code>list</code>, stopping at 500 or at the size limit and saying so. An answer that stops short gives <code>next</code>, and <code>--after NEXT</code> carries on</td></tr>
 <tr><td><code>select</code></td><td>one statement, or <code>--stdin</code> to read it from input, with <code>--limit N</code> to set the row cap</td><td>the rows with their types and the column list, or the gate's refusal</td></tr>
-<tr><td><code>describe</code></td><td>an object name</td><td>the columns with their types and whether each may be empty, then the indexes, the foreign keys and a shape hash</td></tr>
+<tr><td><code>describe</code></td><td>an object name, and <code>--after NEXT</code> for the next page</td><td>the columns with their types and whether each may be empty, then the indexes, the foreign keys and a shape hash. A table too wide for one answer comes in pages, each with the hash of the whole shape</td></tr>
 <tr><td><code>doctor</code></td><td>nothing</td><td>the three level lines, and then the checks listed under <a href="#doctor">doctor's lines</a></td></tr>
 </table>
 
@@ -196,8 +196,9 @@ reads. Rewrite it with three sections, one per level. Your entries, rewritten:
 <p>The caps belong to the tools level, and the configuration file cannot change them. Each answer says so when a cap cut it short.</p>
 
 <ul>
-<li><b>Rows:</b> an answer holds at most 100 rows by default, and <code>--limit N</code> raises or lowers that number. A capped answer says how many rows it left out.</li>
-<li><b>Text:</b> one cell holds at most 2,000 characters and one answer at most 40,000, and pick always says when it cut text.</li>
+<li><b>Rows:</b> an answer holds at most 100 rows by default, and <code>--limit N</code> raises or lowers that number. A capped answer says it was cut.</li>
+<li><b>Size:</b> one cell holds at most 2,000 characters. One answer holds at most 40,000 bytes as it is written, and a refusal at most 10,000. A row cannot be split across answers, so pick stops at the last whole row that fits. A single row too wide for any answer is refused, and the refusal says to select fewer columns or a substring. These are the same limits as Fettler's, for the same reason: an assistant client saves a larger answer to a file instead of showing it.</li>
+<li><b>Errors:</b> an answer is an error only when the operation did not do what was asked.</li>
 <li><b>Time:</b> a query may run for 30 seconds, and pick stops a slower one and reports it as <code>timed-out</code>, which is its own outcome.</li>
 </ul>
 

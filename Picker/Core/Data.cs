@@ -30,9 +30,12 @@ public sealed class SqlData : ICatalogSource, IQuerySource, IConstraintSource, I
     /// OFFSET - is the caller's.</summary>
     public const int DefaultRowCap = 100;
 
-    /// <summary>The character budget across a whole result, the 40,000
-    /// discipline: how much of an answer survives the trip.</summary>
-    public const int CharCap = 40_000;
+    /// <summary>How many characters of cell text are read before reading
+    /// stops. A character is at least a byte once written, so rows past
+    /// <see cref="Budget.Ceiling"/> characters could never fit in an
+    /// answer; the exact cut, in bytes, is made by the front end's meter
+    /// before the screen judges the rows.</summary>
+    public const int CharCap = Budget.Ceiling;
 
     /// <summary>One text cell's ceiling; past it the cell says what was
     /// withheld rather than silently trimming.</summary>

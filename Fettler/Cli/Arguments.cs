@@ -76,6 +76,9 @@ public sealed class Arguments
         "root", "config", "no-config", "json", "include-generated", "exclude",
         "help", "version",
 
+        // find, search and replace: where the last answer stopped
+        "after",
+
         // find
         "sort", "sort-modified", "since", "limit",
 
@@ -84,7 +87,7 @@ public sealed class Arguments
         "case-sensitive", "context", "count", "files-only", "no-documents",
 
         // read
-        "from", "to", "tail", "member", "numbered",
+        "from", "to", "tail", "member", "numbered", "column",
 
         // extract
         "into",

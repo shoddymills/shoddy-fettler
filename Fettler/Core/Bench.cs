@@ -9,7 +9,11 @@ public sealed record FindRequest(
     IReadOnlyList<string>? Exclude = null,
     DateTimeOffset? Since = null,
     int Limit = 1000,
-    bool ByModified = false);
+    bool ByModified = false,
+
+    /// <summary>Where the last answer stopped: the <c>next</c> it gave.
+    /// The listing starts after it.</summary>
+    string? After = null);
 
 public sealed record SearchRequest(
     IReadOnlyList<string> Patterns,
@@ -27,7 +31,17 @@ public sealed record SearchRequest(
     /// matched nothing was the defect this replaced, and leaving the fix
     /// behind a flag would leave that defect in place for everybody who
     /// does not know to ask.</summary>
-    bool Documents = true);
+    bool Documents = true,
+
+    SearchMode Mode = SearchMode.Hits,
+
+    /// <summary>Where the last answer stopped: the <c>next</c> it gave,
+    /// <c>PATH:LINE</c> for hits and <c>PATH</c> for files.</summary>
+    string? After = null,
+
+    /// <summary>How big each hit is once written. Null for a caller with
+    /// no front end.</summary>
+    IMeter? Meter = null);
 
 /// <summary>
 /// What to read, and which part of it.
@@ -50,7 +64,16 @@ public sealed record ReadRequest(
     /// <summary>Whether the text carries the terminal's <c>N | </c>
     /// prefix on every line. The prefix counts toward the size budget,
     /// and the hash stays the file's.</summary>
-    bool Numbered = false);
+    bool Numbered = false,
+
+    /// <summary>The column the first line starts at, counted from 1 in
+    /// UTF-16 characters: the <c>column</c> of a <c>next</c>. It is how a
+    /// line too long for one answer is read in pieces.</summary>
+    int? Column = null,
+
+    /// <summary>How big each part of the answer is once written. Null
+    /// for a caller with no front end.</summary>
+    IMeter? Meter = null);
 
 /// <summary>What an extraction did: how many members were written, and
 /// where they landed.</summary>
@@ -77,14 +100,38 @@ public sealed record ReadSlice(
     /// asked for, is what stopped this answer. Worth its own flag because
     /// the two want different advice: "pass --to for more" is useless
     /// when the range was never the constraint.</summary>
-    bool Budgeted = false)
+    bool Budgeted = false,
+
+    /// <summary>The column line <c>From</c> starts at. 1 when the line is
+    /// whole.</summary>
+    int Column = 1,
+
+    /// <summary>The column after the last character served of line
+    /// <c>To</c>, when that line was cut. Null when it was served to its
+    /// end.</summary>
+    int? EndColumn = null,
+
+    /// <summary>Why an image's bytes were not sent: over
+    /// <see cref="Budget.ImageCap"/>, or a second image in one call.
+    /// Null when they were.</summary>
+    string? Withheld = null)
 {
+    /// <summary>Where to carry on from, when the file goes on past what
+    /// was served: the cut line at the column after the cut, or the line
+    /// after the last one. Null at the end of the file.</summary>
+    public (int From, int? Column)? Next =>
+        Image is not null ? null
+        : EndColumn is { } end ? (To, end)
+        : To < TotalLines ? (To + 1, null)
+        : null;
+
     /// <summary>Whether the answer stops short of the end of the file.
     /// Named rather than left to be worked out from three numbers,
     /// because a truncated answer that reads as a complete one is how a
     /// caller confidently acts on half a file (R4.10).</summary>
-    public bool Truncated => To < TotalLines;
+    public bool Truncated => Next is not null;
 
+    /// <summary>Whole lines after the last one served.</summary>
     public int Remaining => Math.Max(0, TotalLines - To);
 }
 
@@ -199,7 +246,8 @@ public sealed class Bench : IDisposable
 
         return Tree.Find(Roots, request.Root ?? Roots.Names[0], pattern,
             ExcludesFor(request.IncludeGenerated, request.Exclude),
-            request.Since, request.Limit, request.ByModified);
+            request.Since, request.Limit, request.ByModified,
+            request.After is { } after ? Tree.Place(after, request.ByModified) : null);
     }
 
     public Result<Bounded<FoundFile>> FindChecked(FindRequest request)
@@ -212,6 +260,12 @@ public sealed class Bench : IDisposable
 
         if (UnsupportedExclude(request.Exclude) is { } refused)
             return Result<Bounded<FoundFile>>.Fail(refused);
+
+        if (request.After is { } after && Tree.Place(after, request.ByModified) is null)
+            return Result<Bounded<FoundFile>>.Fail(Outcome.Invalid,
+                request.ByModified
+                    ? "after needs the next a find sorted by mtime gave: a time, a space, then a path"
+                    : "after needs the next a find gave: a path");
 
         Result<string> root = RootNamed(request.Root);
         if (!root.IsOk) return root.Carry<Bounded<FoundFile>>();
@@ -235,6 +289,19 @@ public sealed class Bench : IDisposable
         if (UnsupportedExclude(request.Exclude) is { } unsupported)
             return Result<SearchAnswer>.Fail(unsupported);
 
+        SearchCursor? after = null;
+        if (request.After is { } given)
+        {
+            if (request.Mode == SearchMode.Count)
+                return Result<SearchAnswer>.Fail(Outcome.Invalid,
+                    "a count is never cut short, so it has no after");
+
+            after = SearchCursor.Parse(given, request.Mode);
+            if (after is null)
+                return Result<SearchAnswer>.Fail(Outcome.Invalid,
+                    "after needs the next a search gave: PATH:LINE, or PATH when it names files only");
+        }
+
         // No limit on the file sweep: R4.10's bound is on hits, and
         // stopping the walk early would make which files were searched
         // depend on the limit.
@@ -243,7 +310,7 @@ public sealed class Bench : IDisposable
 
         Result<SearchAnswer> answer = Searcher.Search(files.Items, request.Patterns, request.Kind,
             request.CaseSensitive, request.Context, request.Limit, files.Excluded,
-            request.Documents, DefaultCharCap);
+            request.Documents, request.Mode, after, request.Meter);
 
         if (!answer.IsOk) return answer;
 
@@ -280,7 +347,7 @@ public sealed class Bench : IDisposable
         var perFile = new Dictionary<string, (ContainedPath Path, StringBuilder Text)>(
             StringComparer.Ordinal);
 
-        foreach (Hit hit in answer.Hits)
+        foreach (Hit hit in answer.Hits.Concat(answer.Disclosed ?? []))
         {
             if (hit.Path.Screen == Screened.None) continue;
 
@@ -325,8 +392,7 @@ public sealed class Bench : IDisposable
     public const int DefaultLineCap = 2000;
 
     /// <summary>
-    /// How many characters of file text <c>read</c> answers with, spent
-    /// across the whole call.
+    /// Read one or more files, inside <see cref="Budget.Ceiling"/>.
     ///
     /// <para><b>The line cap was in the wrong unit, so it never fired.</b>
     /// A caller's ceiling is on the SIZE of an answer, and lines vary in
@@ -348,32 +414,54 @@ public sealed class Bench : IDisposable
     /// would multiply and overrun the ceiling anyway. Earlier paths are
     /// served first, and every path reports how much of it came back.</para>
     ///
-    /// <para>At least one line is always served, even one longer than the
-    /// whole budget. A minified file is a single enormous line, and an
-    /// answer with nothing in it leaves a caller no way forward.</para>
+    /// <para><b>No line is served whatever it costs.</b> That rule was
+    /// meant for a minified file, which is one enormous line, and it sent
+    /// the whole line. A line too long for one answer now comes back in
+    /// pieces, each with the column the next one starts at, so there is
+    /// always a way forward and never an answer over the ceiling.</para>
     /// </summary>
-    public const int DefaultCharCap = 40_000;
-
     public Result<IReadOnlyList<ReadSlice>> Read(ReadRequest request)
     {
         if (request.Paths.Count == 0)
             return Result<IReadOnlyList<ReadSlice>>.Fail(Outcome.Invalid, "no path was given to read");
 
-        var slices = new List<ReadSlice>(request.Paths.Count);
+        if (request.Column is < 1)
+            return Result<IReadOnlyList<ReadSlice>>.Fail(Outcome.Invalid, "column counts from 1");
 
-        // One budget for the call, spent in the order the caller named the
-        // paths. See <see cref="DefaultCharCap"/>.
-        int budget = DefaultCharCap;
+        if (request.Column is not null && request.Tail is not null)
+            return Result<IReadOnlyList<ReadSlice>>.Fail(Outcome.Invalid,
+                "column cannot be combined with tail; column starts the line that from names");
 
+        IMeter meter = request.Meter ?? PlainMeter.Default;
+
+        var paths = new List<ContainedPath>(request.Paths.Count);
         foreach (string given in request.Paths)
         {
             Result<ContainedPath> path = Roots.Resolve(given, Permission.Read);
             if (!path.IsOk) return path.Carry<IReadOnlyList<ReadSlice>>();
+            paths.Add(path.Value);
+        }
 
-            Result<ReadSlice> one = ReadOne(path.Value, request, ref budget);
+        // One budget for the call, spent in the order the caller named the
+        // paths, after every path's own fields are paid for. Paying them
+        // first is what lets a path that gets no lines still say where to
+        // start. See <see cref="Budget"/>.
+        int budget = meter.Room;
+        foreach (ContainedPath path in paths) budget -= meter.Slice(path, int.MaxValue);
+
+        if (budget <= 0)
+            return Result<IReadOnlyList<ReadSlice>>.Fail(Outcome.Invalid,
+                $"{paths.Count} paths will not fit in one answer; read fewer at a time");
+
+        var slices = new List<ReadSlice>(paths.Count);
+        bool imageSent = false;
+
+        foreach (ContainedPath path in paths)
+        {
+            Result<ReadSlice> one = ReadOne(path, request, meter, ref budget, ref imageSent);
             if (!one.IsOk) return one.Carry<IReadOnlyList<ReadSlice>>();
 
-            if (Judge(one.Value, path.Value) is { } refused)
+            if (Judge(one.Value, path) is { } refused)
                 return Result<IReadOnlyList<ReadSlice>>.Fail(refused);
 
             // Numbered after the screen has judged the file's own text,
@@ -434,22 +522,41 @@ public sealed class Bench : IDisposable
             TextIo.HashOf(raw.Value), raw.Value.Length));
     }
 
-    Result<ReadSlice> ReadOne(ContainedPath path, ReadRequest request, ref int budget)
+    Result<ReadSlice> ReadOne(ContainedPath path, ReadRequest request, IMeter meter,
+                              ref int budget, ref bool imageSent)
     {
         FileKind kind = Typed.KindOf(path.Full);
 
         // An image has no lines, so the line machinery below would answer
         // nonsense. It gets its own shape: the facts, and the bytes for
         // whoever can show them.
+        //
+        // ONE IMAGE A CALL, AND NONE OVER THE API'S OWN LIMIT. A client
+        // counts an image against its size limit by a rule it does not
+        // publish, so the only bound that is certain is one image. A path
+        // past the first still answers its facts and says why its bytes
+        // stayed behind, which is a read of that path on its own.
         if (kind == FileKind.Image)
         {
             Result<ImageFacts> image = Typed.ReadImage(path);
             if (!image.IsOk) return image.Carry<ReadSlice>();
 
+            string? withheld =
+                image.Value.Bytes > Budget.ImageCap
+                    ? $"larger than 5 MB ({image.Value.Bytes:N0} bytes), the most one image may be when "
+                      + "it is sent to the model"
+                : imageSent
+                    ? "one image per call; read this path on its own to see it"
+                : null;
+
+            if (withheld is null) imageSent = true;
+
             return Result<ReadSlice>.Ok(new ReadSlice(
                 path, string.Empty, 0, 0, 0, "binary", "none", false, false,
                 TextIo.HashOf(image.Value.Content), image.Value.Bytes,
-                Tree.Facts(path.Full, isDirectory: false), kind, image.Value));
+                Tree.Facts(path.Full, isDirectory: false), kind,
+                withheld is null ? image.Value : image.Value with { Content = [] },
+                Withheld: withheld));
         }
 
         // A member of an archive, and a lone gzip, both arrive as bytes
@@ -511,11 +618,7 @@ public sealed class Bench : IDisposable
 
         int from;
         int to;
-
-        // Which end of the range the caller cares about, so the budget
-        // trims from the other one: a forward read keeps its beginning, a
-        // tail keeps its end - which is the whole of what tail means.
-        bool tailward = request.Tail is not null;
+        int column = request.Column ?? 1;
 
         if (request.Tail is { } tail)
         {
@@ -535,45 +638,112 @@ public sealed class Bench : IDisposable
 
         if (to < from) to = from - 1;
 
-        bool budgeted = false;
+        // One past the last character is a place: the line's ending, when
+        // the cut fell between the text and it.
+        if (column > 1 && (from > file.LineCount || column > file.Lines[from - 1].Text.Length + 1))
+            return Result<ReadSlice>.Fail(Outcome.Invalid,
+                $"column {column} is past the end of line {from}; use the column a next gave",
+                path.Display);
 
-        if (to >= from)
-        {
-            int spent = 0;
-            int kept = 0;
+        Served served = request.Tail is not null
+            ? Tailward(file, from, to, request.Numbered, meter, budget)
+            : Forward(file, from, to, column, request.Numbered, meter, budget);
 
-            for (int i = 0; i <= to - from; i++)
-            {
-                int number = tailward ? to - i : from + i;
-                Line line = file.Lines[number - 1];
-                int cost = line.Text.Length + line.Ending.Length
-                           + (request.Numbered ? PrefixLength(number) : 0);
-
-                // The first line goes whatever it costs. A single line
-                // past the whole budget is a minified file, and returning
-                // an empty answer for one would be a new dead end rather
-                // than a fix for the old one.
-                if (kept > 0 && spent + cost > budget) { budgeted = true; break; }
-
-                spent += cost;
-                kept++;
-            }
-
-            if (tailward) from = to - kept + 1;
-            else to = from + kept - 1;
-
-            budget = Math.Max(0, budget - spent);
-        }
-
-        string text = to < from
-            ? string.Empty
-            : TextIo.Join(file.Lines.Skip(from - 1).Take(to - from + 1));
+        budget = Math.Max(0, budget - served.Spent);
 
         return Result<ReadSlice>.Ok(new ReadSlice(
-            path, text, from, to, file.LineCount, file.EncodingName,
+            path, served.Text, served.From, served.To, file.LineCount, file.EncodingName,
             TextIo.EndingName(file.LineEnding), file.MixedEndings, file.FinalNewline,
             file.Hash, file.Bytes,
-            Tree.Facts(path.Full, isDirectory: false), kind, null, budgeted));
+            Tree.Facts(path.Full, isDirectory: false), kind, null, served.Budgeted,
+            served.Column, served.EndColumn));
+    }
+
+    /// <summary>What part of a range fitted: its lines, the columns at
+    /// either end, and the bytes it cost.</summary>
+    readonly record struct Served(
+        string Text, int From, int To, int Column, int? EndColumn, bool Budgeted, int Spent);
+
+    /// <summary>
+    /// A forward read: whole lines from the start of the range while they
+    /// fit.
+    ///
+    /// <para><b>A line is cut only when nothing else would be
+    /// served.</b> A long line after short ones ends the answer at the
+    /// line boundary, and starts the next one. A line too long for any
+    /// answer is served from its start up to the ceiling, and the column
+    /// after the cut is where the next answer begins. Serving that line
+    /// whole, as this used to, made the answer as large as the line:
+    /// on a saved one-line tool result, as large as the answer that was
+    /// saved.</para>
+    /// </summary>
+    static Served Forward(TextFile file, int from, int to, int column, bool numbered, IMeter meter, int budget)
+    {
+        if (to < from) return new Served(string.Empty, from, to, 1, null, false, 0);
+
+        var text = new StringBuilder();
+        int spent = 0;
+
+        for (int number = from; number <= to; number++)
+        {
+            Line line = file.Lines[number - 1];
+            string rest = number == from ? line.Text[(column - 1)..] : line.Text;
+            int cost = meter.Line(number, rest, line.Ending, numbered);
+
+            if (spent + cost <= budget)
+            {
+                text.Append(rest).Append(line.Ending);
+                spent += cost;
+                continue;
+            }
+
+            if (number > from)
+                return new Served(text.ToString(), from, number - 1, column, null, true, spent);
+
+            // The first line, too long for what is left: its start, cut
+            // where the room runs out. When nothing of it fits - a later
+            // path in a crowded call, since one path alone always has
+            // room - the answer serves no text and still says where the
+            // text is.
+            int fits = Budget.Prefix(rest, budget, s => meter.Line(number, s, string.Empty, numbered));
+            string part = rest[..fits];
+            int cut = meter.Line(number, part, string.Empty, numbered);
+
+            return fits == 0
+                ? new Served(string.Empty, number, number, column, column, true, 0)
+                : new Served(part, number, number, column, column + fits, true, cut);
+        }
+
+        return new Served(text.ToString(), from, to, column, null, false, spent);
+    }
+
+    /// <summary>
+    /// A tail: whole lines from the end of the file backwards while they
+    /// fit, so a trimmed tail keeps its end and gives up its beginning,
+    /// which is the whole of what tail means. When the last line alone is
+    /// too long to send, that line is read forwards from its start, and
+    /// its next carries on through it.
+    /// </summary>
+    static Served Tailward(TextFile file, int from, int to, bool numbered, IMeter meter, int budget)
+    {
+        if (to < from) return new Served(string.Empty, from, to, 1, null, false, 0);
+
+        int spent = 0;
+        int first = to + 1;
+
+        for (int number = to; number >= from; number--)
+        {
+            Line line = file.Lines[number - 1];
+            int cost = meter.Line(number, line.Text, line.Ending, numbered);
+            if (spent + cost > budget) break;
+            spent += cost;
+            first = number;
+        }
+
+        if (first > to) return Forward(file, to, to, 1, numbered, meter, budget);
+
+        string text = TextIo.Join(file.Lines.Skip(first - 1).Take(to - first + 1));
+        return new Served(text, first, to, 1, null, first > from, spent);
     }
 
     /// <summary>The width a line number is printed in: the terminal's
@@ -581,7 +751,7 @@ public sealed class Bench : IDisposable
     /// spelling of a numbered line, on both front ends.</summary>
     public const int NumberWidth = 5;
 
-    static int PrefixLength(int number) =>
+    public static int PrefixLength(int number) =>
         Math.Max(NumberWidth, number.ToString().Length) + " | ".Length;
 
     /// <summary>Each line of <paramref name="text"/> as <c>N | text</c>,
@@ -894,12 +1064,13 @@ public sealed class Bench : IDisposable
     /// Fettler does not undertake to hold it still.
     /// </summary>
     /// <param name="capture">How much of the child's output to keep,
-    /// across both streams. The default, <see cref="DefaultCharCap"/>, is
-    /// the only value a front end passes; it is a parameter so the bound
-    /// can be proven with a small child rather than by producing forty
-    /// thousand characters in a test.</param>
+    /// across both streams, in characters. The default,
+    /// <see cref="Budget.Ceiling"/>, is the only value a front end passes;
+    /// it is a parameter so the bound can be proven with a small child
+    /// rather than by producing forty thousand characters in a
+    /// test.</param>
     public Task<Result<TaskRun>> RunAsync(string name, TimeSpan timeout, CancellationToken cancel = default,
-                                          int capture = DefaultCharCap) =>
+                                          int capture = Budget.Ceiling) =>
         Tasks.RunAsync(Roots, name, timeout, cancel, capture);
 
     // ---- plumbing ----

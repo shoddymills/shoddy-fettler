@@ -336,16 +336,24 @@ public static class Tasks
     ///
     /// <para><b>The answer is bounded like every other answer</b>: at most
     /// <paramref name="capture"/> characters across both streams, the
-    /// 40,000 of <see cref="Bench.DefaultCharCap"/> unless a test proves
-    /// the bound with a smaller one. A <c>read</c> that stops can be
-    /// continued, because the file is still there. A task's output is
-    /// gone when the call returns, and running the task again is not a
-    /// way to see more of it, so the cut keeps the END - where a build or
-    /// a test run says what went wrong - and counts what it left out.</para>
+    /// <see cref="Budget.Ceiling"/> unless a test proves the bound with a
+    /// smaller one. A character is at least a byte, so no more than that
+    /// could ever fit in an answer; the front end then cuts to the bytes
+    /// it writes. A <c>read</c> that stops can be continued, because the
+    /// file is still there. A task's output is gone when the call returns,
+    /// and running the task again is not a way to see more of it, so the
+    /// cut keeps the END - where a build or a test run says what went
+    /// wrong - and counts what it left out.</para>
+    ///
+    /// <para><b>Colour codes are removed.</b> A terminal colour code is an
+    /// escape character and a few more, which a JSON answer writes as six
+    /// bytes for the escape alone. A build log coloured on every line
+    /// spent a third of its room on them, and they carry nothing a model
+    /// can use.</para>
     /// </summary>
     public static async Task<Result<TaskRun>> RunAsync(
         Roots roots, string name, TimeSpan timeout, CancellationToken cancel,
-        int capture = Bench.DefaultCharCap)
+        int capture = Budget.Ceiling)
     {
         Result<TaskDecl> found = Find(roots, name);
         if (!found.IsOk) return found.Carry<TaskRun>();
@@ -429,8 +437,8 @@ public static class Tasks
         }
 
         (Captured output, Captured error) = Share(
-            await Settled(readOut, DrainGrace).ConfigureAwait(false),
-            await Settled(readErr, DrainGrace).ConfigureAwait(false),
+            Uncoloured(await Settled(readOut, DrainGrace).ConfigureAwait(false)),
+            Uncoloured(await Settled(readErr, DrainGrace).ConfigureAwait(false)),
             capture);
         stopwatch.Stop();
 
@@ -539,23 +547,53 @@ public static class Tasks
     /// rest to the other, so a quiet stderr costs a flooding stdout
     /// nothing. Whatever is cut comes off the front.</para>
     /// </summary>
-    public static (Captured Output, Captured Error) Share(Captured output, Captured error, int cap)
+    public static (Captured Output, Captured Error) Share(Captured output, Captured error, int cap) =>
+        Share(output, error, cap, text => text.Length);
+
+    /// <summary>
+    /// The same sharing, with each stream measured by
+    /// <paramref name="cost"/>: the bytes it takes as written, when the
+    /// front end cuts to what it sends.
+    /// </summary>
+    public static (Captured Output, Captured Error) Share(
+        Captured output, Captured error, int room, Func<string, int> cost)
     {
-        int half = cap / 2;
-        int forOutput = Math.Min(output.Text.Length, Math.Max(half, cap - error.Text.Length));
-        int forError = Math.Min(error.Text.Length, cap - forOutput);
-        return (Keep(output, forOutput), Keep(error, forError));
+        int half = room / 2;
+        int outputNeeds = cost(output.Text);
+        int errorNeeds = cost(error.Text);
+
+        int forOutput = Math.Min(outputNeeds, Math.Max(half, room - errorNeeds));
+        int forError = Math.Min(errorNeeds, room - Math.Min(outputNeeds, forOutput));
+
+        Captured keptOutput = Keep(output, Budget.Suffix(output.Text, forOutput, cost));
+        Captured keptError = Keep(error, Budget.Suffix(error.Text, room - cost(keptOutput.Text), cost));
+        return (keptOutput, keptError);
     }
 
-    /// <summary>The last <paramref name="count"/> characters of a stream,
-    /// never starting on the second half of a surrogate pair.</summary>
+    /// <summary>The last <paramref name="count"/> characters of a stream.
+    /// <see cref="Budget.Suffix"/> already never starts on the second half
+    /// of a surrogate pair.</summary>
     static Captured Keep(Captured stream, int count)
     {
         int start = stream.Text.Length - count;
         if (start <= 0) return stream;
-        if (start < stream.Text.Length && char.IsLowSurrogate(stream.Text[start])) start++;
         return new Captured(stream.Text[start..], stream.Omitted + start);
     }
+
+    /// <summary>
+    /// A stream with its terminal colour and cursor codes taken out: an
+    /// escape, a bracket, any parameters, and the letter that ends it. A
+    /// code cut in half by the front of the capture leaves its tail
+    /// behind as text, which is harmless and says what it was.
+    /// </summary>
+    static Captured Uncoloured(Captured stream) =>
+        stream.Text.Contains('\u001b')
+            ? stream with { Text = Colour.Replace(stream.Text, string.Empty) }
+            : stream;
+
+    static readonly System.Text.RegularExpressions.Regex Colour = new(
+        @"\u001b(\[[0-?]*[ -/]*[@-~]|\][^\u0007\u001b]*(\u0007|\u001b\\)?|[@-Z\\-_])",
+        System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
     /// <summary>A task killed mid-flight leaves its whole process tree
     /// behind unless the tree is what gets killed.</summary>

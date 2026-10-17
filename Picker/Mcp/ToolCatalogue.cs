@@ -26,22 +26,24 @@ public static class ToolCatalogue
             {"type":"object","properties":{}}
             """),
 
-        new("objects", "List tables and views matching a pattern, limited to the ones the grant allows. PATTERN is schema.object or a bare object name; * stays inside its segment.", """
+        new("objects", "List tables and views matching a pattern, limited to the ones the grant allows. PATTERN is schema.object or a bare object name; * stays inside its segment. An answer that stops short gives next; pass it back as after for the rest.", """
             {"type":"object","properties":{
-              "pattern":{"type":"string","description":"schema.object or a bare object name; * stays inside its segment; omit for everything"}
+              "pattern":{"type":"string","description":"schema.object or a bare object name; * stays inside its segment; omit for everything"},
+              "after":{"type":"string","description":"the next the last answer gave"}
             }}
             """),
 
-        new("select", "Run one SELECT statement. Tables and views only. Every name must resolve inside the declared databases, and every column must be allowed by the grant; * expands to the allowed columns. There is no default database and no USE: qualify names, or use a name that is unique. Rows come back as records with the column list. A truncated answer says so; narrow it with TOP, WHERE or OFFSET.", """
+        new("select", "Run one SELECT statement. Tables and views only. Every name must resolve inside the declared databases, and every column must be allowed by the grant; * expands to the allowed columns. There is no default database and no USE: qualify names, or use a name that is unique. Rows come back as records with the column list. Every answer stops at 40,000 bytes. A truncated answer says so; narrow it with TOP, WHERE or OFFSET. A single row too wide for one answer is refused; select fewer columns or a substring.", """
             {"type":"object","required":["sql"],"properties":{
               "sql":{"type":"string","description":"one SELECT statement"},
               "limit":{"type":"integer","description":"maximum rows for this call; the answer says if it was reached"}
             }}
             """),
 
-        new("describe", "List the columns, keys and indexes of one table or view, limited by the grant. A view's definition text is never returned. The answer carries a hash, so a later call can check for changes cheaply.", """
+        new("describe", "List the columns, keys and indexes of one table or view, limited by the grant. A view's definition text is never returned. The answer carries a hash of the whole shape, so a later call can check for changes cheaply. An answer that stops short gives next; pass it back as after for the rest.", """
             {"type":"object","required":["name"],"properties":{
-              "name":{"type":"string","description":"the object: Customers, dbo.Customers, or Sales.dbo.Customers"}
+              "name":{"type":"string","description":"the object: Customers, dbo.Customers, or Sales.dbo.Customers"},
+              "after":{"type":"string","description":"the next the last answer gave"}
             }}
             """),
 
@@ -63,6 +65,12 @@ public static class ToolCatalogue
             w.WritePropertyName("inputSchema");
             using JsonDocument schema = JsonDocument.Parse(tool.Schema);
             schema.RootElement.WriteTo(w);
+
+            // The ceiling, said to the client as well, as Fettler says it.
+            w.WriteStartObject("_meta");
+            w.WriteNumber("anthropic/maxResultSizeChars", Budget.Ceiling);
+            w.WriteEndObject();
+
             w.WriteEndObject();
         }
 
@@ -105,6 +113,7 @@ public static class ToolCatalogue
         {
             case "objects":
                 Positional("pattern");
+                Flag("after", "after");
                 break;
             case "select":
                 Positional("sql");
@@ -112,6 +121,7 @@ public static class ToolCatalogue
                 break;
             case "describe":
                 Positional("name");
+                Flag("after", "after");
                 break;
         }
 
@@ -120,9 +130,9 @@ public static class ToolCatalogue
 
         // The complete machine-readable answer, failures included, is
         // already on stdout - so the tool result is that text VERBATIM
-        // whichever way it went, and the server marks isError from the
-        // exit code.
-        isError?.Invoke(result.ExitCode != ExitCodes.Ok);
+        // whichever way it went, and the server marks isError when the
+        // operation did not do what was asked.
+        isError?.Invoke(result.Failed);
         return Result<string>.Ok(result.Stdout.TrimEnd());
     }
 }

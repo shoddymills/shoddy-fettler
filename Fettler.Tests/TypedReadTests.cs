@@ -350,9 +350,14 @@ public sealed class TypedReadTests
 
         CliResult json = await Run(box, "read", "long.txt", "--from", "1", "--to", "2500", "--json");
         JsonElement file = JsonDocument.Parse(json.Stdout).RootElement.GetProperty("files")[0];
+        int to = file.GetProperty("to").GetInt32();
 
-        Assert.Equal(2500, file.GetProperty("to").GetInt32());
-        Assert.False(file.GetProperty("truncated").GetBoolean());
+        // Past the line cap, so the range lifted it. Short of the range,
+        // because 2500 numbered lines are more than one answer holds, and
+        // the answer says so and where to carry on.
+        Assert.True(to > Bench.DefaultLineCap, $"to was {to}");
+        Assert.True(file.GetProperty("budgeted").GetBoolean());
+        Assert.Equal(to + 1, file.GetProperty("next").GetProperty("from").GetInt32());
     }
 
     [Fact]
@@ -425,8 +430,8 @@ public sealed class TypedReadTests
                      file.GetProperty("text").GetString());
     }
 
-    /// <summary>200 lines of 200 characters: the whole budget exactly, a
-    /// tenth of the line cap, and the file is twice that.</summary>
+    /// <summary>Lines of 200 characters: 200 of them are about the whole
+    /// ceiling, a tenth of the line cap.</summary>
     static string Wide(int lines) =>
         string.Join("", Enumerable.Range(1, lines).Select(_ => new string('x', 199) + "\n"));
 
@@ -445,12 +450,15 @@ public sealed class TypedReadTests
         CliResult json = await Run(box, "read", "wide.txt", "--json");
         JsonElement file = JsonDocument.Parse(json.Stdout).RootElement.GetProperty("files")[0];
 
+        int to = file.GetProperty("to").GetInt32();
+
         Assert.Equal(400, file.GetProperty("lines").GetInt32());
-        Assert.Equal(200, file.GetProperty("to").GetInt32());
-        Assert.Equal(200, file.GetProperty("lines_remaining").GetInt32());
+        Assert.InRange(to, 150, 199);
+        Assert.Equal(400 - to, file.GetProperty("lines_remaining").GetInt32());
+        Assert.Equal(to + 1, file.GetProperty("next").GetProperty("from").GetInt32());
         Assert.True(file.GetProperty("truncated").GetBoolean());
         Assert.True(file.GetProperty("budgeted").GetBoolean());
-        Assert.Equal(Bench.DefaultCharCap, file.GetProperty("text").GetString()!.Length);
+        Assert.True(System.Text.Encoding.UTF8.GetByteCount(json.Stdout) <= Budget.Ceiling);
 
         // And the human form says which cap stopped it, because "pass
         // --to for more" is bad advice when the range was never the
@@ -475,7 +483,7 @@ public sealed class TypedReadTests
         CliResult json = await Run(box, "read", "wide.txt", "--from", "1", "--to", "400", "--json");
         JsonElement file = JsonDocument.Parse(json.Stdout).RootElement.GetProperty("files")[0];
 
-        Assert.Equal(200, file.GetProperty("to").GetInt32());
+        Assert.True(file.GetProperty("to").GetInt32() < 200);
         Assert.True(file.GetProperty("budgeted").GetBoolean());
     }
 
@@ -494,32 +502,38 @@ public sealed class TypedReadTests
         CliResult json = await Run(box, "read", "first.txt", "second.txt", "--json");
         JsonElement files = JsonDocument.Parse(json.Stdout).RootElement.GetProperty("files");
 
-        Assert.Equal(200, files[0].GetProperty("to").GetInt32());
+        Assert.True(files[0].GetProperty("to").GetInt32() < 200);
+        Assert.True(System.Text.Encoding.UTF8.GetByteCount(json.Stdout) <= Budget.Ceiling);
 
-        // The first path spent it all, so the second gets the one line
-        // that is always served, and says the rest is still there.
-        Assert.Equal(1, files[1].GetProperty("to").GetInt32());
-        Assert.Equal(399, files[1].GetProperty("lines_remaining").GetInt32());
+        // The first path spent nearly all of it, so the second gets what
+        // little is left, which is part of its first line at most, and
+        // says where it is.
+        Assert.Equal(1, files[1].GetProperty("next").GetProperty("from").GetInt32());
         Assert.True(files[1].GetProperty("budgeted").GetBoolean());
     }
 
     /// <summary>
     /// A minified file is one enormous line. Serving nothing back would
-    /// be a new dead end rather than a fix for the old one, so the first
-    /// line goes whatever it costs.
+    /// be a dead end, and serving the whole line made the answer as large
+    /// as the file. The line comes back in pieces, each saying the column
+    /// the next one starts at.
     /// </summary>
     [Fact]
-    public async Task OneLineLongerThanTheWholeBudgetIsStillServed()
+    public async Task OneLineLongerThanTheWholeBudgetIsServedInPieces()
     {
         using var box = new Sandbox();
-        box.Write("minified.js", new string('z', Bench.DefaultCharCap * 2) + "\n");
+        box.Write("minified.js", new string('z', Budget.Ceiling * 2) + "\n");
 
         CliResult json = await Run(box, "read", "minified.js", "--json");
         JsonElement file = JsonDocument.Parse(json.Stdout).RootElement.GetProperty("files")[0];
+        string text = file.GetProperty("text").GetString()!;
 
         Assert.Equal(1, file.GetProperty("to").GetInt32());
-        Assert.False(file.GetProperty("truncated").GetBoolean());
-        Assert.Equal((Bench.DefaultCharCap * 2) + 1, file.GetProperty("text").GetString()!.Length);
+        Assert.True(file.GetProperty("truncated").GetBoolean());
+        Assert.True(text.Length < Budget.Ceiling);
+        Assert.Equal(1, file.GetProperty("next").GetProperty("from").GetInt32());
+        Assert.Equal(text.Length + 1, file.GetProperty("next").GetProperty("column").GetInt32());
+        Assert.True(System.Text.Encoding.UTF8.GetByteCount(json.Stdout) <= Budget.Ceiling);
     }
 
     /// <summary>
@@ -539,7 +553,7 @@ public sealed class TypedReadTests
         JsonElement file = JsonDocument.Parse(json.Stdout).RootElement.GetProperty("files")[0];
 
         Assert.Equal(400, file.GetProperty("to").GetInt32());
-        Assert.Equal(201, file.GetProperty("from").GetInt32());
+        Assert.True(file.GetProperty("from").GetInt32() > 200);
         Assert.True(file.GetProperty("budgeted").GetBoolean());
         Assert.Contains("   400", file.GetProperty("text").GetString());
     }
@@ -555,15 +569,17 @@ public sealed class TypedReadTests
     {
         using var box = new Sandbox();
         box.Write("wide.txt", string.Join("", Enumerable.Range(1, 150)
-            .Select(_ => "needle " + new string('x', 993) + "\n")));
+            .Select(_ => new string('x', 500) + "needle" + new string('x', 500) + "\n")));
 
         CliResult json = await Run(box, "search", "needle", "--json");
         JsonElement root = JsonDocument.Parse(json.Stdout).RootElement;
 
-        // Forty thousand characters of hit text, at a thousand apiece -
-        // and nowhere near the two hundred hits `limit` would have
-        // allowed.
-        Assert.Equal(40, root.GetProperty("hits_count").GetInt32());
+        // Each hit is the match and a window either side, about four
+        // hundred characters, and the answer still fills before the two
+        // hundred hits `limit` would have allowed.
+        Assert.True(root.GetProperty("hits_count").GetInt32() < 150);
         Assert.True(root.GetProperty("truncated").GetBoolean());
+        Assert.StartsWith("wide.txt:", root.GetProperty("next").GetString());
+        Assert.True(System.Text.Encoding.UTF8.GetByteCount(json.Stdout) <= Budget.Ceiling);
     }
 }

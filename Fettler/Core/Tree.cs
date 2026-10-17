@@ -80,6 +80,10 @@ public sealed record Bounded<T>(IReadOnlyList<T> Items, bool Truncated, int Excl
     public int Count => Items.Count;
 }
 
+/// <summary>A place in a sorted listing: everything after it comes
+/// next. <c>Modified</c> is set when the listing is newest first.</summary>
+public sealed record Cursor(string Path, DateTimeOffset? Modified);
+
 /// <summary>
 /// Walking a root, and the <c>find</c> of R4.6 and R4.17 over it.
 /// </summary>
@@ -102,7 +106,8 @@ public static class Tree
         Excludes excludes,
         DateTimeOffset? since,
         int limit,
-        bool byModified)
+        bool byModified,
+        Cursor? after = null)
     {
         string root = roots.PathOf(rootName);
         var found = new List<FoundFile>();
@@ -136,10 +141,58 @@ public static class Tree
             }
         : (a, b) => string.CompareOrdinal(a.Path.Display, b.Path.Display));
 
+        // A page starts after the place the last one stopped, in the same
+        // order, so a listing read page by page names every file once.
+        if (after is not null) found.RemoveAll(f => !Follows(f, after));
+
         bool truncated = limit > 0 && found.Count > limit;
         if (truncated) found.RemoveRange(limit, found.Count - limit);
 
         return new Bounded<FoundFile>(found, truncated, excluded);
+    }
+
+    /// <summary>
+    /// Where a listing stopped, as the <c>next</c> of its answer: the path,
+    /// or for a listing sorted newest first, the time and then the path.
+    ///
+    /// <para>A file modified between two pages moves in a listing sorted
+    /// by time, so the second page can miss it or show it again. That is
+    /// the order the caller asked for, and the position says what it is
+    /// a position in.</para>
+    /// </summary>
+    public static string Position(FoundFile file, bool byModified) =>
+        byModified
+            ? file.Modified.UtcDateTime.ToString("o", System.Globalization.CultureInfo.InvariantCulture)
+              + " " + file.Path.Display
+            : file.Path.Display;
+
+    /// <summary>A <see cref="Position"/> read back, or null when it is not
+    /// one.</summary>
+    public static Cursor? Place(string position, bool byModified)
+    {
+        if (!byModified) return position.Length > 0 ? new Cursor(position, null) : null;
+
+        int space = position.IndexOf(' ');
+        if (space <= 0 || space == position.Length - 1) return null;
+
+        return DateTimeOffset.TryParse(position[..space], System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.RoundtripKind,
+                out DateTimeOffset when)
+            ? new Cursor(position[(space + 1)..], when)
+            : null;
+    }
+
+    /// <summary>Whether a file comes after a cursor, in the order the
+    /// listing is sorted in.</summary>
+    static bool Follows(FoundFile file, Cursor after)
+    {
+        if (after.Modified is { } when)
+        {
+            int t = when.CompareTo(file.Modified);
+            if (t != 0) return t > 0;
+        }
+
+        return string.CompareOrdinal(file.Path.Display, after.Path) > 0;
     }
 
     static void Walk(

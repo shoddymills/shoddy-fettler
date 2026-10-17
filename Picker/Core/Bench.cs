@@ -43,7 +43,10 @@ public sealed record CatalogsAnswer(
     public IReadOnlyList<string> Open { get; init; } = [];
 }
 
-public sealed record ObjectsAnswer(IReadOnlyList<ListedObject> Objects, bool Truncated);
+/// <summary>A page of an objects listing. <c>Next</c> is how many
+/// objects come before the first one not shown, the <c>after</c> for the
+/// next page, or null when the listing is complete.</summary>
+public sealed record ObjectsAnswer(IReadOnlyList<ListedObject> Objects, bool Truncated, int? Next = null);
 
 public sealed record SelectAnswer(
     Table Table, string Ran, IReadOnlyList<string> Objects);
@@ -144,8 +147,18 @@ public sealed class Bench : IDisposable
     /// the find answer, translated. A hidden object is not a row here,
     /// and not a count either.
     /// </summary>
+    /// <param name="after">How many matching objects earlier pages
+    /// listed: the <c>next</c> the last page gave. A position in the
+    /// listing as it stood, so an object added or dropped between pages
+    /// moves the rest; list again from the start to be sure.</param>
+    /// <param name="cost">How big each row is once written, so the page
+    /// is cut to fit before the screen judges it. Null for a caller with
+    /// no front end.</param>
+    /// <param name="next">What the answer adds when it stops short: the
+    /// position to carry on from.</param>
     public async Task<Result<ObjectsAnswer>> ObjectsAsync(
-        string? pattern, CancellationToken cancel = default)
+        string? pattern, CancellationToken cancel = default, int after = 0,
+        Func<ListedObject, int>? cost = null, int room = Budget.Ceiling, Func<int, int>? next = null)
     {
         ObjectPattern? shaped = null;
         string? bare = null;
@@ -165,8 +178,9 @@ public sealed class Bench : IDisposable
         }
 
         var listed = new List<ListedObject>();
+        var screens = new List<Screened>();
         bool truncated = false;
-        Screened screen = Screened.None;
+        int skipped = 0;
 
         var all = await resolver.DatabasesAsync(cancel).ConfigureAwait(false);
         if (!all.IsOk) return all.Carry<ObjectsAnswer>();
@@ -187,6 +201,12 @@ public sealed class Bench : IDisposable
                 (Verb can, Screened screened, ColumnRule columns, _) = database.At(o.Schema, o.Name);
                 if (!can.HasFlag(Verb.List)) continue;
 
+                if (skipped < after)
+                {
+                    skipped++;
+                    continue;
+                }
+
                 if (listed.Count >= ListingCap)
                 {
                     truncated = true;
@@ -196,11 +216,22 @@ public sealed class Bench : IDisposable
                 int visible = o.Columns.Count(c => columns.Allows(c.Name));
                 listed.Add(new ListedObject(
                     database.Name, o.Schema, o.Name, o.IsView, visible, can));
-                screen |= screened;
+                screens.Add(screened);
             }
 
             if (truncated) break;
         }
+
+        // Cut to the room the front end measured, BEFORE the screen
+        // judges, so the screen judges exactly the rows that are sent.
+        int shown = cost is null
+            ? listed.Count
+            : Budget.Fit(listed, room, cost, next is null ? null : _ => next(after + listed.Count), truncated);
+        bool cut = shown < listed.Count || truncated;
+        listed = listed[..shown];
+
+        Screened screen = Screened.None;
+        foreach (Screened s in screens.Take(shown)) screen |= s;
 
         var payload = new StringBuilder();
         foreach (ListedObject o in listed)
@@ -210,7 +241,7 @@ public sealed class Bench : IDisposable
         if (Disclosure.Check(payload.ToString(), screen, screener) is { } refused)
             return Result<ObjectsAnswer>.Fail(refused);
 
-        return Result<ObjectsAnswer>.Ok(new ObjectsAnswer(listed, truncated));
+        return Result<ObjectsAnswer>.Ok(new ObjectsAnswer(listed, cut, cut ? after + shown : null));
     }
 
     static bool BareMatches(string pattern, string name)
@@ -223,8 +254,12 @@ public sealed class Bench : IDisposable
 
     // ---- select ----
 
+    /// <param name="meter">How big the answer and each row are once
+    /// written, so the rows are cut to fit before the screen judges them.
+    /// Null for a caller with no front end.</param>
     public async Task<Result<SelectAnswer>> SelectAsync(
-        string sql, int? limit = null, CancellationToken cancel = default)
+        string sql, int? limit = null, CancellationToken cancel = default,
+        ISelectMeter? meter = null)
     {
         Result<Approved> approved =
             await Gate.ApproveAsync(sql, resolver, cancel).ConfigureAwait(false);
@@ -248,22 +283,44 @@ public sealed class Bench : IDisposable
         ServerDecl on = servers.Count == 1 ? servers[0] : boundary.Servers[0];
 
         int rowCap = Math.Clamp(limit ?? SqlData.DefaultRowCap, 1, 10_000);
-        Result<Table> table = await queries
+        Result<Table> queried = await queries
             .QueryAsync(on, approved.Value.Sql, rowCap, cancel).ConfigureAwait(false);
-        if (!table.IsOk) return table.Carry<SelectAnswer>();
+        if (!queried.IsOk) return queried.Carry<SelectAnswer>();
 
-        // The payload under judgement is the serialized response,
-        // exactly as a caller would see it - cell values in row context.
-        if (Disclosure.Check(
-            Serialized(table.Value), approved.Value.Screen, screener) is { } refused)
-            return Result<SelectAnswer>.Fail(refused);
+        Table table = queried.Value;
 
         var displays = new List<string>();
         foreach (ResolvedObject o in approved.Value.Objects)
             if (!displays.Contains(o.Display)) displays.Add(o.Display);
 
+        // Cut to the room the front end measured, before the screen
+        // judges, so the screen judges exactly the rows that are sent. A
+        // row cannot be split across answers, so one too wide for any
+        // answer is refused with what to do about it.
+        if (meter is not null && table.Rows.Count > 0)
+        {
+            IReadOnlyList<ColumnFact> columns = table.Columns;
+            int room = Budget.Ceiling - meter.Envelope(columns, approved.Value.Sql, displays);
+            int fit = Budget.Fit(table.Rows, room, row => meter.Row(columns, row));
+
+            if (fit == 0)
+                return Result<SelectAnswer>.Fail(Outcome.Refused,
+                    $"one row of this result is {meter.Row(columns, table.Rows[0]):N0} bytes, more than one "
+                    + $"answer holds ({Math.Max(0, room):N0} bytes left for rows). Select fewer columns, or a "
+                    + "substring of a long one with LEFT or SUBSTRING");
+
+            if (fit < table.Rows.Count)
+                table = table with { Rows = [.. table.Rows.Take(fit)], Truncated = true };
+        }
+
+        // The payload under judgement is the serialized response,
+        // exactly as a caller would see it - cell values in row context.
+        if (Disclosure.Check(
+            Serialized(table), approved.Value.Screen, screener) is { } refused)
+            return Result<SelectAnswer>.Fail(refused);
+
         return Result<SelectAnswer>.Ok(
-            new SelectAnswer(table.Value, approved.Value.Sql, displays));
+            new SelectAnswer(table, approved.Value.Sql, displays));
     }
 
     /// <summary>The canonical serialization the screen judges: JSON

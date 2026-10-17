@@ -238,6 +238,39 @@ public sealed class DefectTests
         Assert.Contains(RootsFile.FileName, instructions);
     }
 
+    /// <summary>
+    /// An assistant left to itself reads one file a call, searches one
+    /// pattern a call, and waits for each answer before sending the next
+    /// call that did not need it. Each of those is a turn. The server's
+    /// instructions and the block <c>setup</c> writes both say, in so many
+    /// words, to do several things in one call and to send independent
+    /// calls together, and to feed each answer into the next call.
+    /// </summary>
+    [Fact]
+    public async Task TheInstructionsTeachBatchingAndFeedingAnswersForward()
+    {
+        using var box = new Sandbox();
+        using var server = new McpServer(box.Bench, TextReader.Null, TextWriter.Null);
+
+        string? reply = await server.AnswerAsync("""
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}
+            """);
+
+        string instructions = JsonDocument.Parse(reply!).RootElement
+            .GetProperty("result").GetProperty("instructions").GetString()!;
+
+        foreach (string said in new[] { instructions, Fettler.Clients.Scaffold.ToolsParagraph })
+        {
+            Assert.Contains("several paths", said);
+            Assert.Contains("several patterns", said);
+            Assert.Contains("batch", said);
+            Assert.Contains("together", said);
+            Assert.Contains("expect", said);
+            Assert.Contains("after", said);
+        }
+    }
+
+
     [Fact]
     public async Task ThePerVerbDescriptionsSayItToo()
     {

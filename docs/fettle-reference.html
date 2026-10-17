@@ -112,18 +112,18 @@
 
 <table>
 <tr><th>Verb</th><th>What it answers</th></tr>
-<tr><td><code>find</code></td><td>paths matching a glob, with size and modified time</td></tr>
-<tr><td><code>search</code></td><td>matching lines as records (path, line, column, text) for several patterns at once. A hit inside a <a href="#documents">document</a> also carries the page it sits on</td></tr>
-<tr><td><code>read</code></td><td>content, encoding, line ending, trailing-newline state and a hash, for several paths at once, and <a href="#types">notebooks, PDFs, images and archives</a>. <code>--tail N</code> for the end of a log; <code>--member NAME</code> for one entry inside an archive; <code>--numbered</code> for the text with line numbers</td></tr>
+<tr><td><code>find</code></td><td>paths matching a glob, with size and modified time. An answer that stops short gives <code>next</code>, and <code>--after NEXT</code> carries on</td></tr>
+<tr><td><code>search</code></td><td>matching lines as records (path, line, column, text) for several patterns at once. A hit inside a <a href="#documents">document</a> also carries the page it sits on. A long line is <a href="#ceiling">cut to the match</a>. <code>--count</code> is exact, and <code>--files-only</code> names each file once with its hits. An answer that stops short gives <code>next</code>, and <code>--after NEXT</code> carries on</td></tr>
+<tr><td><code>read</code></td><td>content, encoding, line ending, trailing-newline state and a hash, for several paths at once, and <a href="#types">notebooks, PDFs, images and archives</a>. <code>--tail N</code> for the end of a log; <code>--member NAME</code> for one entry inside an archive; <code>--numbered</code> for the text with line numbers; <code>--column N</code> to start the first line part way along, from a <code>next</code></td></tr>
 <tr><td><code>write</code></td><td>the file created or replaced</td></tr>
 <tr><td><code>edit</code></td><td>a batch applied, or the first edit that failed. The script comes inline, from <code>--script FILE</code>, or from a file in a tree named by <code>--script-path</code> (<code>script_path</code> over MCP)</td></tr>
-<tr><td><code>replace</code></td><td>one substitution everywhere it appears across a glob</td></tr>
+<tr><td><code>replace</code></td><td>one substitution everywhere it appears across a glob. The totals are exact. A dry run whose list stops short gives <code>next</code>, and <code>--after NEXT</code> lists the rest</td></tr>
 <tr><td><code>new</code> / <code>mkdir</code></td><td>an empty file; a directory</td></tr>
 <tr><td><code>move</code> / <code>copy</code> / <code>delete</code></td><td>the operation, and what guarantee it gave</td></tr>
 <tr><td><code>extract</code></td><td>an archive unpacked into a declared tree, or refused whole, with nothing written</td></tr>
 <tr><td><code>exec</code></td><td>the executable bit, set or cleared</td></tr>
 <tr><td><code>roots</code></td><td>the levels that are on, then the open trees: their paths, <b>what may be done in each</b>, which one an unqualified path lands in, and the <a href="#branch">branch</a> of a declared tree that is a checkout. The trees fettle opened itself are listed last, under <code>found by fettle</code>, each with how it was found</td></tr>
-<tr><td><code>tasks</code> / <code>run</code></td><td>the declared tasks; one of them, with its streams and exit code. The streams keep their last 40,000 characters between them. Guardrails only</td></tr>
+<tr><td><code>tasks</code> / <code>run</code></td><td>the declared tasks; one of them, with its streams and exit code. The streams keep the end of their output that fits in <a href="#task-output">one answer</a>, with terminal colour codes removed. Guardrails only</td></tr>
 <tr><td><code>batch</code></td><td>several operations sent as one. The script comes the same three ways as <code>edit</code>'s</td></tr>
 <tr><td><code>doctor</code></td><td>one section per level. Whether this tool is wired into each client, and, for each level that is on, <a href="#findings">what goes round it</a></td></tr>
 <tr><td><code>setup</code></td><td>the files for one level, written. The level is the first word. The one verb an assistant is not offered</td></tr>
@@ -224,8 +224,9 @@ printf '%s\n' "$out"</code></pre></div>
 
 <ul>
 <li><b><code>read</code> stops at 2000 lines</b> unless <code>--to</code> says otherwise, and says how many are left. <code>find</code> stops at a thousand, <code>search</code> at two hundred.</li>
-<li><b><code>read</code> also stops at 40,000 characters, which <code>--to</code> does <em>not</em> lift.</b> Those two caps are in different units on purpose. A line cap bounds how much of a file you asked for. A character cap bounds how much of it survives the trip, and lines vary in length by two orders of magnitude. A 593-line page, well under the line cap, was still large enough for a caller to reject the answer whole. <b>A rejected answer costs a turn and returns nothing</b>, which is worse than a short one. So the size is measured here, and the answer comes back short and says what is left. The budget is spent across the whole call rather than per path, and at least one line is always served. A minified file is a single enormous line, and an empty answer is a dead end rather than a smaller answer.</li>
-<li><b><code>--numbered</code> puts the line numbers in the text</b>, in the form the terminal prints: <code>N | text</code>, with N right-aligned in five columns. The prefix counts toward the 40,000-character cap, so a numbered read of a large file stops earlier. The hash is still the file's, and an edit may present it as <code>expect</code>. The numbered text is a rendering, not the file's content, so leave the prefix out of an edit. A rendered document is numbered by rendered line.</li>
+<li><b><code>read</code> also stops at <a href="#ceiling">40,000 bytes</a>, which <code>--to</code> does <em>not</em> lift.</b> Those two caps are in different units on purpose. A line cap bounds how much of a file you asked for. A byte cap bounds how much of it survives the trip, and lines vary in length by two orders of magnitude. The limit is spent across the whole call rather than per path. An answer that stops short gives <code>next</code>: the line to carry on from, and the column when it stopped part way along one.</li>
+<li><b>A line too long for one answer comes back in pieces.</b> A minified file is one enormous line, and so is a saved tool result. The answer serves the start of the line, and <code>next</code> gives <code>--from N --column C</code> for the rest. A long line after short ones is not cut. The answer stops before it, and the next answer starts with it.</li>
+<li><b><code>--numbered</code> puts the line numbers in the text</b>, in the form the terminal prints: <code>N | text</code>, with N right-aligned in five columns. The prefix counts toward the 40,000-byte limit, so a numbered read of a large file stops earlier. The hash is still the file's, and an edit may present it as <code>expect</code>. The numbered text is a rendering, not the file's content, so leave the prefix out of an edit. A rendered document is numbered by rendered line.</li>
 <li><b><code>--tail N</code> is the end of the file</b>, counted backwards. Reaching the end of a log or a build transcript needs neither its length nor any arithmetic. It cannot be combined with <code>--from</code>/<code>--to</code>. The end of a file and a named range are two different questions, and answering one of them by precedence would be a confident wrong answer rather than an error.</li>
 <li><b>A notebook's non-text output is measured rather than pasted.</b> One output cell routinely holds a megabyte of encoded image data that nobody can see.</li>
 <li><b>A document is searched, not only read.</b> A PDF in the path of a <code>search</code> is rendered and matched along with everything else, and a hit inside one cites its page. <a href="#documents">Searching inside one</a> says what that costs.</li>
@@ -331,9 +332,30 @@ extracted 3 members (79609517 bytes) from work:fettle-1.0.0-win-x64.zip into wor
 <tr><td><b>Regular expressions</b></td><td>.NET's dialect, which is neither PCRE nor ripgrep's, under a bound: non-backtracking where the pattern allows, an explicit timeout where it does not.</td></tr>
 <tr><td><b>Encoding</b></td><td>a byte-order mark decides and is preserved. Absent one, content that decodes as UTF-8 is UTF-8. Anything else is binary and refused. No statistical guess, because a wrong guess corrupts a file on the way out.</td></tr>
 <tr><td><b>Ordering</b></td><td>results are ordered before any limit, so a truncated result is the same truncation twice, and says it was truncated.</td></tr>
-<tr><td><b>Bounds</b></td><td>every answer is bounded twice. The first bound is a count: 2000 lines for <code>read</code>, 1000 files for <code>find</code>, 200 hits for <code>search</code>. The second is <b>40,000 characters of text</b>, because one line or one hit can be a thousand characters and a count is a poor proxy for a size. Naming an explicit range lifts the first and never the second. <code>run</code> has only the second, shared by stdout and stderr. Either way the answer says it was cut, and <code>read</code> says which of the two did it.</td></tr>
+<tr><td><b>Bounds</b></td><td>every answer is bounded twice. The first bound is a count: 2000 lines for <code>read</code>, 1000 files for <code>find</code>, 200 hits for <code>search</code>. The second is <b><a href="#ceiling">40,000 bytes</a></b> of the answer as written, because one line or one hit can be a thousand characters and a count is a poor proxy for a size. Naming an explicit range lifts the first and never the second. <code>run</code> has only the second, shared by stdout and stderr. Either way the answer says it was cut, and <code>read</code> says which of the two did it.</td></tr>
 <tr><td><b>What runs at once</b></td><td>reads run concurrently. Changes are serialized against each other. <code>run</code> holds neither lock.</td></tr>
 </table>
+
+<h3 id="ceiling">How big an answer can be</h3>
+
+<p><b>Every answer stops at 40,000 bytes, and a refusal at 10,000.</b> A byte here is one byte of the answer as it is written: the escaped JSON, the field names and the line numbers, all of it. An assistant client saves a large answer to a file and shows the model a pointer instead. Claude Code does that past 50,000 characters, and cuts a refusal past about 11,000 characters to its first and last parts. Each limit here stays under the client's.</p>
+
+<table>
+<tr><th>What</th><th>How it fits</th></tr>
+<tr><td>A long line in <code>read</code></td><td>served in pieces. <code>next</code> gives <code>from</code> and <code>column</code></td></tr>
+<tr><td>A long line in <code>search</code></td><td>the match and 200 characters either side. <code>clipped</code>, <code>text_from_column</code> and <code>line_length</code> say where the text sits in the line. A context line is cut to the same columns</td></tr>
+<tr><td>A list: <code>find</code>, <code>search</code>, <code>replace</code> (dry run)</td><td>stops at a whole entry. <code>next</code> is what to pass as <code>--after</code></td></tr>
+<tr><td>A report: <code>edit</code>, <code>batch</code>, <code>copy</code>, <code>tasks</code></td><td>lists what fits and counts the rest, in <code>plan_omitted</code>, <code>files_omitted</code>, <code>operations_omitted</code>, <code>links_skipped_omitted</code> or <code>tasks_omitted</code>. The totals stay exact</td></tr>
+<tr><td>An image</td><td>one a call, and none over 5&nbsp;MB. Another path that is an image says <code>withheld</code> and why</td></tr>
+<tr><td>A task's output</td><td>the end of each stream. <a href="#task-output">How much output comes back</a></td></tr>
+</table>
+
+<ul>
+<li><b>The cut is made once, for both output modes.</b> The terminal numbers every line and the JSON escapes every quote, so either can be the larger. Each part is measured both ways, and the cut fits the larger, so <code>--json</code> and the terminal stop at the same place.</li>
+<li><b>An answer is an error only when the operation did not do what was asked.</b> A refusal is one, and so is a <code>batch</code> that stopped early. A <code>doctor</code> report is not, whatever it found, though <code>doctor</code> still exits 1 or 2 so a script can act on it.</li>
+<li><b>The ceiling is also said to the client.</b> Every tool declares <code>anthropic/maxResultSizeChars</code> as 40,000, so a client that reads it measures text the same way.</li>
+<li><b>A last check guards every answer.</b> An answer over the ceiling is never sent. It is replaced by a refusal that names its size, because reaching that check is a defect in fettle.</li>
+</ul>
 
 <h3 id="paths">How a declared path is written</h3>
 
@@ -556,10 +578,11 @@ Declare a second task for a variant</code></pre></div></div>
 
 <h3 id="task-output">How much output comes back</h3>
 
-<p><b>A task's output is bounded like every other answer: 40,000 characters a call.</b> stdout and stderr share that limit. Each is owed half, and a stream that needs less gives the rest to the other.</p>
+<p><b>A task's output is bounded like every other answer: <a href="#ceiling">40,000 bytes</a> a call.</b> stdout and stderr share that limit. Each is owed half, and a stream that needs less gives the rest to the other.</p>
 
 <ul>
 <li><b>The end is kept.</b> A build or a test run says what went wrong at the end, so the cut comes off the front.</li>
+<li><b>Terminal colour codes are removed.</b> A colour code is an escape character and a few more, and a JSON answer writes the escape alone as six bytes. They carry nothing a model can use.</li>
 <li><b>The cut is said, never silent.</b> The answer carries <code>truncated</code>, and then <code>stdout_omitted</code> and <code>stderr_omitted</code>, the characters left out of each. The terminal prints the same counts on one line.</li>
 <li><b>There is no second page.</b> A <code>read</code> that stops can go on, because the file is still there. A task's output is gone when the call returns, and running it again may not do the same thing. For all of it, have the task write a log, then <code>read</code> it with <code>tail</code>.</li>
 </ul>
