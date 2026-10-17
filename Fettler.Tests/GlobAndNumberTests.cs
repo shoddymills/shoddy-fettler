@@ -220,7 +220,11 @@ public sealed class GlobAndNumberTests
     {
         using var box = new Sandbox();
         var text = new StringBuilder();
-        for (int i = 0; i < 3000; i++) text.Append(new string('x', 19)).Append('\n');
+        // Quotes, so the JSON form of a line outweighs the terminal form on
+        // every platform. With plain text the terminal form, which always
+        // numbers, is the larger where a newline is two bytes, and a plain
+        // read stops at the same line as a numbered one.
+        for (int i = 0; i < 3000; i++) text.Append(new string('"', 19)).Append('\n');
         box.Write("big.txt", text.ToString());
 
         JsonElement plain = Answer(await Run(box, "read", "big.txt", "--to", "3000", "--json")).GetProperty("files")[0];
