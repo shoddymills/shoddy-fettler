@@ -6,10 +6,12 @@
         "can": ["list", "read", "create", "update", "rename", "delete", "execute"]
       },
       "shoddy": {
-        "path": "../shoddy"
+        "path": "../shoddy",
+        "can": ["list", "read"]
       }
     },
     "tasks": {
+
       "build":              { "run": "bash scripts/fettler-build.sh build",   "cwd": "." },
       "test":               { "run": "bash scripts/fettler-build.sh test",    "cwd": "." },
       "check":              { "run": "bash scripts/fettler-build.sh check",   "cwd": "." },
@@ -22,7 +24,9 @@
       "verify-permissions": { "run": "node scripts/fettler-verify-permissions.js --check", "cwd": "." },
       "survey-readability": { "run": "node scripts/fettler-survey-readability.js", "cwd": "." },
       "sitemap":            { "run": "bash scripts/fettler-make-sitemap.sh", "cwd": "." },
-      "install":            { "run": "bash scripts/fettler-install.sh", "cwd": "." },
+      "install":            { "run": "bash scripts/fettler-install.sh {release-version}", "cwd": "." },
+      "install-pick":       { "run": "bash scripts/fettler-install.sh {release-version} -Program pick",   "cwd": "." },
+      "install-burler":     { "run": "bash scripts/fettler-install.sh {release-version} -Program burler", "cwd": "." },
 
       "feature":            { "run": "bash scripts/fettler-branch.sh feature {feature-branch}", "cwd": "." },
       "bug":                { "run": "bash scripts/fettler-branch.sh bug {bug-branch}", "cwd": "." },

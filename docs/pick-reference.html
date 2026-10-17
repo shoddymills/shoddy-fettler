@@ -199,6 +199,8 @@ reads. Rewrite it with three sections, one per level. Your entries, rewritten:
 <li><b>Rows:</b> an answer holds at most 100 rows by default, and <code>--limit N</code> raises or lowers that number. A capped answer says it was cut.</li>
 <li><b>Size:</b> one cell holds at most 2,000 characters. One answer holds at most 40,000 bytes as it is written, and a refusal at most 10,000. A row cannot be split across answers, so pick stops at the last whole row that fits. A single row too wide for any answer is refused, and the refusal says to select fewer columns or a substring. These are the same limits as Fettler's, for the same reason: an assistant client saves a larger answer to a file instead of showing it.</li>
 <li><b>Errors:</b> an answer is an error only when the operation did not do what was asked.</li>
+<li><b>Input:</b> an argument a verb does not take, one it needs and lacks, or one of the wrong type is refused before anything reaches the server, and the refusal lists what the verb takes. A <code>--limit</code> that is not a whole number is refused rather than read as the default.</li>
+<li><b>Hints:</b> over MCP, the same refusal twice in one session gets a second line beside the answer: <code>hint: this call was refused the same way earlier in this session.</code></li>
 <li><b>Time:</b> a query may run for 30 seconds, and pick stops a slower one and reports it as <code>timed-out</code>, which is its own outcome.</li>
 </ul>
 

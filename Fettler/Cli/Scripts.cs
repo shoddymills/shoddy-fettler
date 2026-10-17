@@ -138,8 +138,15 @@ public static class EditScript
         Result<string?> with = supply.Read("with");
         if (!with.IsOk) return with.Carry<Edit>();
 
+        // A replacement says what it replaces with. A missing --with used
+        // to mean an empty one, so a forgotten flag deleted the text.
+        // Deleting is written on purpose, as --with=.
+        if (with.Value is null)
+            return Result<Edit>.Fail(Outcome.Invalid,
+                "--replace needs --with TEXT (or --with-file, --with-stdin). To delete the text, pass --with=");
+
         return Result<Edit>.Ok(new Edit.Replace(
-            find.Value, with.Value ?? string.Empty, range.From, range.To, args.Has("all")));
+            find.Value, with.Value, range.From, range.To, args.Has("all")));
     }
 
     /// <summary>
@@ -173,6 +180,8 @@ public static class EditScript
         using JsonDocument document = parsed.Value;
         JsonElement root = document.RootElement;
 
+        if (Shape.Script(root) is { } wrong) return Result<IReadOnlyList<FileEdits>>.Fail(wrong);
+
         // A batch spanning files (R5.7), or one file named on the command
         // line - the same document shape either way.
         if (root.TryGetProperty("files", out JsonElement files))
@@ -182,7 +191,7 @@ public static class EditScript
             {
                 if (!file.TryGetProperty("path", out JsonElement p) || p.GetString() is not { } path)
                     return Result<IReadOnlyList<FileEdits>>.Fail(Outcome.Invalid,
-                        "every entry in \"files\" needs a \"path\"");
+                        $"every entry in \"files\" needs a \"path\". The shape is {Shape.FilesScript}");
 
                 Result<IReadOnlyList<Edit>> edits = Edits(file, bench);
                 if (!edits.IsOk) return edits.Carry<IReadOnlyList<FileEdits>>();
@@ -195,7 +204,7 @@ public static class EditScript
 
         if (args.At(0) is not { } single)
             return Result<IReadOnlyList<FileEdits>>.Fail(Outcome.Invalid,
-                "edit needs a path, or a script with a \"files\" array");
+                $"edit needs a path, or a script with a \"files\" array: {Shape.FilesScript}");
 
         Result<IReadOnlyList<Edit>> one = Edits(root, bench);
         if (!one.IsOk) return one.Carry<IReadOnlyList<FileEdits>>();
@@ -208,7 +217,8 @@ public static class EditScript
     static Result<IReadOnlyList<Edit>> Edits(JsonElement owner, Bench bench)
     {
         if (!owner.TryGetProperty("edits", out JsonElement edits) || edits.ValueKind != JsonValueKind.Array)
-            return Result<IReadOnlyList<Edit>>.Fail(Outcome.Invalid, "the script needs an \"edits\" array");
+            return Result<IReadOnlyList<Edit>>.Fail(Outcome.Invalid,
+                $"the script needs an \"edits\" array: {Shape.EditsScript}");
 
         var built = new List<Edit>();
         int index = 0;
@@ -216,6 +226,11 @@ public static class EditScript
         foreach (JsonElement e in edits.EnumerateArray())
         {
             index++;
+
+            // Checked whole before anything is built: an unknown key, a
+            // missing one or a wrong type is refused by name, never read
+            // as a default.
+            if (Shape.Edit(e, index) is { } wrong) return Result<IReadOnlyList<Edit>>.Fail(wrong);
 
             // R5.11 inside a script too: "replaceFile", "withFile" and
             // "textFile" name a file holding the text, so a script that
@@ -230,7 +245,7 @@ public static class EditScript
                 if (!with.IsOk) return with.Carry<IReadOnlyList<Edit>>();
 
                 built.Add(new Edit.Replace(
-                    finding, with.Value ?? string.Empty,
+                    finding, with.Value!,
                     Number(e, "from"), Number(e, "to"),
                     e.TryGetProperty("all", out JsonElement all) && all.ValueKind == JsonValueKind.True));
                 continue;
@@ -241,7 +256,7 @@ public static class EditScript
                 Result<string?> text = Sourced(e, "text", index, bench);
                 if (!text.IsOk) return text.Carry<IReadOnlyList<Edit>>();
 
-                built.Add(new Edit.InsertAfter(after, text.Value ?? string.Empty));
+                built.Add(new Edit.InsertAfter(after, text.Value!));
                 continue;
             }
 
@@ -252,7 +267,7 @@ public static class EditScript
             }
 
             return Result<IReadOnlyList<Edit>>.Fail(Outcome.Invalid,
-                $"edit {index} needs one of replace, insertAfter or deleteFrom");
+                $"edit {index} needs one of replace, insertAfter or deleteFrom: {Shape.EditShapes}");
         }
 
         return Result<IReadOnlyList<Edit>>.Ok(built);
@@ -325,9 +340,24 @@ public static class BatchScript
         if (!parsed.IsOk) return parsed.Carry<BatchAnswer>();
 
         using JsonDocument document = parsed.Value;
-        if (!document.RootElement.TryGetProperty("operations", out JsonElement operations)
+        if (document.RootElement.ValueKind != JsonValueKind.Object
+            || !document.RootElement.TryGetProperty("operations", out JsonElement operations)
             || operations.ValueKind != JsonValueKind.Array)
-            return Result<BatchAnswer>.Fail(Outcome.Invalid, "the script needs an \"operations\" array");
+            return Result<BatchAnswer>.Fail(Outcome.Invalid,
+                $"the script needs an \"operations\" array: {Shape.BatchScript}");
+
+        if (Shape.Unknown(document.RootElement, ["operations"]) is { } extra)
+            return Result<BatchAnswer>.Fail(Outcome.Invalid,
+                $"the script has '{extra}', which a batch script does not take. The shape is {Shape.BatchScript}");
+
+        // EVERY operation is checked before the first one runs. A batch is
+        // not transactional, so a mistake in operation five found only when
+        // operation five came up would leave the first four done and the
+        // tree half changed, for a script that was never going to work.
+        int checking = 0;
+        foreach (JsonElement operation in operations.EnumerateArray())
+            if (Shape.Operation(operation, ++checking) is { } wrong)
+                return Result<BatchAnswer>.Fail(wrong);
 
         var steps = new List<BatchStep>();
         int index = 0, completed = 0;
@@ -370,19 +400,19 @@ public static class BatchScript
 
             case "write":
                 return Describe(await bench.WriteAsync(
-                        path, EditScript.Text(operation, "text") ?? "", overwrite,
+                        path, EditScript.Text(operation, "text")!, overwrite,
                         EditScript.Text(operation, "encoding"), EditScript.Text(operation, "eol"), cancel)
                         .ConfigureAwait(false),
                     r => $"{r.Path.Display}  {r.Bytes} bytes");
 
             case "move":
                 return Describe(await bench.MoveAsync(
-                        path, EditScript.Text(operation, "to") ?? "", overwrite, cancel).ConfigureAwait(false),
+                        path, EditScript.Text(operation, "to")!, overwrite, cancel).ConfigureAwait(false),
                     r => $"{r.From.Display} -> {r.To.Display}  atomic: {(r.Atomic ? "yes" : "no")}");
 
             case "copy":
                 return Describe(await bench.CopyAsync(
-                        path, EditScript.Text(operation, "to") ?? "",
+                        path, EditScript.Text(operation, "to")!,
                         EditScript.Flag(operation, "recursive"), overwrite,
                         EditScript.Flag(operation, "preserveTimes"), cancel).ConfigureAwait(false),
                     r => $"{r.From.Display} -> {r.To.Display}  {r.Files} file(s)");
@@ -406,6 +436,216 @@ public static class BatchScript
 
     static Result<string> Describe<T>(Result<T> result, Func<T, string> describe) =>
         result.IsOk ? Result<string>.Ok(describe(result.Value)) : result.Carry<string>();
+}
+
+/// <summary>
+/// What a script may hold, checked before anything in it runs.
+///
+/// <para><b>Do no harm.</b> A key a script does not take, a key it needs
+/// and lacks, and a value of the wrong type are each refused by name,
+/// with the shape that is taken. Reading them as defaults was how a
+/// <c>write</c> missing its <c>text</c> wrote an empty file, and how
+/// <c>with_text</c> for <c>with</c> turned a replacement into a
+/// deletion.</para>
+/// </summary>
+static class Shape
+{
+    public const string EditShapes =
+        "{\"replace\":\"old\",\"with\":\"new\"}, {\"insertAfter\":120,\"text\":\"...\"} or "
+        + "{\"deleteFrom\":150,\"deleteTo\":151}";
+
+    public const string EditsScript = "{\"edits\":[{\"replace\":\"old\",\"with\":\"new\"}]}";
+
+    public const string FilesScript =
+        "{\"files\":[{\"path\":\"a.cs\",\"expect\":\"HASH\",\"edits\":[{\"replace\":\"old\",\"with\":\"new\"}]}]}";
+
+    public const string BatchScript =
+        "{\"operations\":[{\"op\":\"mkdir\",\"path\":\"out\"},"
+        + "{\"op\":\"write\",\"path\":\"out/a.txt\",\"text\":\"...\"}]}";
+
+    enum Kind { Text, Line, Flag }
+
+    static string Word(Kind kind) => kind switch
+    {
+        Kind.Line => "a line number, such as 120",
+        Kind.Flag => "true or false",
+        _ => "text",
+    };
+
+    static bool Is(JsonElement value, Kind kind) => kind switch
+    {
+        Kind.Line => value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out _),
+        Kind.Flag => value.ValueKind is JsonValueKind.True or JsonValueKind.False,
+        _ => value.ValueKind == JsonValueKind.String,
+    };
+
+    static string Got(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.String => "text",
+        JsonValueKind.Number => "a number",
+        JsonValueKind.True or JsonValueKind.False => "true or false",
+        JsonValueKind.Array => "a list",
+        JsonValueKind.Object => "an object",
+        _ => "null",
+    };
+
+    /// <summary>The first key of <paramref name="owner"/> not in
+    /// <paramref name="allowed"/>, or null.</summary>
+    public static string? Unknown(JsonElement owner, IReadOnlyCollection<string> allowed)
+    {
+        foreach (JsonProperty p in owner.EnumerateObject())
+            if (!allowed.Contains(p.Name)) return p.Name;
+        return null;
+    }
+
+    /// <summary>The top of an edit script: <c>edits</c> for one file, or
+    /// <c>files</c> for several, and nothing else.</summary>
+    public static Failure? Script(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object)
+            return new Failure(Outcome.Invalid, $"an edit script is an object: {EditsScript}, or {FilesScript}");
+
+        if (Unknown(root, ["edits", "files", "expect"]) is { } extra)
+            return new Failure(Outcome.Invalid,
+                $"the script has '{extra}', which an edit script does not take. "
+                + $"The shape is {EditsScript}, or {FilesScript} for several files");
+
+        if (root.TryGetProperty("files", out JsonElement files))
+        {
+            if (files.ValueKind != JsonValueKind.Array)
+                return new Failure(Outcome.Invalid, $"\"files\" is a list: {FilesScript}");
+
+            int n = 0;
+            foreach (JsonElement file in files.EnumerateArray())
+            {
+                n++;
+                if (file.ValueKind != JsonValueKind.Object)
+                    return new Failure(Outcome.Invalid, $"entry {n} in \"files\" is not an object: {FilesScript}");
+                if (Unknown(file, ["path", "expect", "edits"]) is { } bad)
+                    return new Failure(Outcome.Invalid,
+                        $"entry {n} in \"files\" has '{bad}', which it does not take. It takes path, expect and "
+                        + $"edits: {FilesScript}");
+                if (file.TryGetProperty("expect", out JsonElement x) && x.ValueKind != JsonValueKind.String)
+                    return new Failure(Outcome.Invalid, $"entry {n} in \"files\": expect is the hash read gave, as text");
+            }
+        }
+
+        if (root.TryGetProperty("expect", out JsonElement expect) && expect.ValueKind != JsonValueKind.String)
+            return new Failure(Outcome.Invalid, "expect is the hash read gave, as text");
+
+        return null;
+    }
+
+    /// <summary>One edit: exactly one of the three kinds, with only that
+    /// kind's keys, each of the right type, and the ones it needs.</summary>
+    public static Failure? Edit(JsonElement e, int index)
+    {
+        if (e.ValueKind != JsonValueKind.Object)
+            return new Failure(Outcome.Invalid, $"edit {index} is not an object. An edit is {EditShapes}");
+
+        var kinds = new List<string>();
+        if (e.TryGetProperty("replace", out _) || e.TryGetProperty("replaceFile", out _)) kinds.Add("replace");
+        if (e.TryGetProperty("insertAfter", out _)) kinds.Add("insertAfter");
+        if (e.TryGetProperty("deleteFrom", out _)) kinds.Add("deleteFrom");
+
+        string keys = string.Join(", ", e.EnumerateObject().Select(p => p.Name));
+
+        if (kinds.Count == 0)
+            return new Failure(Outcome.Invalid,
+                $"edit {index} has {(keys.Length == 0 ? "no keys" : keys)}; it needs one of replace, insertAfter or "
+                + $"deleteFrom: {EditShapes}");
+
+        if (kinds.Count > 1)
+            return new Failure(Outcome.Invalid,
+                $"edit {index} mixes {string.Join(" and ", kinds)}; one edit is one of {EditShapes}. Make two edits");
+
+        (string Key, Kind Kind)[] allowed = kinds[0] switch
+        {
+            "replace" => [("replace", Kind.Text), ("replaceFile", Kind.Text), ("with", Kind.Text), ("withFile", Kind.Text),
+                          ("from", Kind.Line), ("to", Kind.Line), ("all", Kind.Flag)],
+            "insertAfter" => [("insertAfter", Kind.Line), ("text", Kind.Text), ("textFile", Kind.Text)],
+            _ => [("deleteFrom", Kind.Line), ("deleteTo", Kind.Line)],
+        };
+
+        string takes = string.Join(", ", allowed.Select(a => $"\"{a.Key}\""));
+
+        foreach (JsonProperty p in e.EnumerateObject())
+        {
+            (string Key, Kind Kind)? rule = allowed.FirstOrDefault(a => a.Key == p.Name) is { Key: not null } r ? r : null;
+            if (rule is null)
+                return new Failure(Outcome.Invalid,
+                    $"edit {index} has '{p.Name}', which a {kinds[0]} edit does not take. It takes {takes}. "
+                    + $"The shapes are {EditShapes}");
+
+            if (!Is(p.Value, rule.Value.Kind))
+                return new Failure(Outcome.Invalid,
+                    $"edit {index}: {p.Name} is {Word(rule.Value.Kind)}; got {Got(p.Value)}");
+        }
+
+        bool Has(string key) => e.TryGetProperty(key, out _);
+
+        string? missing = kinds[0] switch
+        {
+            "replace" when Has("replace") && Has("replaceFile") => "one of replace and replaceFile, not both",
+            "replace" when !Has("with") && !Has("withFile") =>
+                "\"with\" (or withFile). To delete the text, give \"with\":\"\"",
+            "replace" when Has("with") && Has("withFile") => "one of with and withFile, not both",
+            "insertAfter" when !Has("text") && !Has("textFile") => "\"text\" (or textFile)",
+            "insertAfter" when Has("text") && Has("textFile") => "one of text and textFile, not both",
+            _ => null,
+        };
+
+        return missing is null
+            ? null
+            : new Failure(Outcome.Invalid, $"edit {index} needs {missing}. The shapes are {EditShapes}");
+    }
+
+    /// <summary>What each batch operation takes, and which of those it
+    /// cannot do without.</summary>
+    static readonly Dictionary<string, (string Key, Kind Kind, bool Needed)[]> Operations = new()
+    {
+        ["mkdir"] = [("path", Kind.Text, true)],
+        ["new"] = [("path", Kind.Text, true)],
+        ["write"] = [("path", Kind.Text, true), ("text", Kind.Text, true), ("overwrite", Kind.Flag, false),
+                     ("encoding", Kind.Text, false), ("eol", Kind.Text, false)],
+        ["move"] = [("path", Kind.Text, true), ("to", Kind.Text, true), ("overwrite", Kind.Flag, false)],
+        ["copy"] = [("path", Kind.Text, true), ("to", Kind.Text, true), ("recursive", Kind.Flag, false),
+                    ("overwrite", Kind.Flag, false), ("preserveTimes", Kind.Flag, false)],
+        ["delete"] = [("path", Kind.Text, true), ("recursive", Kind.Flag, false), ("force", Kind.Flag, false)],
+        ["exec"] = [("path", Kind.Text, true), ("executable", Kind.Flag, true)],
+    };
+
+    public static Failure? Operation(JsonElement o, int index)
+    {
+        if (o.ValueKind != JsonValueKind.Object)
+            return new Failure(Outcome.Invalid, $"operation {index} is not an object. The shape is {BatchScript}");
+
+        string op = o.TryGetProperty("op", out JsonElement v) && v.ValueKind == JsonValueKind.String ? v.GetString()! : "";
+        if (!Operations.TryGetValue(op, out var rules))
+            return new Failure(Outcome.Invalid,
+                $"operation {index} needs \"op\": one of {string.Join(", ", Operations.Keys)}. The shape is {BatchScript}");
+
+        string takes = string.Join(", ", rules.Select(r => $"\"{r.Key}\""));
+
+        foreach (JsonProperty p in o.EnumerateObject())
+        {
+            if (p.Name == "op") continue;
+            var rule = rules.FirstOrDefault(r => r.Key == p.Name);
+            if (rule.Key is null)
+                return new Failure(Outcome.Invalid,
+                    $"operation {index} ({op}) has '{p.Name}', which {op} does not take. It takes {takes}");
+            if (!Is(p.Value, rule.Kind))
+                return new Failure(Outcome.Invalid,
+                    $"operation {index} ({op}): {p.Name} is {Word(rule.Kind)}; got {Got(p.Value)}");
+        }
+
+        foreach (var rule in rules.Where(r => r.Needed))
+            if (!o.TryGetProperty(rule.Key, out _))
+                return new Failure(Outcome.Invalid,
+                    $"operation {index} ({op}) needs \"{rule.Key}\". It takes {takes}");
+
+        return null;
+    }
 }
 
 static class Scripts

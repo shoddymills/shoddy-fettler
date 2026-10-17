@@ -176,6 +176,71 @@ public sealed class CeilingTests
         Assert.True(Bytes(refused.Text) <= Budget.ErrorCeiling);
     }
 
+    /// <summary>Do no harm, as Fettler: an argument a tool does not take,
+    /// one it needs and lacks, or one of the wrong type is refused before
+    /// anything reaches the server, and the refusal names what is taken.</summary>
+    [Theory]
+    [InlineData("objects", """{"patern":"dbo.*"}""", "'patern'")]
+    [InlineData("select", """{"sql":"SELECT id FROM Sales.dbo.Orders","limit":"5"}""", "a whole number")]
+    [InlineData("describe", """{}""", "'name'")]
+    [InlineData("catalogs", """{"all":true}""", "no arguments")]
+    public async Task AnArgumentThatIsNotWhatTheToolTakesIsRefused(string tool, string arguments, string said)
+    {
+        FakeCatalog catalog = Fixture.Catalog();
+        using Bench bench = Fixture.Bench(catalog: catalog);
+        using var server = new McpServer(bench, TextReader.Null, TextWriter.Null);
+
+        string? reply = await server.AnswerAsync(
+            $$$"""{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"{{{tool}}}","arguments":{{{arguments}}}}}""");
+        JsonElement result = Parse(reply!).GetProperty("result");
+
+        Assert.True(result.GetProperty("isError").GetBoolean());
+        Assert.Contains(said, Parse(result.GetProperty("content")[0].GetProperty("text").GetString()!)
+            .GetProperty("message").GetString());
+        Assert.Null(catalog.Ran);
+    }
+
+    /// <summary>A limit that is not a whole number fell back to the
+    /// default row cap without a word.</summary>
+    [Fact]
+    public async Task ALimitThatIsNotAWholeNumberIsRefused()
+    {
+        FakeCatalog catalog = Fixture.Catalog();
+        using Bench bench = Fixture.Bench(catalog: catalog);
+
+        CliResult said = await Command.RunAsync(
+            ["select", "SELECT id FROM Sales.dbo.Orders", "--limit", "ten", "--json"], new StringReader(""), bench);
+
+        Assert.Equal(ExitCodes.Invalid, said.ExitCode);
+        Assert.Contains("whole number", Parse(said.Stdout).GetProperty("message").GetString());
+        Assert.Null(catalog.Ran);
+    }
+
+    /// <summary>The one hint that applies to pick: the same refusal as
+    /// earlier in the session, as a text part of its own, so the answer
+    /// stays what the command line prints.</summary>
+    [Fact]
+    public async Task TheSameRefusalAgainCarriesAHint()
+    {
+        using Bench bench = Fixture.Bench();
+        using var server = new McpServer(bench, TextReader.Null, TextWriter.Null);
+
+        async Task<JsonElement> Refused(int id, string sql) =>
+            Parse((await server.AnswerAsync(JsonSerializer.Serialize(new
+            {
+                jsonrpc = "2.0", id, method = "tools/call",
+                @params = new { name = "select", arguments = new { sql } },
+            })))!).GetProperty("result").GetProperty("content");
+
+        JsonElement first = await Refused(1, "DELETE FROM Sales.dbo.Orders");
+        JsonElement second = await Refused(2, "DELETE FROM Sales.dbo.Customers");
+
+        Assert.Equal(1, first.GetArrayLength());
+        Assert.Equal(2, second.GetArrayLength());
+        Assert.Equal("hint: this call was refused the same way earlier in this session.",
+            second[1].GetProperty("text").GetString());
+    }
+
     [Fact]
     public async Task EveryToolDeclaresTheCeilingToTheClient()
     {

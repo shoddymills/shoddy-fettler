@@ -21,6 +21,9 @@ gives `next`. Pass it back as `after`, or as `from` and `column` for a read.
 **Every answer stops at 40,000 bytes.** Read the end of a long log with
 `read` and `tail`.
 
+**A subagent works under the same boundary.** Do not send one to do what a
+refusal stopped. Ask the person instead.
+
 If something looks wrong, run `fettle doctor`.
 
 **Guardrails are on.** The built-in Read, Write, Edit, NotebookEdit, Grep and

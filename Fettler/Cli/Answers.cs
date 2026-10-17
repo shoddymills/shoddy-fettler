@@ -122,7 +122,7 @@ public static partial class Command
     /// </summary>
     public static CliResult Held(CliResult answer, bool json)
     {
-        int ceiling = answer.Failed ? Budget.ErrorCeiling : Budget.Ceiling;
+        int ceiling = answer.Failed ? Budget.ErrorAnswer : Budget.Answer;
         string shown = json ? answer.Stdout : answer.Stdout + answer.Stderr;
         int size = Size.Text(json ? WithoutImages(shown) : shown);
 
@@ -132,7 +132,7 @@ public static partial class Command
             return answer with { Stdout = Shortened(refusal, size) };
 
         if (answer.Failed && !json)
-            return answer with { Stderr = Clipped(answer.Stderr, Budget.ErrorCeiling - Size.NewLine) + Environment.NewLine };
+            return answer with { Stderr = Clipped(answer.Stderr, Budget.ErrorAnswer - Size.NewLine) + Environment.NewLine };
 
         return Failed(new Failure(Outcome.Refused,
             $"the command ran, and its answer was {size:N0} bytes, over the {ceiling:N0}-byte ceiling, "
@@ -179,7 +179,7 @@ public static partial class Command
             if (refusal.Path is { } path) w.WriteString("path", path);
         });
 
-        int keep = Budget.Prefix(refusal.Message, Budget.ErrorCeiling,
+        int keep = Budget.Prefix(refusal.Message, Budget.ErrorAnswer,
             m => Size.Text(Write(m + said)));
         return Write(refusal.Message[..keep] + said);
     }
@@ -228,9 +228,21 @@ public static partial class Command
     static int Envelope(Action<Utf8JsonWriter> json, string human) =>
         Math.Max(Size.Text(Json(json)), Size.Text(human));
 
-    /// <summary>The sentence the terminal ends a cut answer with.</summary>
+    /// <summary>The sentence the terminal ends a cut answer with. The
+    /// position is quoted when a shell would split or read it: a find
+    /// sorted by time gives a time, a space and a path, and a path may
+    /// hold a space of its own.</summary>
     internal static string MoreSentence(string position) =>
-        $"... more; pass --after {position} to carry on{Environment.NewLine}";
+        $"... more; pass --after {Quoted(position)} to carry on{Environment.NewLine}";
+
+    /// <summary>A value as it can be pasted after a flag in bash,
+    /// PowerShell and cmd alike: bare when it holds nothing a shell reads,
+    /// otherwise in double quotes, or single quotes when it holds a double
+    /// quote.</summary>
+    static string Quoted(string value) =>
+        value.Length > 0 && value.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '/' or ':' or '-' or '+')
+            ? value
+            : value.Contains('"') ? $"'{value}'" : $"\"{value}\"";
 
     // ---- read ----
 
@@ -270,7 +282,7 @@ public static partial class Command
 
         Result<IReadOnlyList<ReadSlice>> result = bench.Read(new ReadRequest(
             paths, from, to, tail, member, args.Has("numbered"), column,
-            new Meter(bench, Budget.Ceiling - envelope)));
+            new Meter(bench, Budget.Answer - envelope)));
         if (!result.IsOk) return Failed(result.Failure!, json);
 
         if (json)
@@ -467,7 +479,7 @@ public static partial class Command
         int envelope = Envelope(w => WriteSearch(w, bench, worst),
             HumanSearch(bench, worst, glob) + GlobSentence(int.MaxValue));
 
-        if (envelope >= Budget.Ceiling)
+        if (envelope >= Budget.Answer)
             return Failed(new Failure(Outcome.Invalid,
                 "the patterns alone fill an answer; search for fewer at a time"), json);
 
@@ -484,7 +496,7 @@ public static partial class Command
             Documents: !args.Has("no-documents"),
             Mode: mode,
             After: args.Value("after"),
-            Meter: new Meter(bench, Budget.Ceiling - envelope)));
+            Meter: new Meter(bench, Budget.Answer - envelope)));
 
         if (!result.IsOk) return Failed(result.Failure!, json);
 
@@ -684,7 +696,7 @@ public static partial class Command
 
         Bounded<FoundFile> answer = found.Value;
 
-        int room = Budget.Ceiling - Envelope(
+        int room = Budget.Answer - Envelope(
             w => WriteFind(w, bench, [], int.MaxValue),
             HumanFind(bench, [], int.MaxValue, null));
 
@@ -762,7 +774,7 @@ public static partial class Command
         // The edit is done, or planned, by now. Its report is cut to fit
         // like any list, files first because each carries the hash the
         // next edit needs, then the plan, and says how much it left out.
-        int room = Budget.Ceiling - Envelope(
+        int room = Budget.Answer - Envelope(
             w => WriteEdit(w, bench, answer, [], [], int.MaxValue, int.MaxValue),
             HumanEdit(bench, answer, [], [], int.MaxValue, int.MaxValue));
 
@@ -885,30 +897,40 @@ public static partial class Command
             ? answer.Files
             : [.. answer.Files.Where(p => string.CompareOrdinal(p.Path, after) > 0)];
 
-        int room = Budget.Ceiling - Envelope(
-            w => WriteReplace(w, answer with { TotalOccurrences = int.MaxValue }, [], null),
-            HumanReplace(answer with { TotalOccurrences = int.MaxValue }, [], null, glob));
+        // A dry run's list pages: what does not fit is there to ask for
+        // with after. A replace that writes has changed every file by now,
+        // and after is refused for it, so its report lists what fits and
+        // counts the rest, as edit's does. A next there would point at a
+        // call that is refused.
+        bool pages = answer.DryRun;
+
+        int room = Budget.Answer - Envelope(
+            w => WriteReplace(w, answer with { TotalOccurrences = int.MaxValue }, [], null, int.MaxValue),
+            HumanReplace(answer with { TotalOccurrences = int.MaxValue }, [], null, int.MaxValue, glob));
 
         int fit = Budget.Fit(listed, room,
             p => Math.Max(Size.Json(w => WritePlan(w, p)) + 1, Size.Text(HumanPlan(p))),
-            p => Meter.Next(p.Path));
+            pages ? (ReplacePlan p) => Meter.Next(p.Path) : null);
 
         fit = Math.Max(fit, Math.Min(1, listed.Count));
         IReadOnlyList<ReplacePlan> shown = [.. listed.Take(fit)];
-        string? next = fit < listed.Count ? shown[^1].Path : null;
+        string? next = pages && fit < listed.Count ? shown[^1].Path : null;
+        int omitted = pages ? 0 : listed.Count - fit;
 
         return Ok(json
-            ? Json(w => WriteReplace(w, answer, shown, next))
-            : HumanReplace(answer, shown, next, glob));
+            ? Json(w => WriteReplace(w, answer, shown, next, omitted))
+            : HumanReplace(answer, shown, next, omitted, glob));
     }
 
-    static void WriteReplace(Utf8JsonWriter w, ReplaceAnswer answer, IReadOnlyList<ReplacePlan> shown, string? next)
+    static void WriteReplace(Utf8JsonWriter w, ReplaceAnswer answer, IReadOnlyList<ReplacePlan> shown, string? next,
+                             int omitted)
     {
         w.WriteBoolean("dry_run", answer.DryRun);
         w.WriteNumber("occurrences", answer.TotalOccurrences);
         w.WriteStartArray("files");
         foreach (ReplacePlan p in shown) WritePlan(w, p);
         w.WriteEndArray();
+        if (omitted > 0) w.WriteNumber("files_omitted", omitted);
         w.WriteNumber("count", answer.Files.Count);
         if (next is not null) w.WriteString("next", next);
     }
@@ -924,7 +946,8 @@ public static partial class Command
     static string HumanPlan(ReplacePlan p) =>
         "   " + p.Path.PadRight(44) + p.Occurrences + Environment.NewLine;
 
-    static string HumanReplace(ReplaceAnswer answer, IReadOnlyList<ReplacePlan> shown, string? next, bool glob)
+    static string HumanReplace(ReplaceAnswer answer, IReadOnlyList<ReplacePlan> shown, string? next, int omitted,
+                               bool glob)
     {
         var human = new StringBuilder()
             .Append(answer.DryRun ? "would change " : "changed ")
@@ -933,6 +956,7 @@ public static partial class Command
             .AppendLine(answer.TotalOccurrences == 1 ? " occurrence" : " occurrences");
 
         foreach (ReplacePlan p in shown) human.Append(HumanPlan(p));
+        if (omitted > 0) human.Append("   and ").Append(omitted).AppendLine(" more files, not listed");
         if (next is not null) human.Append(MoreSentence(next));
 
         if (glob && answer.FilesMatched == 0)
@@ -955,7 +979,7 @@ public static partial class Command
         if (!copied.IsOk) return Failed(copied.Failure!, json);
         CopyReport c = copied.Value;
 
-        int room = Budget.Ceiling - Envelope(
+        int room = Budget.Answer - Envelope(
             w => WriteCopy(w, bench, c with { Files = int.MaxValue, Directories = int.MaxValue, Bytes = long.MaxValue }, [], int.MaxValue),
             HumanCopy(bench, c with { Files = int.MaxValue, Directories = int.MaxValue }, [], int.MaxValue));
 
@@ -1014,7 +1038,7 @@ public static partial class Command
 
         int column = NameColumn(tasks.Value.Select(t => t.Name));
 
-        int room = Budget.Ceiling - Envelope(
+        int room = Budget.Answer - Envelope(
             w => WriteTasks(w, [], int.MaxValue, int.MaxValue),
             HumanTasks([], int.MaxValue, column));
 
@@ -1094,7 +1118,7 @@ public static partial class Command
             Stdout = string.Empty, Stderr = string.Empty, ExitCode = int.MinValue,
             Duration = TimeSpan.MaxValue, StdoutOmitted = long.MaxValue, StderrOmitted = long.MaxValue,
         };
-        int room = Budget.Ceiling - Envelope(w => WriteRun(w, worst, truncated: true), HumanRun(worst, truncated: true));
+        int room = Budget.Answer - Envelope(w => WriteRun(w, worst, truncated: true), HumanRun(worst, truncated: true));
 
         (Captured output, Captured error) = Tasks.Share(
             new Captured(ran.Value.Stdout, ran.Value.StdoutOmitted),
@@ -1174,7 +1198,7 @@ public static partial class Command
         // always goes in it, and the operations nearest it fill the rest:
         // they are the ones that say what state the tree was left in.
         bool stopped = answer.StoppedEarly;
-        int ceiling = stopped ? Budget.ErrorCeiling : Budget.Ceiling;
+        int ceiling = stopped ? Budget.ErrorAnswer : Budget.Answer;
         BatchStep? failed = stopped && answer.Steps.Count > 0 ? answer.Steps[^1] : null;
         IReadOnlyList<BatchStep> before = failed is null ? answer.Steps : [.. answer.Steps.Take(answer.Steps.Count - 1)];
 

@@ -36,6 +36,21 @@ public static class Budget
     /// <summary>The most a refusal may be, in UTF-8 bytes.</summary>
     public const int ErrorCeiling = 10_000;
 
+    /// <summary>The room a hint takes beside an answer. A hint is a
+    /// second text part the MCP server adds when a call shows a missed
+    /// batch or a missed hand-off, and the answer and the hint together
+    /// stay under the ceiling.</summary>
+    public const int HintRoom = 400;
+
+    /// <summary>The most an answer itself may be, leaving room for a
+    /// hint. Every verb cuts to this, in both output modes, so the cut is
+    /// the same whether or not a hint follows.</summary>
+    public const int Answer = Ceiling - HintRoom;
+
+    /// <summary>The most a refusal itself may be, leaving room for a
+    /// hint.</summary>
+    public const int ErrorAnswer = ErrorCeiling - HintRoom;
+
     /// <summary>How many characters of a long line a search hit keeps
     /// either side of its match.</summary>
     public const int MatchWindow = 200;

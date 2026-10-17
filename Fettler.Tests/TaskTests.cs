@@ -290,17 +290,22 @@ public sealed class TaskTests
         JsonElement answer = JsonDocument.Parse(json.Stdout).RootElement;
 
         long omitted = answer.GetProperty("stdout_omitted").GetInt64();
+        long errorOmitted = answer.GetProperty("stderr_omitted").GetInt64();
         string kept = answer.GetProperty("stdout").GetString()!;
 
         Assert.True(answer.GetProperty("truncated").GetBoolean(), json.Stdout);
         Assert.Equal(flood.Length - (long)kept.Length, omitted);
-        Assert.Equal(omitted, answer.GetProperty("stderr_omitted").GetInt64());
+        Assert.Equal(flood.Length - (long)answer.GetProperty("stderr").GetString()!.Length, errorOmitted);
         Assert.EndsWith(kept, flood);
         Assert.True(Encoding.UTF8.GetByteCount(json.Stdout) <= Budget.Ceiling);
 
+        // Each stream is owed half the room. When the room is an odd number
+        // of bytes, one of them keeps one character more.
+        Assert.InRange(errorOmitted - omitted, -1, 1);
+
         CliResult text = await Command.RunAsync(["run", "both"], new StringReader(string.Empty), box.Bench);
 
-        Assert.Contains($"{omitted:N0} characters of stdout and {omitted:N0} of stderr", text.Stdout);
+        Assert.Contains($"{omitted:N0} characters of stdout and {errorOmitted:N0} of stderr", text.Stdout);
         Assert.Contains($"{Budget.Ceiling:N0} bytes", text.Stdout);
     }
 

@@ -158,7 +158,7 @@ public sealed class Bench : IDisposable
     /// position to carry on from.</param>
     public async Task<Result<ObjectsAnswer>> ObjectsAsync(
         string? pattern, CancellationToken cancel = default, int after = 0,
-        Func<ListedObject, int>? cost = null, int room = Budget.Ceiling, Func<int, int>? next = null)
+        Func<ListedObject, int>? cost = null, int room = Budget.Answer, Func<int, int>? next = null)
     {
         ObjectPattern? shaped = null;
         string? bare = null;
@@ -300,7 +300,7 @@ public sealed class Bench : IDisposable
         if (meter is not null && table.Rows.Count > 0)
         {
             IReadOnlyList<ColumnFact> columns = table.Columns;
-            int room = Budget.Ceiling - meter.Envelope(columns, approved.Value.Sql, displays);
+            int room = Budget.Answer - meter.Envelope(columns, approved.Value.Sql, displays);
             int fit = Budget.Fit(table.Rows, room, row => meter.Row(columns, row));
 
             if (fit == 0)

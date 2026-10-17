@@ -95,7 +95,7 @@ public static class ToolCatalogue
             }}
             """),
 
-        new("replace", "Replace one string with another in every file matching a glob. All files change, or none do. Use dry_run first. The totals are exact; a list that stops short gives next.", """
+        new("replace", "Replace one string with another in every file matching a glob. All files change, or none do. Use dry_run first. The totals are exact. A dry run's list that stops short gives next; a replace that writes lists what fits and counts the rest in files_omitted.", """
             {"type":"object","required":["find","with"],"properties":{
               "find":{"type":"string"},
               "with":{"type":"string"},
@@ -205,10 +205,18 @@ public static class ToolCatalogue
     public static async Task<Result<ToolAnswer>> InvokeAsync(
         Bench bench, string name, JsonElement arguments, CancellationToken cancel)
     {
-        bool known = false;
-        foreach (Tool tool in Tools) if (tool.Name == name) { known = true; break; }
-        if (!known)
+        Tool? known = null;
+        foreach (Tool tool in Tools) if (tool.Name == name) { known = tool; break; }
+        if (known is null)
             return Result<ToolAnswer>.Fail(Outcome.Invalid, $"no tool called '{name}'");
+
+        // Do no harm: an argument the tool does not take, one it needs and
+        // lacks, or one of the wrong type is refused before anything runs.
+        // The command line has always refused an unknown flag (R3.14);
+        // here one was dropped, so find given glob for pattern listed the
+        // whole tree.
+        if (Check(known, arguments) is { } wrong)
+            return Result<ToolAnswer>.Ok(new ToolAnswer(Command.Refuse(wrong).Stdout.TrimEnd(), [], IsError: true));
 
         var argv = new List<string> { name, "--json" };
         string stdin = string.Empty;
@@ -378,6 +386,94 @@ public static class ToolCatalogue
         return Result<ToolAnswer>.Ok(result.Failed
             ? answered with { IsError = true, Images = [] }
             : answered);
+    }
+
+    /// <summary>
+    /// The arguments of one call against the tool's own schema: every
+    /// argument named there, of the type it says, and every required one
+    /// present. Read from the schema the client was shown, so the check
+    /// and the description cannot disagree.
+    /// </summary>
+    static Failure? Check(Tool tool, JsonElement arguments)
+    {
+        using JsonDocument schema = JsonDocument.Parse(tool.Schema);
+        JsonElement properties = schema.RootElement.TryGetProperty("properties", out JsonElement p) ? p : default;
+        List<string> names = properties.ValueKind == JsonValueKind.Object
+            ? [.. properties.EnumerateObject().Select(x => x.Name)]
+            : [];
+        string takes = names.Count == 0 ? "no arguments" : string.Join(", ", names);
+
+        if (arguments.ValueKind is not (JsonValueKind.Undefined or JsonValueKind.Null))
+        {
+            if (arguments.ValueKind != JsonValueKind.Object)
+                return new Failure(Outcome.Invalid, $"{tool.Name} takes named arguments: {takes}");
+
+            foreach (JsonProperty given in arguments.EnumerateObject())
+            {
+                if (!properties.TryGetProperty(given.Name, out JsonElement spec))
+                    return new Failure(Outcome.Invalid,
+                        $"{tool.Name} does not take '{given.Name}'. It takes: {takes}");
+
+                if (Wrong(spec, given.Value) is { } what)
+                    return new Failure(Outcome.Invalid, $"{tool.Name}: '{given.Name}' takes {what}");
+            }
+        }
+
+        if (schema.RootElement.TryGetProperty("required", out JsonElement required))
+            foreach (JsonElement r in required.EnumerateArray())
+            {
+                string key = r.GetString()!;
+                bool present = arguments.ValueKind == JsonValueKind.Object && arguments.TryGetProperty(key, out _);
+                if (!present)
+                    return new Failure(Outcome.Invalid,
+                        $"{tool.Name} needs '{key}', which takes {Wanted(properties.GetProperty(key))}");
+            }
+
+        return null;
+    }
+
+    /// <summary>What is wrong with one value, or null when nothing is.</summary>
+    static string? Wrong(JsonElement spec, JsonElement value)
+    {
+        string type = spec.TryGetProperty("type", out JsonElement t) ? t.GetString() ?? "" : "";
+
+        bool right = type switch
+        {
+            "string" => value.ValueKind == JsonValueKind.String,
+            "integer" => value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out _),
+            "boolean" => value.ValueKind is JsonValueKind.True or JsonValueKind.False,
+            "array" => value.ValueKind == JsonValueKind.Array
+                       && value.EnumerateArray().All(i => i.ValueKind == JsonValueKind.String),
+            "object" => value.ValueKind == JsonValueKind.Object,
+            _ => true,
+        };
+
+        if (!right)
+            return type == "array" && value.ValueKind == JsonValueKind.String
+                ? "a list, such as [\"a.cs\"], not a single string"
+                : Wanted(spec);
+
+        if (spec.TryGetProperty("enum", out JsonElement choices)
+            && !choices.EnumerateArray().Any(c => c.GetString() == value.GetString()))
+            return Wanted(spec);
+
+        return null;
+    }
+
+    /// <summary>What a value of this kind looks like, said plainly.</summary>
+    static string Wanted(JsonElement spec)
+    {
+        if (spec.TryGetProperty("enum", out JsonElement choices))
+            return "one of: " + string.Join(", ", choices.EnumerateArray().Select(c => c.GetString()));
+
+        return (spec.TryGetProperty("type", out JsonElement t) ? t.GetString() : "") switch
+        {
+            "integer" => "a whole number, such as 50",
+            "boolean" => "true or false",
+            "array" => "a list of strings, such as [\"a.cs\"]",
+            "object" => "an object",
+            _ => "text",
+        };
     }
 
     /// <summary>

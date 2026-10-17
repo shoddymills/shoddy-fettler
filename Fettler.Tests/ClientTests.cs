@@ -1086,6 +1086,25 @@ public sealed class ClientTests
         Assert.DoesNotContain("execute", AgentFile.Tools(AgentText(box, Reach.Repo))!);
     }
 
+    /// <summary>An agent file an earlier version wrote holds older words.
+    /// Re-running setup tools brings them up to date and keeps the file at
+    /// the level it was: a tools file stays a tools file, and a file with
+    /// no terminal stays without one.</summary>
+    [Theory]
+    [InlineData("'fettler', 'execute', 'vscode', 'agent', 'web', 'todo'", "tools")]
+    [InlineData("'fettler', 'vscode', 'agent', 'web', 'todo'", "guardrails")]
+    public void SetupToolsUpdatesAnOlderAgentFileAtItsOwnLevel(string listed, string level)
+    {
+        using var box = new Fixture();
+        box.Put(Places.VsCodeCopilot, Reach.Repo, Purpose.Agent,
+            $"---\ndescription: Work on files through Fettler.\ntools: [{listed}]\n---\nOlder words.\n");
+
+        Result<Scaffolding> again = Setup(box, new Scaffold.Options(Places.VsCodeCopilot, Reach.Repo));
+        Assert.True(again.IsOk, again.Failure?.Message);
+
+        Assert.Equal(AgentFile.Compose(level), AgentText(box, Reach.Repo));
+    }
+
     /// <summary>An agent file adds a choice and changes nothing until a
     /// person picks it, so the global one is written without --deny, and
     /// VS Code's own settings are not touched.</summary>
@@ -1258,6 +1277,30 @@ public sealed class ClientTests
             c => c.Path == box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Instructions));
         Assert.Contains("Guardrails are on",
             File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Instructions)));
+    }
+
+    /// <summary>A guarded block an earlier version wrote holds an older
+    /// tools paragraph. Re-running setup tools brings that paragraph up to
+    /// date and keeps the guardrails one. Matching the current tools
+    /// paragraph, as this once did, missed the older one and rewrote the
+    /// block as tools only, which dropped the guardrails paragraph.</summary>
+    [Fact]
+    public void SetupToolsUpdatesAnOlderGuardedBlockAndKeepsTheGuardrailsParagraph()
+    {
+        using var box = new Fixture();
+        string older = Scaffold.BlockOpen + "\n## Working on files here\n\n"
+                       + "**Every answer stops at 40,000 characters** and says what it left out.\n\n"
+                       + Scaffold.GuardrailsParagraph + "\n" + Scaffold.BlockClose + "\n";
+        box.Put(Places.ClaudeCode, Reach.Repo, Purpose.Instructions, "# Mine\n\n" + older);
+
+        Result<Scaffolding> again = Setup(box, new Scaffold.Options(Places.ClaudeCode, Reach.Repo));
+        Assert.True(again.IsOk, again.Failure?.Message);
+
+        string text = File.ReadAllText(box.PathOf(Places.ClaudeCode, Reach.Repo, Purpose.Instructions));
+        Assert.StartsWith("# Mine", text);
+        Assert.Contains(Scaffold.ToolsParagraph, text);
+        Assert.Contains(Scaffold.GuardrailsParagraph, text);
+        Assert.DoesNotContain("40,000 characters", text);
     }
 
     /// <summary>R7.4: a project file with no guardrails section gets one,

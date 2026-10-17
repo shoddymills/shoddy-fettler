@@ -78,14 +78,69 @@ public static class ToolCatalogue
         w.WriteEndObject();
     }
 
+    /// <summary>The arguments of one call against the tool's own schema,
+    /// the one the client was shown, so the two cannot disagree.</summary>
+    static Failure? Check(Tool tool, JsonElement arguments)
+    {
+        using JsonDocument schema = JsonDocument.Parse(tool.Schema);
+        JsonElement properties = schema.RootElement.TryGetProperty("properties", out JsonElement p) ? p : default;
+        List<string> names = properties.ValueKind == JsonValueKind.Object
+            ? [.. properties.EnumerateObject().Select(x => x.Name)]
+            : [];
+        string takes = names.Count == 0 ? "no arguments" : string.Join(", ", names);
+
+        if (arguments.ValueKind is not (JsonValueKind.Undefined or JsonValueKind.Null))
+        {
+            if (arguments.ValueKind != JsonValueKind.Object)
+                return new Failure(Outcome.Invalid, $"{tool.Name} takes named arguments: {takes}");
+
+            foreach (JsonProperty given in arguments.EnumerateObject())
+            {
+                if (!properties.TryGetProperty(given.Name, out JsonElement spec))
+                    return new Failure(Outcome.Invalid,
+                        $"{tool.Name} does not take '{given.Name}'. It takes: {takes}");
+
+                string type = spec.TryGetProperty("type", out JsonElement t) ? t.GetString() ?? "" : "";
+                bool right = type switch
+                {
+                    "string" => given.Value.ValueKind == JsonValueKind.String,
+                    "integer" => given.Value.ValueKind == JsonValueKind.Number && given.Value.TryGetInt64(out _),
+                    _ => true,
+                };
+                if (!right)
+                    return new Failure(Outcome.Invalid,
+                        $"{tool.Name}: '{given.Name}' takes {(type == "integer" ? "a whole number, such as 50" : "text")}");
+            }
+        }
+
+        if (schema.RootElement.TryGetProperty("required", out JsonElement required))
+            foreach (JsonElement r in required.EnumerateArray())
+            {
+                string key = r.GetString()!;
+                if (!(arguments.ValueKind == JsonValueKind.Object && arguments.TryGetProperty(key, out _)))
+                    return new Failure(Outcome.Invalid, $"{tool.Name} needs '{key}'");
+            }
+
+        return null;
+    }
+
     public static async Task<Result<string>> InvokeAsync(
         Bench bench, string name, JsonElement arguments, CancellationToken cancel,
         Action<bool>? isError = null)
     {
-        bool known = false;
-        foreach (Tool tool in Tools) if (tool.Name == name) { known = true; break; }
-        if (!known)
+        Tool? known = null;
+        foreach (Tool tool in Tools) if (tool.Name == name) { known = tool; break; }
+        if (known is null)
             return Result<string>.Fail(Outcome.Invalid, $"no tool called '{name}'");
+
+        // Do no harm, as Fettler: an argument the tool does not take, one
+        // it needs and lacks, or one of the wrong type is refused before
+        // anything reaches the server.
+        if (Check(known, arguments) is { } wrong)
+        {
+            isError?.Invoke(true);
+            return Result<string>.Ok(Command.Refuse(wrong).Stdout.TrimEnd());
+        }
 
         var argv = new List<string> { name, "--json" };
         string stdin = string.Empty;

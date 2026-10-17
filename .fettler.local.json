@@ -11,13 +11,17 @@
           "cancelled":  { "can": [] },
           "completed":  { "can": [] }
         }
+      },
+      "logs": {
+        "path": "/Users/stephen/.claude/projects",
+        "can": ["list", "read"]
       }
     },
     "replacements": {
       "feature-branch":  "pool",
       "bug-branch":      "pool01",
       "release-version": "2.2.0",
-      "commit-note":     "correcting threshold for result paging to account for additional json in the resonse."
+      "commit-note":     "Adding hints to help the assistant; improving glob searching to reduce rejects; a few bug fixes."
     }
   }
 }

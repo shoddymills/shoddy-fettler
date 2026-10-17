@@ -27,6 +27,18 @@ public static class Budget
     /// <summary>The most a refusal may be, in UTF-8 bytes.</summary>
     public const int ErrorCeiling = 10_000;
 
+    /// <summary>The room a hint takes beside an answer, as Fettler's: the
+    /// answer and the hint together stay under the ceiling.</summary>
+    public const int HintRoom = 400;
+
+    /// <summary>The most an answer itself may be, leaving room for a
+    /// hint.</summary>
+    public const int Answer = Ceiling - HintRoom;
+
+    /// <summary>The most a refusal itself may be, leaving room for a
+    /// hint.</summary>
+    public const int ErrorAnswer = ErrorCeiling - HintRoom;
+
     /// <summary>
     /// How many of <paramref name="items"/>, from the front, fit in
     /// <paramref name="room"/> bytes. <paramref name="next"/> is what the

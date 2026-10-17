@@ -455,7 +455,7 @@ does not write them. A person edits them.</code></pre></div>
 <p><b><code>doctor</code> reports one section per level, and it reports findings only for a level that is on.</b> A finding is a way round the boundary, with a number and the fix that clears it. At the tools level its section shows the registrations, the client's folders and any companions. With guardrails on, it adds the guardrails section below. It never writes anything, and it never prints a secret.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle doctor
-fettle 2.1.0  C:\tools\fettle\fettle.exe
+fettle 2.2.0  C:\tools\fettle\fettle.exe
 on PATH: C:\tools\fettle\fettle.exe
 
 tools  on, always
@@ -464,10 +464,12 @@ tools  on, always
   claude-code     repo    absent    'fettler' is not registered in this file
                           C:\github\app\.mcp.json
   scratch: C:\Users\you\AppData\Local\Temp\claude\c--github-app\...\scratchpad
+  - 2.8  deny does not list the built-in Read, Write, Edit, NotebookEdit, Grep, Glob, BashOutput, TaskOutput. Run: fettle setup tools claude-code --local
+      C:\github\app\.claude\settings.json
 
 guardrails  on, from C:\github\app\.fettler.json
   tool inventory dated 2026-08-20; newer client tools are not checked
-  - 2.8  deny does not list the built-in Read, Write, Edit, NotebookEdit, Grep, Glob, Bash, PowerShell, Monitor, BashOutput, TaskOutput. Run: fettle setup guardrails claude-code --local
+  - 2.20  deny does not list the shell Bash, PowerShell, Monitor. Run: fettle setup guardrails claude-code --local
       C:\github\app\.claude\settings.json
   - 2.17  1 other MCP server registered: sparky. Deny mcp__&lt;name&gt;__* for any that should not reach files
       C:\Users\you\.claude.json

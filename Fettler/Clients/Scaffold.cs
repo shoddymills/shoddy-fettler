@@ -254,6 +254,9 @@ public static class Scaffold
         **Every answer stops at 40,000 bytes.** Read the end of a long log with
         `read` and `tail`.
 
+        **A subagent works under the same boundary.** Do not send one to do what a
+        refusal stopped. Ask the person instead.
+
         If something looks wrong, run `fettle doctor`.
         """;
 
@@ -271,14 +274,13 @@ public static class Scaffold
         does not write them. A person edits them.
         """;
 
+    /// <summary>The words the guardrails paragraph opens with, in every
+    /// version that has written one: how a block says guardrails wrote
+    /// it.</summary>
+    const string GuardedMark = "**Guardrails are on.**";
+
     static Result<Change?> Instruct(Machine machine, Place place, Options options)
     {
-        string paragraphs = options.Level == Levels.GuardrailsName
-            ? ToolsParagraph + "\n\n" + GuardrailsParagraph
-            : ToolsParagraph;
-
-        string body = BlockOpen + "\n" + paragraphs + "\n" + BlockClose;
-
         string existing = string.Empty;
         if (File.Exists(place.Path))
         {
@@ -291,18 +293,23 @@ public static class Scaffold
 
         int open = existing.IndexOf(BlockOpen, StringComparison.Ordinal);
         int close = existing.IndexOf(BlockClose, StringComparison.Ordinal);
+        bool marked = open >= 0 && close > open;
+
+        // Each level only narrows. Re-running setup tools on a block
+        // guardrails wrote keeps the guardrails paragraph, and brings both
+        // paragraphs up to this version's words. Matching the current
+        // tools paragraph instead, as this once did, failed as soon as
+        // that paragraph changed, and the guardrails paragraph was
+        // dropped.
+        bool guarded = options.Level == Levels.GuardrailsName
+                       || (marked && existing[open..close].Contains(GuardedMark, StringComparison.Ordinal));
+
+        string paragraphs = guarded ? ToolsParagraph + "\n\n" + GuardrailsParagraph : ToolsParagraph;
+        string body = BlockOpen + "\n" + paragraphs + "\n" + BlockClose;
 
         string updated;
-        if (open >= 0 && close > open)
+        if (marked)
         {
-            // The tools level asks only that its paragraph be there. A
-            // block guardrails wrote holds it and more, and re-running
-            // setup tools on that project must not strip the guardrails
-            // paragraph out of it.
-            if (options.Level == Levels.ToolsName
-                && existing[open..close].Contains(ToolsParagraph, StringComparison.Ordinal))
-                return Result<Change?>.Ok(null);
-
             string replaced = existing[..open] + body + existing[(close + BlockClose.Length)..];
             if (replaced == existing) return Result<Change?>.Ok(null);
             updated = replaced;
@@ -464,14 +471,14 @@ public static class Scaffold
     ///
     /// <para><b>Each level only narrows.</b> The tools level leaves the
     /// terminal in; guardrails takes it out. Running tools after
-    /// guardrails leaves alone a file that already excludes the file
-    /// tools, the way the instruction block is left alone, so the broader
-    /// level never widens the narrower file.</para>
+    /// guardrails keeps a file that already leaves out the terminal at
+    /// the guardrails level, the way the instruction block keeps its
+    /// guardrails paragraph, so the broader level never widens the
+    /// narrower file. Either way the file is brought up to this version's
+    /// words.</para>
     /// </summary>
     static Result<Change?> Agent(Machine machine, Place place, Options options, List<string> notes)
     {
-        string wanted = AgentFile.Compose(options.Level);
-
         string? existing = null;
         if (File.Exists(place.Path))
         {
@@ -482,17 +489,22 @@ public static class Scaffold
             }
         }
 
-        if (existing == wanted) return Result<Change?>.Ok(null);
-
-        if (existing is not null && options.Level == Levels.ToolsName
+        // A file that leaves out the file tools and the terminal is a
+        // guardrails file, and setup tools keeps it one.
+        string level = options.Level;
+        if (existing is not null && level == Levels.ToolsName
             && AgentFile.Tools(existing) is { } listed
-            && !listed.Any(t => Doctor.CopilotReplaced.Contains(t, StringComparer.OrdinalIgnoreCase)))
-            return Result<Change?>.Ok(null);
+            && !listed.Any(t => Doctor.CopilotReplaced.Contains(t, StringComparer.OrdinalIgnoreCase))
+            && !listed.Any(t => Doctor.CopilotShell.Contains(t, StringComparer.OrdinalIgnoreCase)))
+            level = Levels.GuardrailsName;
+
+        string wanted = AgentFile.Compose(level);
+        if (existing == wanted) return Result<Change?>.Ok(null);
 
         notes.Add("VS Code has no deny list. The Fettler agent file is what routes Copilot, and it binds when "
             + "that agent is chosen in the chat; the default agent keeps every built-in tool");
 
-        string left = options.Level == Levels.GuardrailsName
+        string left = level == Levels.GuardrailsName
             ? "read, edit, search and execute"
             : "read, edit and search";
 

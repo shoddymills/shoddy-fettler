@@ -288,6 +288,7 @@ because there is nothing long enough to be worth resuming.
 ./scripts/fettler-build.ps1 release       # Release build
 ./scripts/fettler-build.ps1 publish 1.0.0 # self-contained single-file per OS, per program
 ./scripts/fettler-install.ps1             # install over the fettle on PATH
+./scripts/fettler-install.ps1 1.0.0       # ...stamped as 1.0.0, and checked
 ./scripts/fettler-install.ps1 -Stop       # ...and end the servers still on the old build
 ```
 

@@ -400,6 +400,28 @@ public sealed class CeilingTests
         Assert.Equal(1500, paths.Distinct(StringComparer.Ordinal).Count());
     }
 
+    /// <summary>A find sorted by time carries on from a time, a space and
+    /// a path. The terminal quotes it, so pasting the sentence into a
+    /// shell passes it as one argument, and it carries on.</summary>
+    [Fact]
+    public async Task TheTerminalQuotesANextThatHoldsASpace()
+    {
+        using var box = new Sandbox();
+        Thousands(box, 1500);
+
+        CliResult first = await Run(box, "find", "--sort", "mtime", "--limit", "100000");
+        const string Lead = "pass --after \"";
+        int at = first.Stdout.IndexOf(Lead, StringComparison.Ordinal);
+        Assert.True(at >= 0, first.Stdout);
+
+        int from = at + Lead.Length;
+        string after = first.Stdout[from..first.Stdout.IndexOf('"', from)];
+        Assert.Contains(' ', after);
+
+        CliResult next = await Run(box, "find", "--sort", "mtime", "--limit", "100000", "--after", after);
+        Assert.Equal(ExitCodes.Ok, next.ExitCode);
+    }
+
     // ---- replace ----
 
     [Fact]
@@ -444,6 +466,34 @@ public sealed class CeilingTests
 
         Assert.True(replaced.IsError);
         Assert.Equal("old\n", box.ReadText("a.txt"));
+    }
+
+    /// <summary>A replace that writes has changed every file by the time
+    /// it answers. Its list is cut to fit and counts the rest, as an
+    /// edit's report does. It gives no next, because after is refused for
+    /// a replace that writes, and a next would point at that refusal.</summary>
+    [Fact]
+    public async Task AReplaceThatWritesThousandsOfFilesCountsWhatItDoesNotList()
+    {
+        using var box = new Sandbox();
+        string Name(int i) => $"src/a/long/folder/name/file-{i:D5}-{new string('r', 50)}.txt";
+        for (int i = 0; i < 2500; i++) box.Write(Name(i), "old\n");
+
+        Called replaced = await Call(box, "replace", new { find = "old", with = "new" });
+        JsonElement answer = replaced.Answer;
+
+        Assert.False(replaced.IsError, replaced.Text);
+        Assert.True(Bytes(replaced.Text) <= Budget.Ceiling, $"{Bytes(replaced.Text)} bytes");
+        Assert.False(answer.TryGetProperty("next", out _));
+        Assert.Equal(2500, answer.GetProperty("count").GetInt32());
+        Assert.Equal(2500, answer.GetProperty("files").GetArrayLength()
+                           + answer.GetProperty("files_omitted").GetInt32());
+        Assert.Equal("new\n", box.ReadText(Name(2499)));
+
+        CliResult human = await Run(box, "replace", "new", "old");
+        Assert.True(Bytes(human.Stdout) <= Budget.Ceiling);
+        Assert.Contains("more files, not listed", human.Stdout);
+        Assert.DoesNotContain("--after", human.Stdout);
     }
 
     // ---- edit ----

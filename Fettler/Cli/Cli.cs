@@ -103,8 +103,15 @@ public static partial class Command
         return await Run(bench, args, json, stdin, cancel).ConfigureAwait(false);
     }
 
+    /// <summary>Whether the answer is the help. <c>--version</c> leaves no
+    /// verb behind, so it is excluded by name: counted as help, it had the
+    /// levels line printed above the version, and a script reading the
+    /// first line got the levels.</summary>
     static bool IsHelp(Arguments args) =>
-        args.Verb.Length == 0 || args.Verb is "help" or "--help" or "-h" || args.Has("help");
+        !IsVersion(args)
+        && (args.Verb.Length == 0 || args.Verb is "help" or "--help" or "-h" || args.Has("help"));
+
+    static bool IsVersion(Arguments args) => args.Verb is "version" || args.Has("version");
 
     /// <summary>One line naming each level and whether it is on here.</summary>
     static string LevelsLine(Levels levels) =>
@@ -115,7 +122,7 @@ public static partial class Command
         // Version before help, and not the other way round: `--version`
         // parses as a flag and leaves no verb behind, so an empty-verb
         // test placed first swallows it and prints the help instead.
-        if (args.Verb is "version" || args.Has("version"))
+        if (IsVersion(args))
             return new CliResult(ExitCodes.Ok, "fettle " + Version + Environment.NewLine, string.Empty);
 
         if (args.Verb.Length == 0 || args.Verb is "help" or "--help" or "-h" || args.Has("help"))
@@ -145,6 +152,11 @@ public static partial class Command
         if (empty.Count > 0)
             return Failed(new Failure(Outcome.Invalid,
                 $"{string.Join(", ", empty)} needs a value. Write --NAME= to pass an empty one"), json);
+
+        IReadOnlyList<string> notWhole = args.NotWholeNumbers;
+        if (notWhole.Count > 0)
+            return Failed(new Failure(Outcome.Invalid,
+                $"{string.Join(", ", notWhole)}: each takes a whole number, such as 50"), json);
 
         try
         {
@@ -977,6 +989,10 @@ public static partial class Command
     /// PowerShell 5.1 caller cannot retrieve stderr without turning it
     /// into a terminating error.
     /// </summary>
+    /// <summary>A refusal in the machine-readable shape, for a front end
+    /// that refuses before a verb runs.</summary>
+    public static CliResult Refuse(Failure failure) => Failed(failure, json: true);
+
     static CliResult Failed(Failure failure, bool json)
     {
         int code = ExitCodes.Of(failure.Outcome);
@@ -1137,9 +1153,11 @@ public static partial class Command
 
         Flags for every verb: --config PATH, --root [NAME=]PATH (read-only), --no-config,
         --json, --include-generated, --exclude GLOB. Clients: claude-code,
-        claude-desktop, vscode-copilot, github-copilot. A glob has *, ** and ?. A glob
-        holding {, }, [ or ], or starting with !, is refused. fettle never writes
-        .fettler.json or .fettler.local.json.
+        claude-desktop, vscode-copilot, github-copilot. A glob has *, ** and ?, and
+        {a,b} for either of two, one level deep. A glob holding [ or ], a nested or
+        unbalanced brace, or starting with !, is refused. Input a verb does not take
+        is refused before anything runs. fettle never writes .fettler.json or
+        .fettler.local.json.
 
         Exit codes: 0 ok, 2 invalid, 3 not-found, 4 outside-root, 5 target-exists,
                     6 stale, 7 conflict, 8 refused, 9 denied, 10 timed-out,

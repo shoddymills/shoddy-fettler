@@ -789,7 +789,7 @@ public sealed class Bench : IDisposable
     /// three.</para>
     ///
     /// <para><b>Whole, without <c>read</c>'s caps.</b> The text is parsed
-    /// or spliced, not shown, and a script cut off at 40,000 characters
+    /// or spliced, not shown, and a script cut off at 40,000 bytes
     /// would be the very failure that a script named by path exists to
     /// avoid.</para>
     /// </summary>

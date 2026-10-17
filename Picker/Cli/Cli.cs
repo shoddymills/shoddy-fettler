@@ -106,6 +106,12 @@ public static class Command
             return Failed(new Failure(Outcome.Invalid,
                 $"{string.Join(", ", missing)} needs a value"), json);
 
+        // A limit that is not a whole number used to fall back to the
+        // default without a word, which is a wrong answer, not a failure.
+        if (args.Value("limit") is { } limit && !int.TryParse(limit, out _))
+            return Failed(new Failure(Outcome.Invalid,
+                $"--limit takes a whole number, such as 50; got '{limit}'"), json);
+
         try
         {
             return Held(args.Verb switch
@@ -220,7 +226,7 @@ public static class Command
                 "after needs the next the last answer gave: a whole number"), json);
 
         var worst = new ObjectsAnswer([], true, int.MaxValue);
-        int room = Budget.Ceiling - Envelope(w => WriteObjects(w, worst), HumanObjects(worst));
+        int room = Budget.Answer - Envelope(w => WriteObjects(w, worst), HumanObjects(worst));
 
         Result<ObjectsAnswer> found = await bench.ObjectsAsync(args.At(0), cancel, after,
                 o => Math.Max(Size.Json(w => WriteObject(w, o)) + 1, Size.Text(HumanObject(o))),
@@ -420,7 +426,7 @@ public static class Command
         IReadOnlyList<object> rest = [.. parts.Skip(after)];
 
         Described empty = whole with { Columns = [], Indexes = [], ForeignKeys = [] };
-        int room = Budget.Ceiling - Envelope(w => WriteDescribed(w, empty, null), HumanDescribed(empty, null));
+        int room = Budget.Answer - Envelope(w => WriteDescribed(w, empty, null), HumanDescribed(empty, null));
 
         int fit = Budget.Fit(rest, room,
             p => Math.Max(Size.Json(w => WritePart(w, p)) + 1, Size.Text(HumanPart(p))),
@@ -615,7 +621,7 @@ public static class Command
     /// </summary>
     public static CliResult Held(CliResult answer, bool json)
     {
-        int ceiling = answer.Failed ? Budget.ErrorCeiling : Budget.Ceiling;
+        int ceiling = answer.Failed ? Budget.ErrorAnswer : Budget.Answer;
         int size = Size.Text(answer.Stdout + (json ? "" : answer.Stderr));
         if (size <= ceiling) return answer;
 
@@ -630,14 +636,14 @@ public static class Command
                 if (refusal.Subject is { } subject) w.WriteString("subject", subject);
             }, ok: false) + Environment.NewLine;
 
-            int keep = Budget.Prefix(refusal.Message, Budget.ErrorCeiling, m => Size.Text(Write(m + said)));
+            int keep = Budget.Prefix(refusal.Message, Budget.ErrorAnswer, m => Size.Text(Write(m + said)));
             return answer with { Stdout = Write(refusal.Message[..keep] + said) };
         }
 
         if (answer.Failed && !json)
             return answer with
             {
-                Stderr = answer.Stderr[..Budget.Prefix(answer.Stderr, Budget.ErrorCeiling - 2, Size.Text)]
+                Stderr = answer.Stderr[..Budget.Prefix(answer.Stderr, Budget.ErrorAnswer - 2, Size.Text)]
                          + Environment.NewLine,
             };
 
@@ -719,16 +725,21 @@ public static class Command
 
         Verbs
           catalogs                     the levels, then the servers and databases, and what each allows
-          objects [PATTERN]            list tables and views the grant allows; PATTERN is
+          objects [PATTERN] [--after NEXT]
+                                       list tables and views the grant allows; PATTERN is
                                        schema.object or a bare object name, * inside a segment
           select "SQL" [--limit N]     run one SELECT (--stdin reads the SQL from stdin)
-          describe NAME                list columns, keys and indexes; never a view's definition
+          describe NAME [--after NEXT] list columns, keys and indexes; never a view's definition
           doctor                       check the configuration, the servers and the screening pieces
           version                      print the version
 
         Global flags
           --config PATH                use this .picker.json; otherwise the nearest one applies
           --json                       machine-readable answers on stdout, failures included
+
+        Every answer stops at 40,000 bytes, and 10,000 for a refusal. A list that stops
+        short gives its next: pass it back as --after NEXT. A row too wide for one
+        answer is refused. Input a verb does not take is refused before anything runs.
 
         .picker.json and .picker.local.json say what pick may do. pick does not
         write them; a person edits them.
@@ -738,6 +749,10 @@ public static class Command
     static CliResult Unknown(IReadOnlyList<string> unknown, bool json) =>
         Failed(new Failure(Outcome.Invalid,
             $"no such flag: {string.Join(", ", unknown)}. Run pick help for the list"), json);
+
+    /// <summary>A refusal in the machine-readable shape, for a front end
+    /// that refuses before a verb runs.</summary>
+    public static CliResult Refuse(Failure failure) => Failed(failure, json: true);
 
     static CliResult Failed(Failure failure, bool json)
     {

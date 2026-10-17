@@ -267,7 +267,14 @@ public sealed class DefectTests
             Assert.Contains("together", said);
             Assert.Contains("expect", said);
             Assert.Contains("after", said);
+
+            // An agent may only do what the one that sent it may do. In
+            // the session that wrote this, an assistant sent a subagent to
+            // use a shell its own boundary denied it.
+            Assert.Contains("subagent works under the same boundary", said);
         }
+
+        Assert.Contains("hint:", instructions);
     }
 
 
