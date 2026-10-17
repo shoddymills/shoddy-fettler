@@ -2,6 +2,7 @@
 # Put the fettle you just built where the machine will actually find it.
 #
 #   ./scripts/fettler-install.ps1                 build, then install over the one on PATH
+#   ./scripts/fettler-install.ps1 2.2.0           the same, stamped as version 2.2.0
 #   ./scripts/fettler-install.ps1 -To DIR         install into DIR instead
 #   ./scripts/fettler-install.ps1 -Stop           end the servers still on the old build
 #   ./scripts/fettler-install.ps1 -DryRun         say what would happen and touch nothing
@@ -51,13 +52,18 @@
 # client owns; nothing outside can hand it a new one. Install, then
 # reconnect from the client - in Claude Code that is /mcp.
 #
-# DO NOT RUN THIS THROUGH `fettle run`. With -Stop the task would be a
+# THE VERSION IS STAMPED, the way fettler-build.ps1 stamps a release: with
+# one given, the build carries it and the installed binary must report it,
+# or the install says so. Without one the build carries whatever
+# Directory.Build.props says, which is the development default.
+#
+# -STOP DOES NOT RUN THROUGH `fettle run`. With -Stop the task would be a
 # child of the very server it is ending, so the kill would take the task
 # with it before it could report what it did. It refuses when it sees
-# that, but a terminal is the right place for it regardless - which is
-# also why it is not a declared task.
+# that. Without -Stop it is an ordinary task, and a declared one works.
 [CmdletBinding()]
 param(
+    [Parameter(Position = 0)][string]$Version = '',
     [string]$To = '',
     [ValidateSet('fettle', 'burler', 'pick')][string]$Program = 'fettle',
     [switch]$Stop,
@@ -74,6 +80,16 @@ if ($PSVersionTable.PSVersion.Major -lt 6) {
     Write-Host "         Run it with pwsh." -ForegroundColor Red
     exit 1
 }
+
+# The version, exactly X.Y.Z as fettler-ship.ps1 takes it. A typo is
+# refused rather than quietly installed as the development default.
+if ($Version -and $Version -notmatch '^\d+\.\d+\.\d+$') {
+    Write-Host "STOPPED: '$Version' is not a version." -ForegroundColor Red
+    Write-Host "         A version is exactly X.Y.Z, such as 2.2.0." -ForegroundColor Red
+    exit 1
+}
+$stamp = @()
+if ($Version) { $stamp = @("-p:Version=$Version") }
 
 # The scripts live in scripts/; what they build lives one level up.
 $root = Split-Path -Parent $PSScriptRoot
@@ -205,7 +221,8 @@ $native = @()
 if ($Program -eq 'burler') { $native = @('-p:IncludeNativeLibrariesForSelfExtract=true') }
 
 if ($DryRun) {
-    Announce "would publish $Program for $rid, then install it to $destination"
+    $which = if ($Version) { $Version } else { 'at the development version' }
+    Announce "would publish $Program $which for $rid, then install it to $destination"
     if (Test-Path $destination) {
         if ($IsWindows) { Announce "would move the file there aside to $exe.old-$PID and copy into its place" }
         else { Announce "would write $exe.new-$PID beside it and rename that onto it" }
@@ -218,12 +235,12 @@ if ($DryRun) {
     exit 0
 }
 
-Announce "> dotnet publish $Program -c Release -r $rid --self-contained -p:PublishSingleFile=true"
+Announce "> dotnet publish $Program -c Release -r $rid --self-contained -p:PublishSingleFile=true $stamp"
 $prev = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
 try {
     dotnet publish $Program -c Release -r $rid --self-contained `
-        -p:PublishSingleFile=true @native -o $staging
+        -p:PublishSingleFile=true @native @stamp -o $staging
 }
 finally { $ErrorActionPreference = $prev }
 
@@ -295,6 +312,13 @@ $reported = if ($said.Count -gt 0) { "$($said[0])" } else { '' }
 if ($LASTEXITCODE -ne 0) {
     if ($aside) { Write-Host "The previous build is still here, as $aside." -ForegroundColor Yellow }
     Abort "$destination ran but failed --version (exit $LASTEXITCODE): $reported"
+}
+
+# A version asked for is a version proved. The binary is already in place,
+# so this cannot undo the install; it says plainly that what landed is not
+# what was asked for.
+if ($Version -and $reported -notmatch " $([regex]::Escape($Version))( |$)") {
+    Abort "$destination was installed, but it reports '$reported', not $Version."
 }
 
 Write-Host ""

@@ -21,7 +21,7 @@ figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2
   <div class="row">
     <a class="phase" href="index.html"><img class="mark" src="media/brand/shoddy-icon.svg" alt="" width="23" height="23">Shoddy &middot; Fettler</a>
     <span class="spacer"></span>
-    <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
+    <nav class="docnav meta" aria-label="About"><a href="https://github.com/shoddymills/shoddy-fettler" class="tool">GitHub</a><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
   <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick-tools.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-quickstart.html">Quick start</a><span class="here">Tools</span><a href="fettle-guardrails.html">Guardrails</a><a href="fettle-screenings.html">Screenings</a><a href="fettle-install.html">Install</a><a href="fettle-reference.html">Reference</a></nav></div>
 </div></div>
@@ -85,7 +85,7 @@ $ fettle search "TODO" --glob "src/**/*.ts"
 
 <h3 id="wrong-read">One read, a cap it states</h3>
 
-<p>The first line gives the file's kind, encoding and line ending, and which lines of how many came back. A read that stops says how many lines are left and how to get them. A minified file, which is one enormous line, stops at the 40,000-character cap instead, and the answer says that too.</p>
+<p>The first line gives the file's kind, encoding and line ending, and which lines of how many came back. A read that stops says how many lines are left and how to get them. A minified file, which is one enormous line, comes back in pieces instead, and the answer gives the line and the column to carry on from.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle read src/Fettler/Glob.cs --to 3
 work:src/Fettler/Glob.cs  text  utf-8  lf  final-newline: yes  lines 1-3 of 212
@@ -125,7 +125,7 @@ $ echo $LASTEXITCODE
 <tr><th>Check</th><th>What it does</th></tr>
 <tr><td>Paths stay in the trees</td><td>Every path must land inside a tree. There is no current folder to change, and no path can climb out of a tree.</td></tr>
 <tr><td>The hash</td><td><code>read</code> returns a hash of the file's content. Pass it as <code>expect</code> on an edit, and the edit is refused if the file changed since you read it.</td></tr>
-<tr><td>The caps</td><td>A read stops at 2,000 lines or 40,000 characters, and the answer says how much it left out. A search stops at its limit and says so. A declared task keeps the last 40,000 characters of its output and says how much it left out.</td></tr>
+<tr><td>The caps</td><td>Every answer stops at 40,000 bytes, and a read also stops at 2,000 lines. An answer that stops short gives <code>next</code>, the place to carry on from. A search stops at its limit and says so. A declared task keeps the end of its output and says how much it left out.</td></tr>
 <tr><td>The typed reads</td><td>Notebooks come back as cells, spreadsheets as rows with their formulas, Word files as paragraphs, and PDFs as text per page.</td></tr>
 <tr><td>Generated folders</td><td><code>find</code> and <code>search</code> skip <code>bin</code>, <code>obj</code>, <code>.git</code>, <code>artifacts</code> and <code>node_modules</code> unless you ask for them.</td></tr>
 <tr><td>The credential check</td><td>A write that would add a secret, such as a cloud access key or a private key, is refused as <code>credential</code>, exit&nbsp;12. The refusal names the line but never the secret.</td></tr>

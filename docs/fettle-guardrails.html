@@ -40,7 +40,7 @@ figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2
   <div class="row">
     <a class="phase" href="index.html"><img class="mark" src="media/brand/shoddy-icon.svg" alt="" width="23" height="23">Shoddy &middot; Fettler</a>
     <span class="spacer"></span>
-    <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
+    <nav class="docnav meta" aria-label="About"><a href="https://github.com/shoddymills/shoddy-fettler" class="tool">GitHub</a><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
   <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick-guardrails.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-quickstart.html">Quick start</a><a href="fettle-tools.html">Tools</a><span class="here">Guardrails</span><a href="fettle-screenings.html">Screenings</a><a href="fettle-install.html">Install</a><a href="fettle-reference.html">Reference</a></nav></div>
 </div></div>
@@ -390,7 +390,7 @@ declared by C:\github\app\.fettler.json</code></pre></div>
 
 <h3 id="block">The instruction block</h3>
 
-<p><b>The instruction block tells the assistant how to work here, and the deny list makes it so.</b> <code>setup tools</code> writes the block into the client's instruction file, such as <code>CLAUDE.md</code>, between markers it can find again. The block holds the tools paragraph, which says to call <code>roots</code> first, that there is no working folder, and that every answer stops at 40,000 characters. <code>setup guardrails</code> adds the guardrails paragraph after it, as written:</p>
+<p><b>The instruction block tells the assistant how to work here, and the deny list makes it so.</b> <code>setup tools</code> writes the block into the client's instruction file, such as <code>CLAUDE.md</code>, between markers it can find again. The block holds the tools paragraph, which says to call <code>roots</code> first, that there is no working folder, and that every answer stops at 40,000 bytes. <code>setup guardrails</code> adds the guardrails paragraph after it, as written:</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>**Guardrails are on.** The built-in Read, Write, Edit, NotebookEdit, Grep and
 Glob are denied. Use the Fettler tools for every file operation.
@@ -455,7 +455,7 @@ does not write them. A person edits them.</code></pre></div>
 <p><b><code>doctor</code> reports one section per level, and it reports findings only for a level that is on.</b> A finding is a way round the boundary, with a number and the fix that clears it. At the tools level its section shows the registrations, the client's folders and any companions. With guardrails on, it adds the guardrails section below. It never writes anything, and it never prints a secret.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>$ fettle doctor
-fettle 2.1.0  C:\tools\fettle\fettle.exe
+fettle 2.2.0  C:\tools\fettle\fettle.exe
 on PATH: C:\tools\fettle\fettle.exe
 
 tools  on, always
@@ -464,10 +464,12 @@ tools  on, always
   claude-code     repo    absent    'fettler' is not registered in this file
                           C:\github\app\.mcp.json
   scratch: C:\Users\you\AppData\Local\Temp\claude\c--github-app\...\scratchpad
+  - 2.8  deny does not list the built-in Read, Write, Edit, NotebookEdit, Grep, Glob, BashOutput, TaskOutput. Run: fettle setup tools claude-code --local
+      C:\github\app\.claude\settings.json
 
 guardrails  on, from C:\github\app\.fettler.json
   tool inventory dated 2026-08-20; newer client tools are not checked
-  - 2.8  deny does not list the built-in Read, Write, Edit, NotebookEdit, Grep, Glob, Bash, PowerShell, Monitor, BashOutput, TaskOutput. Run: fettle setup guardrails claude-code --local
+  - 2.20  deny does not list the shell Bash, PowerShell, Monitor. Run: fettle setup guardrails claude-code --local
       C:\github\app\.claude\settings.json
   - 2.17  1 other MCP server registered: sparky. Deny mcp__&lt;name&gt;__* for any that should not reach files
       C:\Users\you\.claude.json

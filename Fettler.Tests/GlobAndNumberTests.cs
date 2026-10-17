@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Fettler.Cli;
+using Fettler.Core;
 using Xunit;
 
 namespace Fettler.Tests;
@@ -24,7 +25,8 @@ public sealed class GlobAndNumberTests
         var data = new TheoryData<string, string, string>();
         foreach (string verb in new[] { "find", "search", "replace" })
         {
-            data.Add(verb, "{a,b}/**", "'{'");
+            data.Add(verb, "{a,b/**", "'{'");
+            data.Add(verb, "{a,{b,c}}/**", "'{'");
             data.Add(verb, "a}/*.cs", "'}'");
             data.Add(verb, "[ab].txt", "'['");
             data.Add(verb, "a]/*.cs", "']'");
@@ -68,6 +70,57 @@ public sealed class GlobAndNumberTests
 
         Assert.Equal(ExitCodes.Invalid, said.ExitCode);
         Assert.Contains("'['", said.Stderr);
+    }
+
+    // ---- braces: one level of alternation ----
+
+    /// <summary>
+    /// Assistants write <c>*.{cs,md}</c> by habit: 29 times in 13 of 17
+    /// sessions, each one a refused call and a retry. Braces now mean what
+    /// they mean everywhere else, one level deep: the glob matches what
+    /// any of its alternatives matches.
+    /// </summary>
+    [Fact]
+    public async Task BracesMatchAnyOfTheirAlternatives()
+    {
+        using var box = new Sandbox();
+        box.Write("src/a.cs", "x\n");
+        box.Write("src/b.md", "x\n");
+        box.Write("src/c.txt", "x\n");
+        box.Write("docs/d.md", "x\n");
+        box.Write("tests/deep/e.cs", "x\n");
+
+        string[] Paths(CliResult r) =>
+            [.. Answer(r).GetProperty("files").EnumerateArray().Select(f => f.GetProperty("path").GetString()!)];
+
+        Assert.Equal(["src/a.cs", "src/b.md", "tests/deep/e.cs"],
+            Paths(await Run(box, "find", "**/*.{cs,md}", "--json")).Where(p => !p.StartsWith("docs")).ToArray());
+        Assert.Equal(["docs/d.md", "src/a.cs", "src/b.md", "src/c.txt"],
+            Paths(await Run(box, "find", "{src,docs}/*", "--json")));
+        Assert.Equal(["src/a.cs", "tests/deep/e.cs"],
+            Paths(await Run(box, "find", "{src/*.cs,tests/**}", "--json")));
+
+        JsonElement found = Answer(await Run(box, "search", "x", "--glob", "src/*.{cs,txt}", "--json"));
+        Assert.Equal(2, found.GetProperty("hits_count").GetInt32());
+
+        JsonElement skipped = Answer(await Run(box, "find", "**/*", "--exclude", "{docs,tests}/**", "--json"));
+        Assert.Equal(3, skipped.GetProperty("files").GetArrayLength());
+
+        CliResult replaced = await Run(box, "replace", "x", "y", "--glob", "src/*.{md,txt}");
+        Assert.Equal(ExitCodes.Ok, replaced.ExitCode);
+        Assert.Equal("x\n", box.ReadText("src/a.cs"));
+        Assert.Equal("y\n", box.ReadText("src/b.md"));
+        Assert.Equal("y\n", box.ReadText("src/c.txt"));
+    }
+
+    /// <summary>A brace ends the fixed start of a pattern, because the
+    /// walk would otherwise begin in a directory literally named with
+    /// one.</summary>
+    [Fact]
+    public void ABraceEndsTheFixedPrefix()
+    {
+        Assert.Equal("src", Glob.Compile("src/{a,b}/*.cs").Value.FixedPrefix);
+        Assert.Equal("", Glob.Compile("{src,docs}/*").Value.FixedPrefix);
     }
 
     /// <summary>R3.2: a file with one of those characters in its name is
@@ -167,7 +220,11 @@ public sealed class GlobAndNumberTests
     {
         using var box = new Sandbox();
         var text = new StringBuilder();
-        for (int i = 0; i < 3000; i++) text.Append(new string('x', 19)).Append('\n');
+        // Quotes, so the JSON form of a line outweighs the terminal form on
+        // every platform. With plain text the terminal form, which always
+        // numbers, is the larger where a newline is two bytes, and a plain
+        // read stops at the same line as a numbered one.
+        for (int i = 0; i < 3000; i++) text.Append(new string('"', 19)).Append('\n');
         box.Write("big.txt", text.ToString());
 
         JsonElement plain = Answer(await Run(box, "read", "big.txt", "--to", "3000", "--json")).GetProperty("files")[0];
@@ -175,9 +232,9 @@ public sealed class GlobAndNumberTests
 
         Assert.True(numbered.GetProperty("budgeted").GetBoolean());
         Assert.True(numbered.GetProperty("to").GetInt32() < plain.GetProperty("to").GetInt32());
-        Assert.True(numbered.GetProperty("text").GetString()!.Length <= 40_000);
+        Assert.True(Encoding.UTF8.GetByteCount(numbered.GetProperty("text").GetString()!) < Budget.Ceiling);
 
         CliResult human = await Run(box, "read", "big.txt", "--to", "3000", "--numbered");
-        Assert.Contains("-character limit for one call", human.Stdout);
+        Assert.Contains("-byte limit for one call", human.Stdout);
     }
 }

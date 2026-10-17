@@ -15,7 +15,7 @@
   <div class="row">
     <a class="phase" href="index.html"><img class="mark" src="media/brand/shoddy-icon.svg" alt="" width="23" height="23">Shoddy &middot; Fettler</a>
     <span class="spacer"></span>
-    <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
+    <nav class="docnav meta" aria-label="About"><a href="https://github.com/shoddymills/shoddy-fettler" class="tool">GitHub</a><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
   <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick-install.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><a href="fettle.html">Overview</a><a href="fettle-quickstart.html">Quick start</a><a href="fettle-tools.html">Tools</a><a href="fettle-guardrails.html">Guardrails</a><a href="fettle-screenings.html">Screenings</a><span class="here">Install</span><a href="fettle-reference.html">Reference</a></nav></div>
 </div></div>
@@ -74,7 +74,7 @@ if ($user -notlike "*$dir*") {
 <p><b>Then open a new terminal.</b> A running terminal keeps the settings it started with. That is the most common reason <code>fettle</code> is &ldquo;not on PATH&rdquo; a minute after you put it there.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle --version
-fettle 2.1.0</code></pre></div>
+fettle 2.2.0</code></pre></div>
 
 </div></div>
 
@@ -103,11 +103,12 @@ fettle --version</code></pre></div>
 <p>You do not have to build anything else in this repository first. Fettler uses no other project here.</p>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>./scripts/fettler-build.ps1 publish X.Y.Z    # X.Y.Z names the archives
-./scripts/fettler-install.ps1                # build, then install over the fettle on PATH</code></pre></div>
+./scripts/fettler-install.ps1                # build, then install over the fettle on PATH
+./scripts/fettler-install.ps1 X.Y.Z          # the same, stamped as X.Y.Z</code></pre></div>
 
 <p>The archives go in <code>artifacts/publish/</code>. A macOS or Linux archive made on Windows has no execute bit, so a release always makes those on a macOS or Linux machine.</p>
 
-<p><code>fettler-install.ps1</code> replaces the <code>fettle</code> that is already on <code>PATH</code>. It works while that copy is running. A running copy keeps serving the old build until its client restarts it, so add <code>-Stop</code> to end those copies once the new file is in place.</p>
+<p><code>fettler-install.ps1</code> replaces the <code>fettle</code> that is already on <code>PATH</code>. It works while that copy is running. A running copy keeps serving the old build until its client restarts it, so add <code>-Stop</code> to end those copies once the new file is in place. A version, such as <code>2.2.0</code>, is stamped into the build, and the install checks that the new <code>fettle</code> reports it.</p>
 
 <h2 id="register">Registering each client</h2>
 
@@ -218,7 +219,7 @@ fettle setup tools --all --global --deny</code></pre></div>
 
 <div class="promptbox"><button class="copy">Copy</button><pre><code>fettle doctor</code></pre></div>
 
-<div class="promptbox"><button class="copy">Copy</button><pre><code>fettle 2.1.0  C:\Users\you\AppData\Local\Programs\fettle\fettle.exe
+<div class="promptbox"><button class="copy">Copy</button><pre><code>fettle 2.2.0  C:\Users\you\AppData\Local\Programs\fettle\fettle.exe
 on PATH: C:\Users\you\AppData\Local\Programs\fettle\fettle.exe
 
 tools  on, always

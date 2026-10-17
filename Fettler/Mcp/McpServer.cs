@@ -40,6 +40,22 @@ public sealed class McpServer : IDisposable
     readonly Func<Result<Roots>>? reload;
     readonly SemaphoreSlim writing = new(1, 1);
     readonly ConcurrentDictionary<string, CancellationTokenSource> inFlight = new();
+    readonly Hints hints = new();
+
+    readonly object timing = new();
+    int pending;
+    bool called;
+    DateTime lastAnswered = DateTime.MinValue;
+
+    /// <summary>
+    /// How long after an answer the next call must arrive to count as sent
+    /// one after another rather than together. A model sends the calls of
+    /// one turn within milliseconds of each other, and a turn between
+    /// calls takes seconds, so a fifth of a second separates the two with
+    /// room either side. Settable so a test can stand for a turn without
+    /// waiting one out.
+    /// </summary>
+    public TimeSpan TurnGap { get; init; } = TimeSpan.FromMilliseconds(200);
 
     /// <summary>
     /// <paramref name="reload"/> is the per-request re-read of the
@@ -178,6 +194,16 @@ public sealed class McpServer : IDisposable
         using var source = CancellationTokenSource.CreateLinkedTokenSource(cancel);
         inFlight[key] = source;
 
+        // Whether this call arrived after the last answer went out, with no
+        // call still running: sent one after another, not together.
+        bool sequential;
+        lock (timing)
+        {
+            sequential = called && pending == 0 && DateTime.UtcNow - lastAnswered >= TurnGap;
+            called = true;
+            pending++;
+        }
+
         // The boundary THIS call runs against. Re-read when there is a
         // file to re-read - unconditionally, not gated on a modification
         // time, so the behaviour is deterministic: every call answers
@@ -201,6 +227,10 @@ public sealed class McpServer : IDisposable
             Result<ToolCatalogue.ToolAnswer> answer = await ToolCatalogue
                 .InvokeAsync(boundary, name, arguments, source.Token).ConfigureAwait(false);
 
+            string? hint = answer.IsOk
+                ? hints.After(name, arguments, answer.Value.Text, answer.Value.IsError, sequential)
+                : null;
+
             // A failed tool is a successful protocol message carrying
             // isError, not a JSON-RPC error: the model is meant to read
             // the reason and try something else.
@@ -213,6 +243,16 @@ public sealed class McpServer : IDisposable
                 w.WriteString("type", "text");
                 w.WriteString("text", answer.IsOk ? answer.Value.Text : Describe(answer.Failure!));
                 w.WriteEndObject();
+
+                // A hint is a part of its own, so the answer stays exactly
+                // what the command line prints and still parses as JSON.
+                if (hint is not null)
+                {
+                    w.WriteStartObject();
+                    w.WriteString("type", "text");
+                    w.WriteString("text", hint);
+                    w.WriteEndObject();
+                }
 
                 // An image goes as an image. The content model carries
                 // one natively and nothing here has to understand the
@@ -244,6 +284,11 @@ public sealed class McpServer : IDisposable
         {
             snapshot?.Dispose();
             inFlight.TryRemove(key, out _);
+            lock (timing)
+            {
+                pending--;
+                lastAnswered = DateTime.UtcNow;
+            }
         }
     }
 
@@ -276,9 +321,16 @@ public sealed class McpServer : IDisposable
         + "Call roots first. It names the levels that are on, lists the trees, what each allows, "
         + "and which tree an unqualified path lands in. "
         + "roots names the branch of a tree that is a checkout, and the fact is local, not what a remote holds. "
-        + "read returns a hash; pass it as expect on an edit, and the edit is refused if the file changed. "
-        + "Every answer stops at 40,000 characters and says what it left out; "
-        + "read the end of a long log with read and tail. "
+        + "Do several things in one call: read takes several paths, search takes several patterns, "
+        + "edit takes edits to several files, and batch runs a list of file operations in order. "
+        + "Send calls that do not need each other's answers together, in one turn. "
+        + "Feed each answer into the next call: read returns a hash; pass it as expect on an edit, "
+        + "and the edit is refused if the file changed. A search hit gives the path and line to read or edit. "
+        + "Every answer stops at 40,000 bytes. One that stops short gives next; pass it back as after, "
+        + "or as from and column for a read. Read the end of a long log with read and tail. "
+        + "A line starting hint: after an answer says what the calls so far missed. "
+        + "A subagent works under the same boundary: do not send one to do what a refusal stopped; "
+        + "ask the person instead. "
         + "The scratch, tool-results and memory trees are the client's own folders, which fettle finds itself. "
         + $"{RootsFile.FileName} and {RootsFile.LocalFileName} say what this tool may do. "
         + "The tool does not write them; a person edits them, and an edit applies on the next call.";

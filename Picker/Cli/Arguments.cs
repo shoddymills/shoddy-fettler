@@ -16,7 +16,7 @@ public sealed class Arguments
     /// guesses from what happens to follow.</summary>
     static readonly HashSet<string> Valued = new(StringComparer.OrdinalIgnoreCase)
     {
-        "config", "limit", "in",
+        "config", "limit", "in", "after",
     };
 
     readonly List<string> positionals = [];

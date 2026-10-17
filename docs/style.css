@@ -50,13 +50,15 @@ body{margin:0; background:var(--paper); color:var(--ink);
 .topbar .spacer{flex:1}
 .docnav{display:flex; flex-wrap:wrap; gap:.2rem .85rem}
 .docnav.meta{justify-content:flex-end}
-/* Fettler is a tool, not an about-link, and the main row was full at fourteen
-   items. It rides up here in the house madder with a rule between it and the
-   about-links, so the two kinds of link read as two groups rather than four
-   equal words. The rule is padding plus a border rather than a separator
-   element: no extra markup to keep in step across 123 pages. */
+/* GitHub and Shoddy are tools, not about-links. They ride up here in the
+   house madder with a rule between them and the about-links, so the two kinds
+   of link read as two groups rather than four equal words. The rule is
+   padding plus a border rather than a separator element: no extra markup to
+   keep in step across every page. Only the last tool in the group draws it,
+   so the tools read as one block. */
 .docnav.meta .tool{color:var(--madder); font-weight:600;
   padding-right:.85rem; border-right:1px solid var(--line)}
+.docnav.meta .tool:has(+ .tool){padding-right:0; border-right:0}
 .docnav.meta .tool:hover{color:var(--madder)}
 /* The remaining items spread the full width, so the row reads as one band
    rather than a left-packed list with a gap after it. */

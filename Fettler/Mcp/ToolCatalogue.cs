@@ -25,19 +25,20 @@ public static class ToolCatalogue
 
     static readonly Tool[] Tools =
     [
-        new("find", "List files matching a glob, with size and modified time. Sorted by path, or by modified time with sort=mtime. The glob is relative to a declared tree.", """
+        new("find", "List files matching a glob, with size and modified time. Sorted by path, or by modified time with sort=mtime. The glob is relative to a declared tree. An answer that stops short gives next; pass it back as after for the rest.", """
             {"type":"object","properties":{
               "pattern":{"type":"string","description":"glob; * stays within a segment, ** crosses segments, matching is case-insensitive"},
               "in":{"type":"string","description":"which tree to search when more than one is open"},
               "sort":{"type":"string","enum":["path","mtime"]},
               "since":{"type":"string","description":"ISO-8601; only files modified after it"},
               "limit":{"type":"integer"},
+              "after":{"type":"string","description":"the next the last answer gave; the listing starts after it"},
               "include_generated":{"type":"boolean","description":"include bin, obj, .git, artifacts and node_modules"},
               "exclude":{"type":"array","items":{"type":"string"}}
             }}
             """),
 
-        new("search", "Find lines matching one or more patterns. Each hit gives path, line, column and text, with optional context. Searches only inside the declared trees. PDFs are rendered to text and searched; a hit in one names its page. Stops at `limit` hits or at 40,000 characters of matched text; `truncated` says so.", """
+        new("search", "Find lines matching one or more patterns. Ask several questions in one call by giving several patterns. Each hit gives path, line, column and text, with optional context. Searches only inside the declared trees. PDFs are rendered to text and searched; a hit in one names its page. A long line is cut to the match and 200 characters either side; clipped, text_from_column and line_length say where. Stops at `limit` hits or at 40,000 bytes; `truncated` says so, and next is the after to pass for the rest. count is exact. files_only names each file once with its hits.", """
             {"type":"object","required":["patterns"],"properties":{
               "patterns":{"type":"array","items":{"type":"string"},"description":".NET regular expressions unless literal is true"},
               "glob":{"type":"string","description":"restrict to a subset of files"},
@@ -48,17 +49,19 @@ public static class ToolCatalogue
               "limit":{"type":"integer"},
               "count":{"type":"boolean","description":"return counts only, no hits"},
               "files_only":{"type":"boolean"},
+              "after":{"type":"string","description":"the next the last answer gave: PATH:LINE, or PATH with files_only"},
               "include_generated":{"type":"boolean"},
               "no_documents":{"type":"boolean","description":"do not render PDFs to search inside them. The answer says how many documents were skipped."}
             }}
             """),
 
-        new("read", "Read files. Returns content, encoding, line ending, trailing-newline state and a content hash. Takes several paths in one call. Reads notebooks as cells, PDFs as text per page, spreadsheets as rows with their formulas, Word documents as paragraphs and tables, and images as facts plus the image itself. Rendered documents cannot be written back. Stops at 2000 lines unless `to` says otherwise, and at 40,000 characters per call; the answer says how many lines were left out. Use `tail` for the end of a log. With `numbered`, each line starts with its number and a bar, which is a rendering and not the file's content, so leave that prefix out of an edit. When screenings are on, a read that would disclose a screened category is refused.", """
+        new("read", "Read files. Returns content, encoding, line ending, trailing-newline state and a content hash. Takes several paths in one call: read every file you need at once. Reads notebooks as cells, PDFs as text per page, spreadsheets as rows with their formulas, Word documents as paragraphs and tables, and images as facts plus the image itself. Rendered documents cannot be written back. Stops at 2000 lines unless `to` says otherwise, and at 40,000 bytes per call. An answer that stops short gives next: pass its from, and its column when it has one, for the rest. A line too long for one answer comes back in pieces. One image per call, and none over 5 MB. Use `tail` for the end of a log. With `numbered`, each line starts with its number and a bar, which is a rendering and not the file's content, so leave that prefix out of an edit. When screenings are on, a read that would disclose a screened category is refused.", """
             {"type":"object","required":["paths"],"properties":{
               "paths":{"type":"array","items":{"type":"string"}},
               "numbered":{"type":"boolean","description":"start each line with its number and a bar"},
               "from":{"type":"integer"},
-              "to":{"type":"integer","description":"last line to read; lifts the 2000-line default. The 40,000-character cap per call still applies."},
+              "to":{"type":"integer","description":"last line to read; lifts the 2000-line default. The 40,000-byte limit per call still applies."},
+              "column":{"type":"integer","description":"the column the first line starts at, from next.column. Not combinable with tail."},
               "tail":{"type":"integer","description":"read the last n lines. Not combinable with from or to."},
               "member":{"type":"string","description":"read one entry of an archive instead of its member list. Nothing is unpacked to disk."}
             }}
@@ -82,7 +85,7 @@ public static class ToolCatalogue
             }}
             """),
 
-        new("edit", "Apply a batch of edits to one or more files. All of them apply, or none do. A large script goes in a file in the scratch tree and is named by script_path.", """
+        new("edit", "Apply a batch of edits to one or more files. All of them apply, or none do. Make every change a task needs in one call, with the hash read gave as expect for each file. A large script goes in a file in the scratch tree and is named by script_path.", """
             {"type":"object","properties":{
               "path":{"type":"string","description":"the file, when the script does not carry a files array"},
               "expect":{"type":"string","description":"the hash read returned; the edit is refused if the file changed since"},
@@ -92,13 +95,14 @@ public static class ToolCatalogue
             }}
             """),
 
-        new("replace", "Replace one string with another in every file matching a glob. All files change, or none do. Use dry_run first.", """
+        new("replace", "Replace one string with another in every file matching a glob. All files change, or none do. Use dry_run first. The totals are exact. A dry run's list that stops short gives next; a replace that writes lists what fits and counts the rest in files_omitted.", """
             {"type":"object","required":["find","with"],"properties":{
               "find":{"type":"string"},
               "with":{"type":"string"},
               "glob":{"type":"string"},
               "in":{"type":"string"},
               "dry_run":{"type":"boolean"},
+              "after":{"type":"string","description":"the next a dry run gave; lists the files after it. Only with dry_run"},
               "include_generated":{"type":"boolean"}
             }}
             """),
@@ -146,7 +150,7 @@ public static class ToolCatalogue
             {"type":"object","properties":{}}
             """),
 
-        new("run", "Run a declared task and return its output and exit code. A task takes no arguments: name and timeout are the only inputs, and anything else is refused. Values written {like-this} in a task come from the configuration file, never from the caller. The result names the argument list that was launched. Keeps the last 40,000 characters of output across stdout and stderr; `truncated` says so, and `stdout_omitted` and `stderr_omitted` say how much was left out. For all of it, have the task write a log and read it with `tail`. Needs the tree to grant execute, which is never a default. Tasks belong to the guardrails level, so with guardrails off nothing runs.", """
+        new("run", "Run a declared task and return its output and exit code. A task takes no arguments: name and timeout are the only inputs, and anything else is refused. Values written {like-this} in a task come from the configuration file, never from the caller. The result names the argument list that was launched. Keeps the end of stdout and stderr that fits in 40,000 bytes, with terminal colour codes removed; `truncated` says so, and `stdout_omitted` and `stderr_omitted` say how many characters were left out. For all of it, have the task write a log and read it with `tail`. Needs the tree to grant execute, which is never a default. Tasks belong to the guardrails level, so with guardrails off nothing runs.", """
             {"type":"object","required":["name"],"additionalProperties":false,"properties":{
               "name":{"type":"string"},"timeout":{"type":"integer","description":"seconds; 0 means no timeout"}
             }}
@@ -181,6 +185,16 @@ public static class ToolCatalogue
             w.WritePropertyName("inputSchema");
             using JsonDocument schema = JsonDocument.Parse(tool.Schema);
             schema.RootElement.WriteTo(w);
+
+            // The ceiling, said to the client as well. Claude Code reads
+            // this as the size at which it saves an answer to a file, in
+            // place of its own character and token limits for text.
+            // Every answer is held under it anyway, so saying it costs
+            // nothing and spares the client estimating.
+            w.WriteStartObject("_meta");
+            w.WriteNumber("anthropic/maxResultSizeChars", Budget.Ceiling);
+            w.WriteEndObject();
+
             w.WriteEndObject();
         }
 
@@ -191,10 +205,18 @@ public static class ToolCatalogue
     public static async Task<Result<ToolAnswer>> InvokeAsync(
         Bench bench, string name, JsonElement arguments, CancellationToken cancel)
     {
-        bool known = false;
-        foreach (Tool tool in Tools) if (tool.Name == name) { known = true; break; }
-        if (!known)
+        Tool? known = null;
+        foreach (Tool tool in Tools) if (tool.Name == name) { known = tool; break; }
+        if (known is null)
             return Result<ToolAnswer>.Fail(Outcome.Invalid, $"no tool called '{name}'");
+
+        // Do no harm: an argument the tool does not take, one it needs and
+        // lacks, or one of the wrong type is refused before anything runs.
+        // The command line has always refused an unknown flag (R3.14);
+        // here one was dropped, so find given glob for pattern listed the
+        // whole tree.
+        if (Check(known, arguments) is { } wrong)
+            return Result<ToolAnswer>.Ok(new ToolAnswer(Command.Refuse(wrong).Stdout.TrimEnd(), [], IsError: true));
 
         var argv = new List<string> { name, "--json" };
         string stdin = string.Empty;
@@ -245,6 +267,7 @@ public static class ToolCatalogue
             case "find":
                 Positional("pattern");
                 Flag("in", "in"); Flag("sort", "sort"); Flag("since", "since"); Flag("limit", "limit");
+                Flag("after", "after");
                 Flag("include-generated", "include_generated"); Each("exclude", "--exclude");
                 break;
 
@@ -255,6 +278,7 @@ public static class ToolCatalogue
                 Flag("count", "count"); Flag("files-only", "files_only");
                 Flag("include-generated", "include_generated");
                 Flag("no-documents", "no_documents");
+                Flag("after", "after");
                 break;
 
             case "read":
@@ -264,7 +288,7 @@ public static class ToolCatalogue
                     foreach (JsonElement path in paths.EnumerateArray())
                         if (path.ValueKind == JsonValueKind.String) argv.Add(path.GetString()!);
                 Flag("from", "from"); Flag("to", "to"); Flag("tail", "tail");
-                Flag("member", "member"); Flag("numbered", "numbered");
+                Flag("member", "member"); Flag("numbered", "numbered"); Flag("column", "column");
                 break;
 
             case "extract":
@@ -291,7 +315,7 @@ public static class ToolCatalogue
             case "replace":
                 Positional("find"); Positional("with");
                 Flag("glob", "glob"); Flag("in", "in"); Flag("dry-run", "dry_run");
-                Flag("include-generated", "include_generated");
+                Flag("include-generated", "include_generated"); Flag("after", "after");
                 break;
 
             case "new":
@@ -346,16 +370,110 @@ public static class ToolCatalogue
 
         // R3.7 already put the complete machine-readable answer, failures
         // included, on stdout - so the tool result is that text VERBATIM
-        // whichever way it went, and the server marks isError from the
-        // exit code. Describing it again would put a word and a colon in
-        // front of a JSON document and hand the caller something that no
-        // longer parses - and the word would be the same one every time,
-        // where the payload's own "outcome" is the true one.
+        // whichever way it went. Describing it again would put a word and
+        // a colon in front of a JSON document and hand the caller
+        // something that no longer parses - and the word would be the
+        // same one every time, where the payload's own "outcome" is the
+        // true one.
+        //
+        // isError is marked when the operation did not do what was asked,
+        // not from the exit code. doctor exits 1 or 2 for a script when it
+        // finds something, and a client cuts an error answer over about
+        // 11,000 characters to its head and tail - which turned a full
+        // doctor report into JSON that did not parse.
         ToolAnswer answered = Lift(result.Stdout.TrimEnd());
 
-        return Result<ToolAnswer>.Ok(result.ExitCode == ExitCodes.Ok
-            ? answered
-            : answered with { IsError = true, Images = [] });
+        return Result<ToolAnswer>.Ok(result.Failed
+            ? answered with { IsError = true, Images = [] }
+            : answered);
+    }
+
+    /// <summary>
+    /// The arguments of one call against the tool's own schema: every
+    /// argument named there, of the type it says, and every required one
+    /// present. Read from the schema the client was shown, so the check
+    /// and the description cannot disagree.
+    /// </summary>
+    static Failure? Check(Tool tool, JsonElement arguments)
+    {
+        using JsonDocument schema = JsonDocument.Parse(tool.Schema);
+        JsonElement properties = schema.RootElement.TryGetProperty("properties", out JsonElement p) ? p : default;
+        List<string> names = properties.ValueKind == JsonValueKind.Object
+            ? [.. properties.EnumerateObject().Select(x => x.Name)]
+            : [];
+        string takes = names.Count == 0 ? "no arguments" : string.Join(", ", names);
+
+        if (arguments.ValueKind is not (JsonValueKind.Undefined or JsonValueKind.Null))
+        {
+            if (arguments.ValueKind != JsonValueKind.Object)
+                return new Failure(Outcome.Invalid, $"{tool.Name} takes named arguments: {takes}");
+
+            foreach (JsonProperty given in arguments.EnumerateObject())
+            {
+                if (!properties.TryGetProperty(given.Name, out JsonElement spec))
+                    return new Failure(Outcome.Invalid,
+                        $"{tool.Name} does not take '{given.Name}'. It takes: {takes}");
+
+                if (Wrong(spec, given.Value) is { } what)
+                    return new Failure(Outcome.Invalid, $"{tool.Name}: '{given.Name}' takes {what}");
+            }
+        }
+
+        if (schema.RootElement.TryGetProperty("required", out JsonElement required))
+            foreach (JsonElement r in required.EnumerateArray())
+            {
+                string key = r.GetString()!;
+                bool present = arguments.ValueKind == JsonValueKind.Object && arguments.TryGetProperty(key, out _);
+                if (!present)
+                    return new Failure(Outcome.Invalid,
+                        $"{tool.Name} needs '{key}', which takes {Wanted(properties.GetProperty(key))}");
+            }
+
+        return null;
+    }
+
+    /// <summary>What is wrong with one value, or null when nothing is.</summary>
+    static string? Wrong(JsonElement spec, JsonElement value)
+    {
+        string type = spec.TryGetProperty("type", out JsonElement t) ? t.GetString() ?? "" : "";
+
+        bool right = type switch
+        {
+            "string" => value.ValueKind == JsonValueKind.String,
+            "integer" => value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out _),
+            "boolean" => value.ValueKind is JsonValueKind.True or JsonValueKind.False,
+            "array" => value.ValueKind == JsonValueKind.Array
+                       && value.EnumerateArray().All(i => i.ValueKind == JsonValueKind.String),
+            "object" => value.ValueKind == JsonValueKind.Object,
+            _ => true,
+        };
+
+        if (!right)
+            return type == "array" && value.ValueKind == JsonValueKind.String
+                ? "a list, such as [\"a.cs\"], not a single string"
+                : Wanted(spec);
+
+        if (spec.TryGetProperty("enum", out JsonElement choices)
+            && !choices.EnumerateArray().Any(c => c.GetString() == value.GetString()))
+            return Wanted(spec);
+
+        return null;
+    }
+
+    /// <summary>What a value of this kind looks like, said plainly.</summary>
+    static string Wanted(JsonElement spec)
+    {
+        if (spec.TryGetProperty("enum", out JsonElement choices))
+            return "one of: " + string.Join(", ", choices.EnumerateArray().Select(c => c.GetString()));
+
+        return (spec.TryGetProperty("type", out JsonElement t) ? t.GetString() : "") switch
+        {
+            "integer" => "a whole number, such as 50",
+            "boolean" => "true or false",
+            "array" => "a list of strings, such as [\"a.cs\"]",
+            "object" => "an object",
+            _ => "text",
+        };
     }
 
     /// <summary>

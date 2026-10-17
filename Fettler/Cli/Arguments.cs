@@ -76,6 +76,9 @@ public sealed class Arguments
         "root", "config", "no-config", "json", "include-generated", "exclude",
         "help", "version",
 
+        // find, search and replace: where the last answer stopped
+        "after",
+
         // find
         "sort", "sort-modified", "since", "limit",
 
@@ -84,7 +87,7 @@ public sealed class Arguments
         "case-sensitive", "context", "count", "files-only", "no-documents",
 
         // read
-        "from", "to", "tail", "member", "numbered",
+        "from", "to", "tail", "member", "numbered", "column",
 
         // extract
         "into",
@@ -230,6 +233,23 @@ public sealed class Arguments
 
     public int Int(string name, int fallback) =>
         int.TryParse(Value(name), out int n) ? n : fallback;
+
+    /// <summary>The flags whose value is a whole number.</summary>
+    static readonly string[] WholeNumbers = ["limit", "from", "to", "tail", "context", "timeout", "column", "insert-after"];
+
+    /// <summary>
+    /// Whole-number flags given something else, spelt as given.
+    ///
+    /// <para><see cref="Int"/> falls back to a default on a value it
+    /// cannot read, so <c>--limit abc</c> used to search with the default
+    /// limit and say nothing. That is a wrong answer, not a failure, and
+    /// it is refused before anything runs for the reason an unknown flag
+    /// is.</para>
+    /// </summary>
+    public IReadOnlyList<string> NotWholeNumbers =>
+        [.. WholeNumbers
+            .Where(f => Has(f) && !valueless.Contains("--" + f) && !int.TryParse(Value(f), out _))
+            .Select(f => $"--{f} '{Value(f)}'")];
 
     public string? At(int index) => index < positional.Count ? positional[index] : null;
 

@@ -21,7 +21,7 @@ figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2
   <div class="row">
     <a class="phase" href="index.html"><img class="mark" src="media/brand/shoddy-icon.svg" alt="" width="23" height="23">Shoddy &middot; Fettler</a>
     <span class="spacer"></span>
-    <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
+    <nav class="docnav meta" aria-label="About"><a href="https://github.com/shoddymills/shoddy-fettler" class="tool">GitHub</a><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
   <div class="lanes"><nav class="docnav switch" aria-label="Programs"><span class="here">fettle<small>for files</small></span><a href="pick.html">pick<small>for data</small></a></nav><nav class="docnav main" aria-label="Documentation"><span class="here">Overview</span><a href="fettle-quickstart.html">Quick start</a><a href="fettle-tools.html">Tools</a><a href="fettle-guardrails.html">Guardrails</a><a href="fettle-screenings.html">Screenings</a><a href="fettle-install.html">Install</a><a href="fettle-reference.html">Reference</a></nav></div>
 </div></div>
@@ -64,7 +64,7 @@ figure.level figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem .2
 <tr><th>Property</th><th>What it means</th></tr>
 <tr><td><b>Batches are all or nothing</b></td><td>Fettler checks every edit in a batch before it changes a byte. If one edit cannot apply, none do, and the files stay as they were.</td></tr>
 <tr><td><b>Every answer is the next call&rsquo;s argument</b></td><td><code>search</code> returns the file, line and column. <code>read</code> numbers its lines and returns a <em>hash</em>, a short code worked out from the file&rsquo;s content. <code>edit</code> takes the hash back. If the file changed in between, the edit is refused and nothing is written.</td></tr>
-<tr><td><b>Answers have a fixed size limit</b></td><td>A read stops at 2,000 lines and at 40,000 characters a call. A declared task keeps the last 40,000 characters of its output. The answer says how much it left out. A large file cannot fill the model&rsquo;s context by accident.</td></tr>
+<tr><td><b>Answers have a fixed size limit</b></td><td>Every answer stops at 40,000 bytes, and a read also stops at 2,000 lines. An answer that stops short says where to carry on from. A declared task keeps the end of its output. A large file cannot fill the model&rsquo;s context by accident.</td></tr>
 <tr><td><b>It reads more than source</b></td><td>Notebooks as cells, spreadsheets as rows with their formulas, Word documents as paragraphs, PDFs as text per page, images as facts. It reads inside archives without unpacking them.</td></tr>
 <tr><td><b>It skips generated folders</b></td><td>Find and search leave out <code>bin</code>, <code>obj</code>, <code>.git</code>, <code>artifacts</code> and <code>node_modules</code> unless you ask for them.</td></tr>
 <tr><td><b>It finds the client&rsquo;s own folders</b></td><td>Fettler opens the assistant&rsquo;s scratch folder, its tool-results folder and its memory folder by itself. You declare nothing.</td></tr>

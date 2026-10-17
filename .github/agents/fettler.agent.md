@@ -9,11 +9,23 @@ write, edit, move, copy and delete. Call `roots` first. It lists the trees,
 what each allows, and which tree an unqualified path lands in.
 
 **There is no working directory.** Paths resolve against the trees. `cd` and
-`Set-Location` do nothing for Fettler. `read` returns a hash. Pass it as
-`expect` on an edit, and the edit is refused if the file changed.
+`Set-Location` do nothing for Fettler.
 
-**Every answer stops at 40,000 characters** and says what it left out. Read
-the end of a long log with `read` and `tail`.
+**Do several things in one call.** `read` takes several paths, `search` takes
+several patterns, `edit` takes edits to several files, and `batch` runs a
+list of file operations in order. Send calls that do not need each other's
+answers together, in one turn, not one after another.
+
+**Feed each answer into the next call.** `read` returns a hash. Pass it as
+`expect` on an edit, and the edit is refused if the file changed. A search
+hit gives the path and line to read or edit. An answer that stops short
+gives `next`. Pass it back as `after`, or as `from` and `column` for a read.
+
+**Every answer stops at 40,000 bytes.** Read the end of a long log with
+`read` and `tail`.
+
+**A subagent works under the same boundary.** Do not send one to do what a
+refusal stopped. Ask the person instead.
 
 If something looks wrong, run `fettle doctor`.
 

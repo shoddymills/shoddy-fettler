@@ -297,6 +297,41 @@ public sealed class FrontEndTests
         Assert.DoesNotContain("Flags for every verb", said.Stdout);
     }
 
+    /// <summary>
+    /// Found by the install script checking what it installed: run inside a
+    /// tree, <c>fettle --version</c> printed the help's <c>here:</c> levels
+    /// line first, because <c>--version</c> leaves no verb and "no verb"
+    /// was taken to be help. A script reading the first line got the levels
+    /// and reported them as the version. The answer is the version line and
+    /// nothing else, wherever it is run.
+    /// </summary>
+    [Theory]
+    [InlineData("--version")]
+    [InlineData("version")]
+    public void VersionInsideATreeIsTheVersionLineAlone(string spelling)
+    {
+        string fettle = Path.Combine(AppContext.BaseDirectory,
+            OperatingSystem.IsWindows() ? "fettle.exe" : "fettle");
+        if (!File.Exists(fettle)) return;
+
+        using var box = new Sandbox();
+        var start = new System.Diagnostics.ProcessStartInfo(fettle, spelling)
+        {
+            WorkingDirectory = box.Root,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+
+        using var process = System.Diagnostics.Process.Start(start)!;
+        string stdout = process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+
+        Assert.Equal(0, process.ExitCode);
+        Assert.Equal($"fettle {Command.Version}{Environment.NewLine}", stdout);
+    }
+
+
     [Fact]
     public async Task HelpIsStillTheAnswerWhenNothingWasAsked()
     {

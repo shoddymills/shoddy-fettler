@@ -26,7 +26,7 @@ figure.levelfig figcaption{color:var(--ink-soft); font-size:.88rem; margin:.7rem
   <div class="row">
     <a class="phase" href="index.html"><img class="mark" src="media/brand/shoddy-icon.svg" alt="" width="23" height="23">Shoddy &middot; Fettler</a>
     <span class="spacer"></span>
-    <nav class="docnav meta" aria-label="About"><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
+    <nav class="docnav meta" aria-label="About"><a href="https://github.com/shoddymills/shoddy-fettler" class="tool">GitHub</a><a href="https://shoddymills.github.io/shoddy/" class="tool">Shoddy</a><a href="heritage.html">Heritage</a><a href="authorship.html">Authorship</a></nav>
   </div>
   <div class="lanes"><nav class="docnav switch" aria-label="Programs"><a href="fettle-tools.html">fettle<small>for files</small></a><span class="here">pick<small>for data</small></span></nav><nav class="docnav main" aria-label="Documentation"><a href="pick.html">Overview</a><a href="pick-quickstart.html">Quick start</a><span class="here">Tools</span><a href="pick-guardrails.html">Guardrails</a><a href="pick-screenings.html">Screenings</a><a href="pick-install.html">Install</a><a href="pick-reference.html">Reference</a></nav></div>
 </div></div>
@@ -169,9 +169,9 @@ $ pick select "SELECT TOP 5 * FROM Sales.dbo.Customers"</code></pre></div>
 <tr><th>Cap</th><th>Limit</th><th>When it is reached</th></tr>
 <tr><td>rows from <code>select</code></td><td>100. <code>--limit N</code> changes it</td><td>the answer says it was cut and how to narrow the query</td></tr>
 <tr><td>characters in one cell</td><td>2,000</td><td>the cell is cut, and says how long it was</td></tr>
-<tr><td>characters in one answer</td><td>40,000</td><td>no more rows are added, and the answer says it was cut</td></tr>
+<tr><td>bytes in one answer</td><td>40,000, and 10,000 for a refusal</td><td>no more rows are added, and the answer says it was cut. A list gives <code>next</code> to carry on from</td></tr>
 <tr><td>time for one query</td><td>30 seconds</td><td>the query is stopped, with exit code 10, <code>timed-out</code></td></tr>
-<tr><td>objects from <code>objects</code></td><td>500</td><td>the list ends with <code>(truncated)</code></td></tr>
+<tr><td>objects from <code>objects</code></td><td>500</td><td>the list ends with <code>(truncated)</code> and gives <code>next</code></td></tr>
 </table>
 
 <h2 id="verbs">The five verbs</h2>

@@ -2,6 +2,7 @@
 # Put the fettle you just built where the machine will actually find it.
 #
 #   ./scripts/fettler-install.sh                  build, then install over the one on PATH
+#   ./scripts/fettler-install.sh 2.2.0            the same, stamped as version 2.2.0
 #   ./scripts/fettler-install.sh -To DIR          install into DIR instead
 #   ./scripts/fettler-install.sh -Stop            end the servers still on the old build
 #   ./scripts/fettler-install.sh -DryRun          say what would happen and touch nothing
@@ -58,11 +59,15 @@
 # client owns; nothing outside can hand it a new one. Install, then
 # reconnect from the client - in Claude Code that is /mcp.
 #
-# DO NOT RUN THIS THROUGH `fettle run`. With -Stop the task would be a
+# THE VERSION IS STAMPED, the way fettler-build.sh stamps a release: with
+# one given, the build carries it and the installed binary must report it,
+# or the install says so. Without one the build carries whatever
+# Directory.Build.props says, which is the development default.
+#
+# -STOP DOES NOT RUN THROUGH `fettle run`. With -Stop the task would be a
 # child of the very server it is ending, so the kill would take the task
 # with it before it could report what it did. It refuses when it sees
-# that, but a terminal is the right place for it regardless - which is
-# also why it is not a declared task.
+# that. Without -Stop it is an ordinary task, and a declared one works.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 root=$(pwd)
@@ -80,6 +85,7 @@ to=""
 program="fettle"
 do_stop=0
 dry_run=0
+version=""
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -87,13 +93,24 @@ while [ $# -gt 0 ]; do
         -Program) program="${2:-}"; shift 2 ;;
         -Stop)    do_stop=1; shift ;;
         -DryRun)  dry_run=1; shift ;;
+        # The version, exactly X.Y.Z as fettler-ship.sh takes it, and once.
+        # Anything else that is not a flag is refused below, so a typo in a
+        # version is not quietly installed as the development default.
+        [0-9]*.[0-9]*.[0-9]*)
+            [ -z "$version" ] || stop_with "two versions given: '$version' and '$1'." "Give one."
+            echo "$1" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' \
+                || stop_with "'$1' is not a version." "A version is exactly X.Y.Z, such as 2.2.0."
+            version="$1"; shift ;;
         # Refused rather than ignored, which is the rule fettle itself
         # keeps: a misspelt flag that takes a value swallows the argument
         # after it, and the run then proceeds with complete confidence.
         *) stop_with "'$1' is not an argument this takes." \
-                     "Take -To DIR, -Program NAME, -Stop, -DryRun." ;;
+                     "Take VERSION (X.Y.Z), -To DIR, -Program NAME, -Stop, -DryRun." ;;
     esac
 done
+
+stamp=""
+[ -n "$version" ] && stamp="-p:Version=$version"
 
 case "$program" in
     fettle|burler|pick) ;;
@@ -210,7 +227,7 @@ native=""
 [ "$program" = "burler" ] && native="-p:IncludeNativeLibrariesForSelfExtract=true"
 
 if [ "$dry_run" -eq 1 ]; then
-    announce "would publish $program for $rid, then install it to $destination"
+    announce "would publish $program ${version:-at the development version} for $rid, then install it to $destination"
     [ -e "$destination" ] && announce "would write $program.new-$$ beside it and rename that onto it"
     if [ -n "$running" ]; then
         if [ "$do_stop" -eq 1 ]; then
@@ -223,10 +240,10 @@ if [ "$dry_run" -eq 1 ]; then
     exit 0
 fi
 
-announce "> dotnet publish $program -c Release -r $rid --self-contained -p:PublishSingleFile=true"
+announce "> dotnet publish $program -c Release -r $rid --self-contained -p:PublishSingleFile=true $stamp"
 # shellcheck disable=SC2086
 dotnet publish "$program" -c Release -r "$rid" --self-contained \
-    -p:PublishSingleFile=true $native -o "$staging" \
+    -p:PublishSingleFile=true $native $stamp -o "$staging" \
     || stop_with "the build failed." "Nothing was installed."
 
 [ -f "$staged" ] || stop_with "the build produced no $program at $staged."
@@ -255,6 +272,16 @@ if ! reported=$("$destination" --version 2>&1); then
     stop_with "$destination ran but failed --version." "It said: $(printf '%s\n' "$reported" | head -n 1)"
 fi
 reported=$(printf '%s\n' "$reported" | head -n 1)
+
+# A version asked for is a version proved. The binary is already in place,
+# so this cannot undo the install; it says plainly that what landed is not
+# what was asked for.
+if [ -n "$version" ]; then
+    case "$reported" in
+        *" $version"|*" $version "*) ;;
+        *) stop_with "$destination was installed, but it reports '$reported', not $version." ;;
+    esac
+fi
 
 echo ""
 echo "installed $reported"

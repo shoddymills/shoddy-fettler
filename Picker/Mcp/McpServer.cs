@@ -31,6 +31,15 @@ public sealed class McpServer : IDisposable
     readonly SemaphoreSlim writing = new(1, 1);
     readonly ConcurrentDictionary<string, CancellationTokenSource> inFlight = new();
 
+    /// <summary>The refusals seen this session, by tool, outcome and the
+    /// shape of the message, for the one hint that applies to pick: the
+    /// same refusal again. Fettler's run and hand-off hints have no
+    /// counterpart here, because pick has no form that takes several of
+    /// anything, and its "not there" is deliberately the same for a
+    /// hidden object and a missing one.</summary>
+    readonly HashSet<string> refusals = new(StringComparer.Ordinal);
+    readonly object hinting = new();
+
     /// <summary>
     /// <paramref name="reload"/> is the per-request re-read of the
     /// boundary: called before every tools/call, and its answer is the
@@ -184,6 +193,8 @@ public sealed class McpServer : IDisposable
                 .InvokeAsync(boundary, name, arguments, source.Token, e => failed = e)
                 .ConfigureAwait(false);
 
+            string? hint = answer.IsOk && failed ? Again(name, answer.Value) : null;
+
             // A failed tool is a successful protocol message carrying
             // isError, not a JSON-RPC error: the model is meant to read
             // the reason and try something else.
@@ -195,6 +206,13 @@ public sealed class McpServer : IDisposable
                 w.WriteString("type", "text");
                 w.WriteString("text", answer.IsOk ? answer.Value : Describe(answer.Failure!));
                 w.WriteEndObject();
+                if (hint is not null)
+                {
+                    w.WriteStartObject();
+                    w.WriteString("type", "text");
+                    w.WriteString("text", hint);
+                    w.WriteEndObject();
+                }
                 w.WriteEndArray();
                 if (!answer.IsOk || failed) w.WriteBoolean("isError", true);
                 w.WriteEndObject();
@@ -209,6 +227,31 @@ public sealed class McpServer : IDisposable
             snapshot?.Dispose();
             inFlight.TryRemove(key, out _);
         }
+    }
+
+    /// <summary>The hint for a refusal already seen this session, or
+    /// null. The parts of a message that differ between two calls of the
+    /// same kind - quoted names, paths, numbers - are taken out before
+    /// comparing.</summary>
+    string? Again(string tool, string answer)
+    {
+        string outcome = "", message = answer;
+        try
+        {
+            using JsonDocument doc = JsonDocument.Parse(answer);
+            if (doc.RootElement.TryGetProperty("outcome", out JsonElement o)) outcome = o.GetString() ?? "";
+            if (doc.RootElement.TryGetProperty("message", out JsonElement m)) message = m.GetString() ?? "";
+        }
+        catch (JsonException) { }
+
+        string shape = System.Text.RegularExpressions.Regex.Replace(message, "'[^']*'|\"[^\"]*\"|`[^`]*`", "X");
+        shape = System.Text.RegularExpressions.Regex.Replace(shape, @"[\w.\[\]-]*\.[\w.\[\]-]+", "N");
+        shape = System.Text.RegularExpressions.Regex.Replace(shape, @"\d[\d,]*", "N");
+
+        lock (hinting)
+            return refusals.Add($"{tool} {outcome} {shape}")
+                ? null
+                : "hint: this call was refused the same way earlier in this session.";
     }
 
     /// <summary>
@@ -226,6 +269,9 @@ public sealed class McpServer : IDisposable
         + "describe (columns, keys and indexes; never a view's definition text) and "
         + "objects (what is here). A column can be hidden; a hidden column does not "
         + "exist, and SELECT * expands to the columns that do. "
+        + "Every answer stops at 40,000 bytes; a listing that stops short gives next, to pass back as after. "
+        + "A subagent works under the same boundary: do not send one to do what a refusal stopped; "
+        + "ask the person instead. "
         + $"{ConfigFile.FileName} and {ConfigFile.LocalFileName} say what this tool may do. "
         + "The tool does not write them; a person edits them, and an edit applies on the next call.";
 
