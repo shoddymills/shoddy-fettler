@@ -1113,10 +1113,11 @@ public static partial class Command
           search PATTERN [-e PATTERN]... [--glob G] [--literal] [--case-sensitive]
                  [--context N] [--limit N] [--count] [--files-only] [--no-documents]
                  [--pattern-file PATH] [--pattern-stdin] [--after NEXT]
-          read PATH... [--from N] [--to N] [--tail N] [--column N] [--member NAME]
-                 [--numbered]
+          read PATH[:FROM[-TO]]... [--from N] [--to N] [--tail N] [--column N]
+                 [--member NAME] [--numbered]
                  Text, notebooks, PDFs, spreadsheets, Word, images, archives. Stops at
-                 2000 lines a call. --to lifts the line cap.
+                 2000 lines a call. --to lifts the line cap. --from and --to apply to
+                 every path; a path may carry its own range instead, as a search hit does.
           Every answer stops at 40,000 bytes, and 10,000 for a refusal. An answer
           that stops short gives its next: --after NEXT, or --from N [--column N].
           A line too long for one answer comes back in pieces. One image a call.

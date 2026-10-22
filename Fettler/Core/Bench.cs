@@ -56,6 +56,11 @@ public sealed record SearchRequest(
 /// <para><c>Tail</c> with <c>From</c> or <c>To</c> is refused rather than
 /// resolved by precedence: the end of the file and a named range are two
 /// different questions, and picking one silently answers the other.</para>
+///
+/// <para>A path may end in <c>:FROM</c> or <c>:FROM-TO</c>, a range of its
+/// own: see <see cref="ReadRange"/>. <c>From</c>, <c>To</c>, <c>Tail</c> and
+/// <c>Column</c> apply to every path, so a call that gives one of them and
+/// a path with its own range is refused rather than ranked.</para>
 /// </summary>
 public sealed record ReadRequest(
     IReadOnlyList<string> Paths, int? From = null, int? To = null, int? Tail = null,
@@ -434,12 +439,26 @@ public sealed class Bench : IDisposable
 
         IMeter meter = request.Meter ?? PlainMeter.Default;
 
-        var paths = new List<ContainedPath>(request.Paths.Count);
+        // A path may carry its own range, PATH:FROM or PATH:FROM-TO, the
+        // form a search hit already has. A range on a path and a range
+        // for the call are two answers to one question, so together they
+        // are refused rather than ranked, as tail with from is.
+        bool callRange = request.From is not null || request.To is not null
+                         || request.Tail is not null || request.Column is not null;
+
+        var paths = new List<(ContainedPath Path, RangedPath Given)>(request.Paths.Count);
         foreach (string given in request.Paths)
         {
-            Result<ContainedPath> path = Roots.Resolve(given, Permission.Read);
+            Result<RangedPath> ranged = ReadRange.Split(given);
+            if (!ranged.IsOk) return ranged.Carry<IReadOnlyList<ReadSlice>>();
+
+            if (ranged.Value.From is not null && callRange)
+                return Result<IReadOnlyList<ReadSlice>>.Fail(Outcome.Invalid,
+                    $"'{given}' carries its own range, which cannot be combined with from, to, tail or column");
+
+            Result<ContainedPath> path = Roots.Resolve(ranged.Value.Path, Permission.Read);
             if (!path.IsOk) return path.Carry<IReadOnlyList<ReadSlice>>();
-            paths.Add(path.Value);
+            paths.Add((path.Value, ranged.Value));
         }
 
         // One budget for the call, spent in the order the caller named the
@@ -447,7 +466,7 @@ public sealed class Bench : IDisposable
         // first is what lets a path that gets no lines still say where to
         // start. See <see cref="Budget"/>.
         int budget = meter.Room;
-        foreach (ContainedPath path in paths) budget -= meter.Slice(path, int.MaxValue);
+        foreach ((ContainedPath path, _) in paths) budget -= meter.Slice(path, int.MaxValue);
 
         if (budget <= 0)
             return Result<IReadOnlyList<ReadSlice>>.Fail(Outcome.Invalid,
@@ -456,9 +475,13 @@ public sealed class Bench : IDisposable
         var slices = new List<ReadSlice>(paths.Count);
         bool imageSent = false;
 
-        foreach (ContainedPath path in paths)
+        foreach ((ContainedPath path, RangedPath given) in paths)
         {
-            Result<ReadSlice> one = ReadOne(path, request, meter, ref budget, ref imageSent);
+            ReadRequest wanted = given.From is { } start
+                ? request with { From = start, To = given.To }
+                : request;
+
+            Result<ReadSlice> one = ReadOne(path, wanted, meter, ref budget, ref imageSent);
             if (!one.IsOk) return one.Carry<IReadOnlyList<ReadSlice>>();
 
             if (Judge(one.Value, path) is { } refused)
@@ -631,11 +654,39 @@ public sealed class Bench : IDisposable
         }
         else
         {
-            from = Math.Max(1, request.From ?? 1);
-            to = request.To ?? Math.Min(file.LineCount, from + DefaultLineCap - 1);
-            to = Math.Min(file.LineCount, to);
+            // Checked against the file before it is clamped to the file.
+            // Clamped first, a from past the end had the range's end
+            // pulled down to the last line, below from, and the empty
+            // range was served with truncated false and no next: the
+            // shape of a complete read, for lines the file does not have.
+            // The caller took the empty text for the file's content and
+            // carried on.
+            if (request.From is < 1)
+                return Result<ReadSlice>.Fail(Outcome.Invalid, "from counts from 1", path.Display);
+
+            from = request.From ?? 1;
+
+            // Line 1 of an empty file is a place: its start. Past that, a
+            // from names a line the file does not have.
+            if (from > Math.Max(1, file.LineCount))
+                return Result<ReadSlice>.Fail(Outcome.Invalid,
+                    $"from {from} is past the end of the file, which has {file.LineCount} line(s)",
+                    path.Display);
+
+            // A to below from served nothing too, with a next that pointed
+            // back at from, so a caller following next with the same to
+            // never moved. A range runs forwards or it is refused, as an
+            // edit's is.
+            if (request.To is { } asked && asked < from)
+                return Result<ReadSlice>.Fail(Outcome.Invalid,
+                    $"to {asked} is before from {from}; a range runs forwards",
+                    path.Display);
+
+            to = Math.Min(file.LineCount, request.To ?? from + DefaultLineCap - 1);
         }
 
+        // Only an empty file read from its start arrives here with to
+        // below from: line 1 of no lines. It is served as what it is.
         if (to < from) to = from - 1;
 
         // One past the last character is a place: the line's ending, when
