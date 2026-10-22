@@ -238,9 +238,17 @@ public sealed class Hints
             return list;
         }
 
-        public List<string> Paths => List("paths");
-        public int? From => Int("from");
-        public int? To => Int("to");
+        /// <summary>The paths, each without the range it may carry.</summary>
+        public List<string> Paths =>
+            [.. List("paths").Select(p => ReadRange.Split(p) is { IsOk: true } r ? r.Value.Path : p)];
+
+        /// <summary>The range the one path of a read carries, when there is
+        /// one path and it carries one.</summary>
+        RangedPath? Own =>
+            List("paths") is [string only] && ReadRange.Split(only) is { IsOk: true } r ? r.Value : null;
+
+        public int? From => Int("from") ?? Own?.From;
+        public int? To => Int("to") ?? Own?.To;
 
         /// <summary>The files an edit names, each with its expect.</summary>
         public List<(string Path, string? Expect)> Edits

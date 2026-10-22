@@ -296,6 +296,7 @@ public sealed class DefectTests
         }
 
         Assert.Contains("relative to a declared tree", Description("find"));
+        Assert.Contains("past the end of any file is refused", Description("read"));
         Assert.Contains("only inside the declared trees", Description("search"));
         Assert.Contains("what each allows", Description("roots"));
         Assert.Contains("never a default", Description("run"));
@@ -540,5 +541,59 @@ public sealed class DefectTests
         Assert.Equal(ExitCodes.Ok, tasks.ExitCode);
         Assert.DoesNotContain("regenerate-allcmd", tasks.Stdout);
         Assert.Contains("regenerate-all  ", tasks.Stdout);
+    }
+
+    // ---- a read with from past the end of one path answered nothing and said ok ----
+
+    /// <summary>
+    /// Two files read in one call, with from set for the longer one. The
+    /// shorter file had 111 lines and from was 166. Its slice came back
+    /// with empty text, truncated false and no next, which is the shape
+    /// of a complete read, and the assistant took the empty text for the
+    /// file's content and carried on.
+    ///
+    /// <para>The range was clamped to the file before it was checked
+    /// against it. The check comes first now, and a from the file does
+    /// not have refuses the whole call, naming the file and its line
+    /// count, as a path that is not there already does.</para>
+    /// </summary>
+    [Fact]
+    public async Task AFromPastTheEndOfOnePathRefusesTheWholeReadAndNamesTheFile()
+    {
+        using var box = new Sandbox();
+        box.Write("long.txt", string.Concat(Enumerable.Range(1, 20).Select(i => $"line {i}\n")));
+        box.Write("short.txt", "one\ntwo\nthree\n");
+        using var server = new McpServer(box.Bench, TextReader.Null, TextWriter.Null);
+
+        string? reply = await server.AnswerAsync("""
+            {"jsonrpc":"2.0","id":1,"method":"tools/call",
+             "params":{"name":"read","arguments":{"paths":["long.txt","short.txt"],"from":10,"to":11}}}
+            """);
+
+        JsonElement result = JsonDocument.Parse(reply!).RootElement.GetProperty("result");
+        Assert.True(result.GetProperty("isError").GetBoolean());
+
+        string text = result.GetProperty("content")[0].GetProperty("text").GetString()!;
+        JsonElement payload = JsonDocument.Parse(text).RootElement;
+
+        Assert.False(payload.GetProperty("ok").GetBoolean());
+        Assert.Equal("invalid", payload.GetProperty("outcome").GetString());
+        Assert.Contains("from 10 is past the end", payload.GetProperty("message").GetString());
+        Assert.Contains("3 line", payload.GetProperty("message").GetString());
+        Assert.Contains("short.txt", payload.GetProperty("path").GetString());
+    }
+
+    [Fact]
+    public async Task TheCommandLineRefusesTheSameReadWithExitTwo()
+    {
+        using var box = new Sandbox();
+        box.Write("long.txt", string.Concat(Enumerable.Range(1, 20).Select(i => $"line {i}\n")));
+        box.Write("short.txt", "one\ntwo\nthree\n");
+
+        CliResult refused = await Run(box, "read", "long.txt", "short.txt", "--from", "10", "--to", "11");
+
+        Assert.Equal(ExitCodes.Invalid, refused.ExitCode);
+        Assert.Contains("from 10 is past the end", refused.Stdout + refused.Stderr);
+        Assert.Contains("short.txt", refused.Stdout + refused.Stderr);
     }
 }

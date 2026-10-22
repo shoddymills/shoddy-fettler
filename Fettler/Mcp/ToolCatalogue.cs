@@ -31,7 +31,7 @@ public static class ToolCatalogue
               "in":{"type":"string","description":"which tree to search when more than one is open"},
               "sort":{"type":"string","enum":["path","mtime"]},
               "since":{"type":"string","description":"ISO-8601; only files modified after it"},
-              "limit":{"type":"integer"},
+              "limit":{"type":"integer","description":"0 means no limit"},
               "after":{"type":"string","description":"the next the last answer gave; the listing starts after it"},
               "include_generated":{"type":"boolean","description":"include bin, obj, .git, artifacts and node_modules"},
               "exclude":{"type":"array","items":{"type":"string"}}
@@ -46,7 +46,7 @@ public static class ToolCatalogue
               "literal":{"type":"boolean"},
               "case_sensitive":{"type":"boolean"},
               "context":{"type":"integer"},
-              "limit":{"type":"integer"},
+              "limit":{"type":"integer","description":"0 means no limit"},
               "count":{"type":"boolean","description":"return counts only, no hits"},
               "files_only":{"type":"boolean"},
               "after":{"type":"string","description":"the next the last answer gave: PATH:LINE, or PATH with files_only"},
@@ -55,11 +55,11 @@ public static class ToolCatalogue
             }}
             """),
 
-        new("read", "Read files. Returns content, encoding, line ending, trailing-newline state and a content hash. Takes several paths in one call: read every file you need at once. Reads notebooks as cells, PDFs as text per page, spreadsheets as rows with their formulas, Word documents as paragraphs and tables, and images as facts plus the image itself. Rendered documents cannot be written back. Stops at 2000 lines unless `to` says otherwise, and at 40,000 bytes per call. An answer that stops short gives next: pass its from, and its column when it has one, for the rest. A line too long for one answer comes back in pieces. One image per call, and none over 5 MB. Use `tail` for the end of a log. With `numbered`, each line starts with its number and a bar, which is a rendering and not the file's content, so leave that prefix out of an edit. When screenings are on, a read that would disclose a screened category is refused.", """
+        new("read", "Read files. Returns content, encoding, line ending, trailing-newline state and a content hash. Takes several paths in one call: read every file you need at once. A path may carry its own range, PATH:FROM or PATH:FROM-TO, which is the form of a search hit. `from` and `to` apply to every path without one. A `from` past the end of any file is refused, and so is a `to` before `from`. Reads notebooks as cells, PDFs as text per page, spreadsheets as rows with their formulas, Word documents as paragraphs and tables, and images as facts plus the image itself. Rendered documents cannot be written back. Stops at 2000 lines unless `to` says otherwise, and at 40,000 bytes per call. An answer that stops short gives next: pass its from, and its column when it has one, for the rest. A line too long for one answer comes back in pieces. One image per call, and none over 5 MB. Use `tail` for the end of a log. With `numbered`, each line starts with its number and a bar, which is a rendering and not the file's content, so leave that prefix out of an edit. When screenings are on, a read that would disclose a screened category is refused.", """
             {"type":"object","required":["paths"],"properties":{
-              "paths":{"type":"array","items":{"type":"string"}},
+              "paths":{"type":"array","items":{"type":"string"},"description":"each a path, or PATH:FROM or PATH:FROM-TO for a range of it"},
               "numbered":{"type":"boolean","description":"start each line with its number and a bar"},
-              "from":{"type":"integer"},
+              "from":{"type":"integer","description":"first line to read, for every path. Not with a path that carries its own range."},
               "to":{"type":"integer","description":"last line to read; lifts the 2000-line default. The 40,000-byte limit per call still applies."},
               "column":{"type":"integer","description":"the column the first line starts at, from next.column. Not combinable with tail."},
               "tail":{"type":"integer","description":"read the last n lines. Not combinable with from or to."},

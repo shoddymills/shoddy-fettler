@@ -11,17 +11,13 @@
           "cancelled":  { "can": [] },
           "completed":  { "can": [] }
         }
-      },
-      "logs": {
-        "path": "/Users/stephen/.claude/projects",
-        "can": ["list", "read"]
       }
     },
     "replacements": {
       "feature-branch":  "pool",
-      "bug-branch":      "pool01",
-      "release-version": "2.2.0",
-      "commit-note":     "Adding hints to help the assistant; improving glob searching to reduce rejects; a few bug fixes."
+      "bug-branch":      "pool03",
+      "release-version": "2.2.1",
+      "commit-note":     "Each edit or find in a batch needs its on starting point."
     }
   }
 }

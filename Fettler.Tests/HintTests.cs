@@ -193,6 +193,21 @@ public sealed class HintTests
             (await s.Call("read", new { paths = new[] { "big.txt" }, from = 45, to = 55 })).Hint);
     }
 
+    /// <summary>The same read with the range on the path, which is how a
+    /// hit arrives, so the rule sees the range either way.</summary>
+    [Fact]
+    public async Task ANarrowReadAroundAHitIsHintedWhenTheRangeIsOnThePath()
+    {
+        using var box = new Sandbox();
+        box.Write("big.txt", string.Concat(Enumerable.Range(1, 100).Select(i => i == 50 ? "needle\n" : $"line {i}\n")));
+        using var s = new Session(box);
+
+        await s.Call("search", new { patterns = new[] { "needle" } });
+        Assert.Equal("hint: this read covered the lines around a hit from the search before it. "
+                     + "search takes context N to return them with the hit.",
+            (await s.Call("read", new { paths = new[] { "big.txt:45-55" } })).Hint);
+    }
+
     // ---- 8 and 9: refusals ----
 
     [Fact]
@@ -207,6 +222,31 @@ public sealed class HintTests
 
         Assert.Equal("hint: this call was refused the same way earlier in this session.",
             (await s.Call("read", new { paths = new[] { "gone.txt" } })).Hint);
+    }
+
+    /// <summary>
+    /// A read with from past the end of one path once answered empty
+    /// text and said ok, and its repeat was hinted as the same lines of
+    /// a file that had none. It is a refusal now, and the repeat is
+    /// hinted as the refusal it is.
+    /// </summary>
+    [Fact]
+    public async Task ARepeatedReadPastTheEndIsHintedAsARepeatedRefusal()
+    {
+        using var box = new Sandbox();
+        box.Write("long.txt", string.Concat(Enumerable.Range(1, 20).Select(i => $"line {i}\n")));
+        box.Write("short.txt", "one\ntwo\nthree\n");
+        using var s = new Session(box);
+
+        var call = new { paths = new[] { "long.txt", "short.txt" }, from = 10, to = 11 };
+
+        var first = await s.Call("read", call);
+        Assert.True(first.IsError, first.Text);
+        Assert.Null(first.Hint);
+
+        var again = await s.Call("read", call);
+        Assert.True(again.IsError);
+        Assert.Equal("hint: this call was refused the same way earlier in this session.", again.Hint);
     }
 
     [Fact]
